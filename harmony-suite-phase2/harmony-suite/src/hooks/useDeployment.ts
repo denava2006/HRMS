@@ -45,11 +45,14 @@ export type DeploymentApplication = Tables<'applications'> & {
     | null
   job_offers: JobOfferRecord[]
   interviews: InterviewRecord[]
-  deployment_records: DeploymentRecordRow[]
+  // application_id carries its own UNIQUE constraint, so PostgREST treats this
+  // as a one-to-one relation (a single row or null) rather than an array —
+  // unlike job_offers/interviews, which are genuinely one-to-many.
+  deployment_records: DeploymentRecordRow | null
 }
 
-function byCreatedAtDesc<T extends { created_at: string }>(rows: T[]): T[] {
-  return [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at))
+function byCreatedAtDesc<T extends { created_at: string }>(rows: T[] | null | undefined): T[] {
+  return [...(rows ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))
 }
 
 export function getLatestOffer(app: DeploymentApplication): JobOfferRecord | null {
@@ -62,11 +65,11 @@ export function getLatestContract(offer: JobOfferRecord | null): ContractRecord 
 }
 
 export function getFinalInterview(app: DeploymentApplication): InterviewRecord | null {
-  return app.interviews.find((i) => i.interview_type === ('final' as InterviewType)) ?? null
+  return (app.interviews ?? []).find((i) => i.interview_type === ('final' as InterviewType)) ?? null
 }
 
 export function getDeploymentRecord(app: DeploymentApplication): DeploymentRecordRow | null {
-  return app.deployment_records[0] ?? null
+  return app.deployment_records ?? null
 }
 
 const LIST_KEY = ['deployment-applications']
