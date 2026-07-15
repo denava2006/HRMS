@@ -25,7 +25,7 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Recruitment', to: '/dashboard/recruitment/job-postings', icon: Briefcase },
+  { label: 'Job Posting', to: '/dashboard/recruitment/job-postings', icon: Briefcase },
   { label: 'Employees', to: '/dashboard/employees', icon: Users, disabled: true },
   { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock, disabled: true },
   { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck, disabled: true },
