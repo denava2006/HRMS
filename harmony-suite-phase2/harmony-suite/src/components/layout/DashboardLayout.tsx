@@ -5,6 +5,8 @@ import { Navbar } from '@/components/layout/Navbar'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
+  '/dashboard/job-postings': 'Job Postings',
+  '/dashboard/recruitment': 'Recruitment',
   '/dashboard/admin/accounts': 'HR Accounts',
   '/dashboard/admin/departments': 'Departments',
   '/dashboard/admin/positions': 'Positions',

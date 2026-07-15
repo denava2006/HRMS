@@ -3,6 +3,9 @@ import {
   LayoutDashboard,
   Users,
   Briefcase,
+  ClipboardList,
+  CalendarSearch,
+  Truck,
   Building2,
   Layers,
   DollarSign,
@@ -25,7 +28,10 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Job Posting', to: '/dashboard/recruitment/job-postings', icon: Briefcase },
+  { label: 'Job Posting', to: '/dashboard/job-postings', icon: Briefcase },
+  { label: 'Recruitment', to: '/dashboard/recruitment', icon: ClipboardList },
+  { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch, disabled: true },
+  { label: 'Deployment', to: '/dashboard/deployment', icon: Truck, disabled: true },
   { label: 'Employees', to: '/dashboard/employees', icon: Users, disabled: true },
   { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock, disabled: true },
   { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck, disabled: true },

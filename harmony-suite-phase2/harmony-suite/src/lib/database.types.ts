@@ -57,39 +57,99 @@ export type Database = {
         }
         Relationships: []
       }
+      application_history: {
+        Row: {
+          actor_id: string | null
+          application_id: string
+          created_at: string
+          event: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          application_id: string
+          created_at?: string
+          event: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          application_id?: string
+          created_at?: string
+          event?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_history_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           applicant_id: string
+          certifications: string | null
           created_at: string
+          education: string | null
           id: string
           job_posting_id: string
           notes: string | null
+          overall_assessment: string | null
+          rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          skills: string | null
           status: Database["public"]["Enums"]["application_status"]
           updated_at: string
+          work_experience: string | null
         }
         Insert: {
           applicant_id: string
+          certifications?: string | null
           created_at?: string
+          education?: string | null
           id?: string
           job_posting_id: string
           notes?: string | null
+          overall_assessment?: string | null
+          rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          skills?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
+          work_experience?: string | null
         }
         Update: {
           applicant_id?: string
+          certifications?: string | null
           created_at?: string
+          education?: string | null
           id?: string
           job_posting_id?: string
           notes?: string | null
+          overall_assessment?: string | null
+          rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          skills?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
+          work_experience?: string | null
         }
         Relationships: [
           {

@@ -14,6 +14,7 @@ import SalaryGradesPage from '@/pages/admin/SalaryGradesPage'
 import SettingsPage from '@/pages/admin/SettingsPage'
 import HrAccountsPage from '@/pages/admin/HrAccountsPage'
 import JobPostingsPage from '@/pages/recruitment/JobPostingsPage'
+import RecruitmentPage from '@/pages/recruitment/RecruitmentPage'
 import HomePage from '@/pages/public/HomePage'
 import CareersPage from '@/pages/public/CareersPage'
 import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
@@ -56,7 +57,8 @@ export default function App() {
             >
               <Route index element={<DashboardHome />} />
 
-              <Route path="recruitment/job-postings" element={<JobPostingsPage />} />
+              <Route path="job-postings" element={<JobPostingsPage />} />
+              <Route path="recruitment" element={<RecruitmentPage />} />
 
               <Route
                 path="admin/accounts"

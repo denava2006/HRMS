@@ -24,6 +24,8 @@ interface DataTableProps<TData, TValue> {
   emptyTitle?: string
   emptyDescription?: string
   toolbarAction?: React.ReactNode
+  /** When provided, rows become clickable (e.g. to open a details view) and get a pointer cursor. */
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -35,9 +37,21 @@ export function DataTable<TData, TValue>({
   emptyTitle = 'Nothing here yet',
   emptyDescription,
   toolbarAction,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = React.useState('')
+
+  // Columns whose id starts with "_" are search-only helpers (e.g. a combined
+  // name+email+position string for multi-field search) — registered so
+  // getValue() can read them, but never rendered as a visible column.
+  const hiddenColumnVisibility = React.useMemo(
+    () =>
+      Object.fromEntries(
+        columns.filter((c) => 'id' in c && c.id?.startsWith('_')).map((c) => [c.id as string, false])
+      ),
+    [columns]
+  )
 
   const table = useReactTable({
     data,
@@ -56,8 +70,10 @@ export function DataTable<TData, TValue>({
       }
       return Object.values(row.original as object).some((v) => String(v ?? '').toLowerCase().includes(search))
     },
-    initialState: { pagination: { pageSize: 10 } },
+    initialState: { pagination: { pageSize: 10 }, columnVisibility: hiddenColumnVisibility },
   })
+
+  const visibleColumnCount = table.getVisibleLeafColumns().length
 
   return (
     <div className="flex flex-col gap-4">
@@ -101,7 +117,7 @@ export function DataTable<TData, TValue>({
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {columns.map((_, j) => (
+                {Array.from({ length: visibleColumnCount }).map((_, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-5 w-full max-w-40" />
                   </TableCell>
@@ -110,7 +126,11 @@ export function DataTable<TData, TValue>({
             ))
           ) : table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                className={onRowClick ? 'cursor-pointer' : undefined}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                 ))}
@@ -118,7 +138,7 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-32 text-center">
+              <TableCell colSpan={visibleColumnCount} className="h-32 text-center">
                 <p className="font-medium text-foreground">{emptyTitle}</p>
                 {emptyDescription && <p className="mt-1 text-sm text-muted-foreground">{emptyDescription}</p>}
               </TableCell>
