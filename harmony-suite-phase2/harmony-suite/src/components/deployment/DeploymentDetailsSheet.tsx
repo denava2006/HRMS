@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Mail,
   Phone,
@@ -161,6 +162,7 @@ export function DeploymentDetailsSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const navigate = useNavigate()
   const { data: application, isLoading } = useDeploymentApplicationDetail(applicationId ?? undefined)
   const { data: history } = useApplicationHistory(applicationId ?? undefined)
   const respondToOffer = useRespondToOffer()
@@ -196,7 +198,7 @@ export function DeploymentDetailsSheet({
       { applicationId, contractId: contract.id },
       {
         onSuccess: () => {
-          window.open(`/dashboard/deployment/${applicationId}/contract`, '_blank')
+          navigate(`/dashboard/deployment/${applicationId}/contract`)
         },
       }
     )
@@ -347,7 +349,7 @@ export function DeploymentDetailsSheet({
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(`/dashboard/deployment/${applicationId}/contract`, '_blank')}
+                              onClick={() => navigate(`/dashboard/deployment/${applicationId}/contract`)}
                             >
                               <Printer className="h-3.5 w-3.5" />
                               View / Print
