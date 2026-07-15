@@ -31,7 +31,7 @@ const mainNav: NavItem[] = [
   { label: 'Job Posting', to: '/dashboard/job-postings', icon: Briefcase },
   { label: 'Recruitment', to: '/dashboard/recruitment', icon: ClipboardList },
   { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch },
-  { label: 'Deployment', to: '/dashboard/deployment', icon: Truck, disabled: true },
+  { label: 'Deployment', to: '/dashboard/deployment', icon: Truck },
   { label: 'Employees', to: '/dashboard/employees', icon: Users, disabled: true },
   { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock, disabled: true },
   { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck, disabled: true },
@@ -79,7 +79,7 @@ export function Sidebar() {
   const { profile } = useAuth()
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex print:hidden">
       <div className="flex h-16 items-center gap-2 border-b border-border px-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground">
           H

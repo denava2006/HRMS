@@ -7,6 +7,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/dashboard/job-postings': 'Job Postings',
   '/dashboard/recruitment': 'Recruitment',
+  '/dashboard/interviews': 'Interview Management',
+  '/dashboard/deployment': 'Deployment',
   '/dashboard/admin/accounts': 'HR Accounts',
   '/dashboard/admin/departments': 'Departments',
   '/dashboard/admin/positions': 'Positions',
@@ -19,11 +21,11 @@ export function DashboardLayout() {
   const title = PAGE_TITLES[location.pathname] ?? 'Harmony Suite'
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background print:h-auto print:overflow-visible">
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
         <Navbar title={title} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 6 }}

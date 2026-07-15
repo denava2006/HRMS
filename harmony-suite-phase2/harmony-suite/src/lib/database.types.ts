@@ -281,6 +281,66 @@ export type Database = {
         }
         Relationships: []
       }
+      deployment_records: {
+        Row: {
+          application_id: string
+          assigned_branch: string | null
+          created_at: string
+          deployed_by: string | null
+          deployment_date: string
+          employment_status: Database["public"]["Enums"]["employment_status"]
+          id: string
+          remarks: string | null
+          reporting_manager: string | null
+          reporting_time: string | null
+          updated_at: string
+          work_location: string | null
+        }
+        Insert: {
+          application_id: string
+          assigned_branch?: string | null
+          created_at?: string
+          deployed_by?: string | null
+          deployment_date: string
+          employment_status?: Database["public"]["Enums"]["employment_status"]
+          id?: string
+          remarks?: string | null
+          reporting_manager?: string | null
+          reporting_time?: string | null
+          updated_at?: string
+          work_location?: string | null
+        }
+        Update: {
+          application_id?: string
+          assigned_branch?: string | null
+          created_at?: string
+          deployed_by?: string | null
+          deployment_date?: string
+          employment_status?: Database["public"]["Enums"]["employment_status"]
+          id?: string
+          remarks?: string | null
+          reporting_manager?: string | null
+          reporting_time?: string | null
+          updated_at?: string
+          work_location?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_records_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_records_deployed_by_fkey"
+            columns: ["deployed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_documents: {
         Row: {
           document_type: string
@@ -423,33 +483,48 @@ export type Database = {
       }
       employment_contracts: {
         Row: {
+          additional_notes: string | null
+          company_policies: string | null
           contract_file_url: string | null
           created_at: string
           id: string
           job_offer_id: string
           signed_at: string | null
+          signed_by: string | null
+          signing_notes: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["contract_status"]
+          terms: string | null
           updated_at: string
         }
         Insert: {
+          additional_notes?: string | null
+          company_policies?: string | null
           contract_file_url?: string | null
           created_at?: string
           id?: string
           job_offer_id: string
           signed_at?: string | null
+          signed_by?: string | null
+          signing_notes?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["contract_status"]
+          terms?: string | null
           updated_at?: string
         }
         Update: {
+          additional_notes?: string | null
+          company_policies?: string | null
           contract_file_url?: string | null
           created_at?: string
           id?: string
           job_offer_id?: string
           signed_at?: string | null
+          signed_by?: string | null
+          signing_notes?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["contract_status"]
+          terms?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -458,6 +533,13 @@ export type Database = {
             columns: ["job_offer_id"]
             isOneToOne: false
             referencedRelation: "job_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_signed_by_fkey"
+            columns: ["signed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -601,34 +683,67 @@ export type Database = {
       }
       job_offers: {
         Row: {
+          additional_compensation: string | null
           application_id: string
+          benefits: string | null
           created_at: string
+          currency: string
+          employment_type: Database["public"]["Enums"]["employment_type"]
           id: string
+          notes: string | null
           offer_date: string
+          prepared_by: string | null
+          probation_period: string | null
           proposed_salary: number
           responded_at: string | null
+          salary_grade_id: string | null
+          start_date: string | null
           status: Database["public"]["Enums"]["offer_status"]
           updated_at: string
+          working_days: string | null
+          working_hours: string | null
         }
         Insert: {
+          additional_compensation?: string | null
           application_id: string
+          benefits?: string | null
           created_at?: string
+          currency?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           id?: string
+          notes?: string | null
           offer_date?: string
+          prepared_by?: string | null
+          probation_period?: string | null
           proposed_salary: number
           responded_at?: string | null
+          salary_grade_id?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["offer_status"]
           updated_at?: string
+          working_days?: string | null
+          working_hours?: string | null
         }
         Update: {
+          additional_compensation?: string | null
           application_id?: string
+          benefits?: string | null
           created_at?: string
+          currency?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           id?: string
+          notes?: string | null
           offer_date?: string
+          prepared_by?: string | null
+          probation_period?: string | null
           proposed_salary?: number
           responded_at?: string | null
+          salary_grade_id?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["offer_status"]
           updated_at?: string
+          working_days?: string | null
+          working_hours?: string | null
         }
         Relationships: [
           {
@@ -636,6 +751,20 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_offers_prepared_by_fkey"
+            columns: ["prepared_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_offers_salary_grade_id_fkey"
+            columns: ["salary_grade_id"]
+            isOneToOne: false
+            referencedRelation: "salary_grades"
             referencedColumns: ["id"]
           },
         ]
@@ -1217,6 +1346,7 @@ export type Database = {
         | "offered"
         | "hired"
         | "closed"
+        | "deployed"
       attendance_status: "present" | "absent" | "late" | "on_leave" | "holiday"
       contract_status: "draft" | "printed" | "signed"
       employment_status:

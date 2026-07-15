@@ -30,7 +30,7 @@ export function Navbar({ title }: { title: string }) {
   const { profile, signOut } = useAuth()
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6 print:hidden">
       <h1 className="font-display text-lg font-semibold text-foreground">{title}</h1>
 
       <div className="flex items-center gap-3">

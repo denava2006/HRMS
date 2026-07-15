@@ -18,6 +18,7 @@ export const APPLICATION_STATUS_LABEL: Record<ApplicationStatus, string> = {
   offered: 'Offered',
   hired: 'Hired',
   closed: 'Closed',
+  deployed: 'Deployed',
 }
 
 export const APPLICATION_STATUS_VARIANT: Record<ApplicationStatus, BadgeProps['variant']> = {
@@ -29,4 +30,5 @@ export const APPLICATION_STATUS_VARIANT: Record<ApplicationStatus, BadgeProps['v
   offered: 'outline',
   hired: 'success',
   closed: 'muted',
+  deployed: 'success',
 }
