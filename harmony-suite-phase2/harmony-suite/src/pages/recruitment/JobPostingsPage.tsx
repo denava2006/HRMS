@@ -40,16 +40,9 @@ import {
 import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
 import type { Enums } from '@/lib/database.types'
+import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 
-type EmploymentType = Enums<'employment_type'>
 type JobPostingStatus = Enums<'job_posting_status'>
-
-const EMPLOYMENT_TYPE_LABEL: Record<EmploymentType, string> = {
-  full_time: 'Full-time',
-  part_time: 'Part-time',
-  contract: 'Contract',
-  internship: 'Internship',
-}
 
 const STATUS_LABEL: Record<JobPostingStatus, string> = {
   draft: 'Draft',

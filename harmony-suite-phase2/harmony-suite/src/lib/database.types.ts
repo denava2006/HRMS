@@ -11,6 +11,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -1103,6 +1105,22 @@ export type Database = {
       generate_employee_number: { Args: never; Returns: string }
       is_active_staff: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      submit_job_application: {
+        Args: {
+          p_address: string
+          p_cover_letter?: string
+          p_email: string
+          p_first_name: string
+          p_job_posting_id: string
+          p_last_name: string
+          p_phone: string
+          p_resume_path: string
+        }
+        Returns: {
+          applicant_id: string
+          application_id: string
+        }[]
+      }
     }
     Enums: {
       account_status: "active" | "inactive"
@@ -1162,6 +1180,9 @@ export type TablesUpdate<TableName extends keyof DefaultSchema["Tables"]> =
 
 export type Enums<EnumName extends keyof DefaultSchema["Enums"]> =
   DefaultSchema["Enums"][EnumName]
+
+export type Functions<FunctionName extends keyof DefaultSchema["Functions"]> =
+  DefaultSchema["Functions"][FunctionName]
 
 // Convenience aliases used throughout the app.
 export type UserRole = Enums<"user_role">

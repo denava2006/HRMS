@@ -49,8 +49,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading || undefined}
         {...props}
       >
-        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-        {children}
+        {asChild ? (
+          // Radix Slot requires exactly one element child — the loading spinner can't
+          // be a sibling here, so asChild buttons don't render a loading state.
+          children
+        ) : (
+          <>
+            {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {children}
+          </>
+        )}
       </Comp>
     )
   }

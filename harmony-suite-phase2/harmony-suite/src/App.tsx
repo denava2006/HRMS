@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { PublicLayout } from '@/layouts/PublicLayout'
 import { Toaster } from '@/components/ui/sonner'
 import LoginPage from '@/pages/LoginPage'
 import DashboardHome from '@/pages/DashboardHome'
@@ -12,6 +13,11 @@ import SalaryGradesPage from '@/pages/admin/SalaryGradesPage'
 import SettingsPage from '@/pages/admin/SettingsPage'
 import HrAccountsPage from '@/pages/admin/HrAccountsPage'
 import JobPostingsPage from '@/pages/recruitment/JobPostingsPage'
+import HomePage from '@/pages/public/HomePage'
+import CareersPage from '@/pages/public/CareersPage'
+import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
+import ApplyPage from '@/pages/public/ApplyPage'
+import ApplicationSuccessPage from '@/pages/public/ApplicationSuccessPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +34,14 @@ export default function App() {
       <Router>
         <AuthProvider>
           <Routes>
+            <Route element={<PublicLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="careers" element={<CareersPage />} />
+              <Route path="careers/application-success" element={<ApplicationSuccessPage />} />
+              <Route path="careers/:jobId" element={<CareerDetailsPage />} />
+              <Route path="careers/:jobId/apply" element={<ApplyPage />} />
+            </Route>
+
             <Route path="/login" element={<LoginPage />} />
 
             <Route
@@ -84,7 +98,6 @@ export default function App() {
               />
             </Route>
 
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster />
