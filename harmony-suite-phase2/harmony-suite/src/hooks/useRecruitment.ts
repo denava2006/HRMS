@@ -103,15 +103,6 @@ export function useRecruitmentStats() {
   })
 }
 
-export interface ReviewFieldValues {
-  education: string | null
-  work_experience: string | null
-  skills: string | null
-  certifications: string | null
-  overall_assessment: string | null
-  notes: string | null
-}
-
 function useInvalidateRecruitment() {
   const queryClient = useQueryClient()
   return (applicationId: string) => {
@@ -121,44 +112,33 @@ function useInvalidateRecruitment() {
   }
 }
 
-/** Saving a review moves a brand-new application to Under Review; re-saving
- * an already-reviewed one just updates the fields without re-firing the
- * "reviewed" history event or touching a status that's already moved past it. */
-export function useSaveReview() {
+/** Moves a brand-new application to Under Review and logs the "reviewed"
+ * history event. There are no screening fields to fill in anymore — the
+ * resume itself is the record — so this is a pure status transition. */
+export function useStartReview() {
   const { profile } = useAuth()
   const invalidate = useInvalidateRecruitment()
   return useMutation({
-    mutationFn: async ({
-      applicationId,
-      values,
-      wasNew,
-    }: {
-      applicationId: string
-      values: ReviewFieldValues
-      wasNew: boolean
-    }) => {
+    mutationFn: async ({ applicationId }: { applicationId: string }) => {
       const { error } = await supabase
         .from('applications')
         .update({
-          ...values,
-          status: wasNew ? 'under_review' : undefined,
+          status: 'under_review',
           reviewed_by: profile?.id,
           reviewed_at: new Date().toISOString(),
         })
         .eq('id', applicationId)
       if (error) throw error
 
-      if (wasNew) {
-        await supabase.from('application_history').insert({
-          application_id: applicationId,
-          event: 'reviewed',
-          actor_id: profile?.id,
-        })
-      }
+      await supabase.from('application_history').insert({
+        application_id: applicationId,
+        event: 'reviewed',
+        actor_id: profile?.id,
+      })
     },
     onSuccess: (_data, { applicationId }) => {
       invalidate(applicationId)
-      toast.success('Review saved')
+      toast.success('Review started')
     },
     onError: (error) => toast.error(error.message),
   })
@@ -168,11 +148,10 @@ export function useMarkQualified() {
   const { profile } = useAuth()
   const invalidate = useInvalidateRecruitment()
   return useMutation({
-    mutationFn: async ({ applicationId, values }: { applicationId: string; values: ReviewFieldValues }) => {
+    mutationFn: async ({ applicationId }: { applicationId: string }) => {
       const { error } = await supabase
         .from('applications')
         .update({
-          ...values,
           status: 'qualified',
           reviewed_by: profile?.id,
           reviewed_at: new Date().toISOString(),
@@ -201,16 +180,13 @@ export function useRejectApplicant() {
     mutationFn: async ({
       applicationId,
       rejectionReason,
-      values,
     }: {
       applicationId: string
       rejectionReason: string
-      values: ReviewFieldValues
     }) => {
       const { error } = await supabase
         .from('applications')
         .update({
-          ...values,
           status: 'rejected',
           rejection_reason: rejectionReason,
           reviewed_by: profile?.id,

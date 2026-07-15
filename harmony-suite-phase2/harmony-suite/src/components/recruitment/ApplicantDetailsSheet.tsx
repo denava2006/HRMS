@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { useForm } from 'react-hook-form'
 import {
   Mail,
   Phone,
@@ -32,10 +31,9 @@ import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import {
   useApplicationDetail,
   useApplicationHistory,
-  useSaveReview,
+  useStartReview,
   useMarkQualified,
   useRejectApplicant,
-  type ReviewFieldValues,
 } from '@/hooks/useRecruitment'
 import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_VARIANT } from '@/lib/applicationStatusLabels'
 
@@ -168,30 +166,10 @@ export function ApplicantDetailsSheet({
 }) {
   const { data: application, isLoading } = useApplicationDetail(applicationId ?? undefined)
   const { data: history } = useApplicationHistory(applicationId ?? undefined)
-  const saveReview = useSaveReview()
+  const startReview = useStartReview()
   const markQualified = useMarkQualified()
   const rejectApplicant = useRejectApplicant()
   const [rejectOpen, setRejectOpen] = React.useState(false)
-
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    reset,
-  } = useForm<ReviewFieldValues>()
-
-  React.useEffect(() => {
-    if (application) {
-      reset({
-        education: application.education ?? '',
-        work_experience: application.work_experience ?? '',
-        skills: application.skills ?? '',
-        certifications: application.certifications ?? '',
-        overall_assessment: application.overall_assessment ?? '',
-        notes: application.notes ?? '',
-      })
-    }
-  }, [application, reset])
 
   if (!application && !isLoading) return null
 
@@ -200,21 +178,20 @@ export function ApplicantDetailsSheet({
   const applicant = application?.applicants
   const jobPosting = application?.job_postings
 
-  const onSaveReview = (values: ReviewFieldValues) => {
+  const onStartReview = () => {
     if (!applicationId) return
-    saveReview.mutate({ applicationId, values, wasNew })
+    startReview.mutate({ applicationId })
   }
 
-  const onMarkQualified = (values: ReviewFieldValues) => {
+  const onMarkQualified = () => {
     if (!applicationId) return
-    markQualified.mutate({ applicationId, values })
+    markQualified.mutate({ applicationId })
   }
 
   const onReject = (reason: string) => {
     if (!applicationId) return
-    // Capture whatever is currently in the review fields at the moment of rejection.
     rejectApplicant.mutate(
-      { applicationId, rejectionReason: reason, values: getValues() },
+      { applicationId, rejectionReason: reason },
       { onSuccess: () => setRejectOpen(false) }
     )
   }
@@ -242,7 +219,7 @@ export function ApplicantDetailsSheet({
               </SheetHeader>
 
               <SheetBody>
-                <form id="review-form" className="flex flex-col gap-8" onSubmit={handleSubmit(onSaveReview)}>
+                <div className="flex flex-col gap-8">
                   <section className="flex flex-col gap-3">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Personal Information
@@ -286,35 +263,9 @@ export function ApplicantDetailsSheet({
 
                   <section className="flex flex-col gap-3">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Recruitment Information
+                      Review Status
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
-                      <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="education">Education</Label>
-                        <Textarea id="education" disabled={isDecided} {...register('education')} rows={2} />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="work_experience">Work Experience</Label>
-                        <Textarea id="work_experience" disabled={isDecided} {...register('work_experience')} rows={2} />
-                      </div>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor="skills">Skills</Label>
-                          <Textarea id="skills" disabled={isDecided} {...register('skills')} rows={2} />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor="certifications">Certifications</Label>
-                          <Textarea id="certifications" disabled={isDecided} {...register('certifications')} rows={2} />
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="overall_assessment">Overall Assessment</Label>
-                        <Textarea id="overall_assessment" disabled={isDecided} {...register('overall_assessment')} rows={2} />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="notes">Recruitment Notes</Label>
-                        <Textarea id="notes" disabled={isDecided} {...register('notes')} rows={3} />
-                      </div>
                       {application.rejection_reason && (
                         <div className="flex flex-col gap-1.5">
                           <Label>Rejection Reason</Label>
@@ -359,7 +310,7 @@ export function ApplicantDetailsSheet({
                       })}
                     </ol>
                   </section>
-                </form>
+                </div>
               </SheetBody>
 
               <SheetFooter>
@@ -372,21 +323,18 @@ export function ApplicantDetailsSheet({
                       type="button"
                       variant="destructive"
                       onClick={() => setRejectOpen(true)}
-                      disabled={saveReview.isPending || markQualified.isPending}
+                      disabled={startReview.isPending || markQualified.isPending}
                     >
                       Reject Applicant
                     </Button>
-                    <Button
-                      type="button"
-                      variant="accent"
-                      loading={markQualified.isPending}
-                      onClick={handleSubmit(onMarkQualified)}
-                    >
+                    <Button type="button" variant="accent" loading={markQualified.isPending} onClick={onMarkQualified}>
                       Mark as Qualified
                     </Button>
-                    <Button type="submit" form="review-form" loading={saveReview.isPending}>
-                      Save Review
-                    </Button>
+                    {wasNew && (
+                      <Button type="button" loading={startReview.isPending} onClick={onStartReview}>
+                        Start Review
+                      </Button>
+                    )}
                   </>
                 )}
               </SheetFooter>
