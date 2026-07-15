@@ -156,7 +156,7 @@ function useInvalidateDeployment() {
 
 export interface PrepareJobOfferInput {
   applicationId: string
-  employmentType: 'full_time' | 'part_time' | 'contract' | 'internship'
+  employmentType: 'full_time' | 'part_time'
   salaryGradeId?: string
   proposedSalary: number
   currency: 'PHP' | 'USD'

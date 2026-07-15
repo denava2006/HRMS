@@ -67,7 +67,7 @@ const jobPostingSchema = z.object({
   position_id: z.string().min(1, 'Select a position'),
   description: z.string().min(1, 'Description is required').max(5000),
   requirements: z.string().max(5000).optional(),
-  employment_type: z.enum(['full_time', 'part_time', 'contract', 'internship']),
+  employment_type: z.enum(['full_time', 'part_time']),
   vacancies: z
     .string()
     .min(1, 'Vacancies is required')

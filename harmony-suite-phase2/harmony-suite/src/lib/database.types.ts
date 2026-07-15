@@ -1355,7 +1355,7 @@ export type Database = {
         | "suspended"
         | "resigned"
         | "terminated"
-      employment_type: "full_time" | "part_time" | "contract" | "internship"
+      employment_type: "full_time" | "part_time"
       interview_status:
         | "scheduled"
         | "passed"
