@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+@import "@fontsource/manrope/800.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  /* ---- Harmony Suite brand palette ---- */
+  /* Deep Navy Blue: primary surfaces, headings, primary actions */
+  --navy: #0f2a43;
+  --navy-2: #163a5c;
+  /* Ocean Blue: secondary actions, links, informational accents */
+  --ocean: #1d6fa5;
+  /* Teal: the one accent spent on emphasis -- active states, focus, success */
+  --teal: #12a594;
+  --teal-2: #0c8377;
+  /* Light Gray family: app background, borders, muted text */
+  --mist: #f3f6f9;
+  --mist-2: #e9eef3;
+  --slate: #5b6b7c;
+  --border-slate: #dce3ea;
+  /* Status colors, kept out of the brand triad so they stay legible */
+  --success: #1b8a5a;
+  --warning: #b7791f;
+  --danger: #d7373f;
+
+  --background: var(--mist);
+  --foreground: var(--navy);
+
+  --card: #ffffff;
+  --card-foreground: var(--navy);
+
+  --popover: #ffffff;
+  --popover-foreground: var(--navy);
+
+  --primary: var(--navy);
+  --primary-foreground: #ffffff;
+
+  --secondary: var(--ocean);
+  --secondary-foreground: #ffffff;
+
+  --accent: var(--teal);
+  --accent-foreground: #ffffff;
+
+  --muted: var(--mist-2);
+  --muted-foreground: var(--slate);
+
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+
+  --border: var(--border-slate);
+  --input: var(--border-slate);
+  --ring: var(--teal);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-navy: var(--navy);
+  --color-navy-2: var(--navy-2);
+  --color-ocean: var(--ocean);
+  --color-teal: var(--teal);
+  --color-teal-2: var(--teal-2);
+  --color-mist: var(--mist);
+  --color-mist-2: var(--mist-2);
+  --color-slate: var(--slate);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --font-display: "Manrope", "system-ui", sans-serif;
+  --font-sans: "IBM Plex Sans", "system-ui", sans-serif;
+  --font-mono: "IBM Plex Mono", "ui-monospace", monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

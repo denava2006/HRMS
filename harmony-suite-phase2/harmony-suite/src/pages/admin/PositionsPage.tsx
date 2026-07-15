@@ -1,0 +1,245 @@
+import * as React from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import type { ColumnDef } from '@tanstack/react-table'
+import { MoreHorizontal, Plus } from 'lucide-react'
+import { DataTable } from '@/components/data-table'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { type Position, usePositions, useCreatePosition, useUpdatePosition, useDeletePosition } from '@/hooks/usePositions'
+import { useDepartments } from '@/hooks/useDepartments'
+
+const positionSchema = z.object({
+  title: z.string().min(1, 'Position title is required').max(100),
+  department_id: z.string().min(1, 'Select a department'),
+  description: z.string().max(500).optional(),
+})
+type PositionFormValues = z.infer<typeof positionSchema>
+
+function PositionFormDialog({
+  open,
+  onOpenChange,
+  position,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  position?: Position | null
+}) {
+  const isEdit = !!position
+  const { data: departments } = useDepartments()
+  const createPos = useCreatePosition()
+  const updatePos = useUpdatePosition()
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<PositionFormValues>({ resolver: zodResolver(positionSchema) })
+
+  React.useEffect(() => {
+    if (open) {
+      reset({
+        title: position?.title ?? '',
+        department_id: position?.department_id ?? '',
+        description: position?.description ?? '',
+      })
+    }
+  }, [open, position, reset])
+
+  const onSubmit = async (values: PositionFormValues) => {
+    if (isEdit) {
+      await updatePos.mutateAsync({ id: position.id, values })
+    } else {
+      await createPos.mutateAsync(values)
+    }
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Edit position' : 'New position'}</DialogTitle>
+          <DialogDescription>Positions belong to a department and are assigned to employees and job postings.</DialogDescription>
+        </DialogHeader>
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="title">
+              Title <span className="text-destructive">*</span>
+            </Label>
+            <Input id="title" invalid={!!errors.title} {...register('title')} placeholder="e.g. HR Generalist" />
+            {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>
+              Department <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              control={control}
+              name="department_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger invalid={!!errors.department_id}>
+                    <SelectValue placeholder="Select a department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments?.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.department_id && <p className="text-xs text-destructive">{errors.department_id.message}</p>}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="description">Description</Label>
+            <Textarea id="description" {...register('description')} placeholder="Optional" rows={3} />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
+              {isEdit ? 'Save changes' : 'Create position'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export default function PositionsPage() {
+  const { data, isLoading } = usePositions()
+  const deletePos = useDeletePosition()
+  const [formOpen, setFormOpen] = React.useState(false)
+  const [editing, setEditing] = React.useState<Position | null>(null)
+  const [deleting, setDeleting] = React.useState<Position | null>(null)
+
+  const columns: ColumnDef<Position>[] = [
+    { accessorKey: 'title', header: 'Title' },
+    {
+      id: 'department',
+      header: 'Department',
+      accessorFn: (row) => row.departments?.name ?? '',
+      cell: ({ row }) =>
+        row.original.departments?.name ? <Badge variant="secondary">{row.original.departments.name}</Badge> : '\u2014',
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.description || '\u2014'}</span>,
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                setEditing(row.original)
+                setFormOpen(true)
+              }}
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem destructive onClick={() => setDeleting(row.original)}>
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="font-display text-xl font-semibold text-foreground">Positions</h2>
+        <p className="text-sm text-muted-foreground">Job titles within each department.</p>
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={data ?? []}
+        isLoading={isLoading}
+        searchPlaceholder="Search positions..."
+        searchColumn="title"
+        emptyTitle="No positions yet"
+        emptyDescription="Add a position once you have at least one department."
+        toolbarAction={
+          <Button
+            onClick={() => {
+              setEditing(null)
+              setFormOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            New position
+          </Button>
+        }
+      />
+
+      <PositionFormDialog open={formOpen} onOpenChange={setFormOpen} position={editing} />
+
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleting?.title}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This can't be undone. Positions assigned to employees or job postings can't be deleted until those are reassigned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deleting) await deletePos.mutateAsync(deleting.id)
+                setDeleting(null)
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}

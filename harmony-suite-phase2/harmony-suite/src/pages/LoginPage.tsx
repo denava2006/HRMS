@@ -1,0 +1,180 @@
+import * as React from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+type LoginFormValues = z.infer<typeof loginSchema>
+
+/**
+ * A quiet nod to the product name: three overlapping wave lines in the brand
+ * triad (navy / ocean / teal), drifting almost imperceptibly. The one
+ * deliberate decorative flourish on an otherwise plain, functional screen.
+ */
+function HarmonyWaves() {
+  const shouldReduceMotion = useReducedMotion()
+  const waves = [
+    { d: 'M-100,220 C 150,140 350,300 600,220 S 950,140 1200,220', color: 'var(--navy)', opacity: 0.1, duration: 40 },
+    { d: 'M-100,260 C 150,340 350,180 600,260 S 950,340 1200,260', color: 'var(--ocean)', opacity: 0.14, duration: 34 },
+    { d: 'M-100,300 C 150,220 350,380 600,300 S 950,220 1200,300', color: 'var(--teal)', opacity: 0.18, duration: 28 },
+  ]
+
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      viewBox="0 0 1100 440"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
+      {waves.map((wave, i) => (
+        <motion.path
+          key={i}
+          d={wave.d}
+          fill="none"
+          stroke={wave.color}
+          strokeWidth={2}
+          strokeOpacity={wave.opacity}
+          strokeLinecap="round"
+          animate={shouldReduceMotion ? undefined : { x: [0, -100, 0] }}
+          transition={{ duration: wave.duration, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+    </svg>
+  )
+}
+
+export default function LoginPage() {
+  const { session, profile, signIn } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [showPassword, setShowPassword] = React.useState(false)
+  const [formError, setFormError] = React.useState<string | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) })
+
+  // Already signed in — send them straight past the login form.
+  if (session && profile) {
+    const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard'
+    return <Navigate to={from} replace />
+  }
+
+  const onSubmit = async (values: LoginFormValues) => {
+    setFormError(null)
+    // "Authentication Success?" branch lives inside signIn().
+    const { error } = await signIn(values.email, values.password)
+    if (error) {
+      setFormError(error)
+      return
+    }
+    navigate('/dashboard', { replace: true })
+  }
+
+  return (
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-background px-4">
+      <HarmonyWaves />
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="relative z-10 w-full max-w-sm"
+      >
+        <Card className="shadow-lg">
+          <CardHeader className="items-center pb-2 text-center">
+            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground">
+              H
+            </div>
+            <h1 className="font-display text-2xl font-bold text-foreground">Harmony Suite</h1>
+            <p className="text-sm text-muted-foreground">Sign in to your HR workspace</p>
+          </CardHeader>
+
+          <CardContent>
+            <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+              {formError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="you@company.com"
+                  invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
+                  {...register('email')}
+                />
+                {errors.email && (
+                  <p id="email-error" className="text-xs text-destructive">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="********"
+                    invalid={!!errors.password}
+                    aria-describedby={errors.password ? 'password-error' : undefined}
+                    className="pr-10"
+                    {...register('password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-0 top-0 flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p id="password-error" className="text-xs text-destructive">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <Button type="submit" className="mt-2 w-full" loading={isSubmitting}>
+                {isSubmitting ? 'Signing in\u2026' : 'Sign in'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Harmony Suite HRMS — access is limited to authorized Admin and HR Staff accounts.
+        </p>
+      </motion.div>
+    </div>
+  )
+}
