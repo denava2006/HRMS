@@ -15,7 +15,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-navy/40 backdrop-blur-[2px] animate-[overlay-in_150ms_ease-out]',
+      'fixed inset-0 z-50 bg-navy/40 backdrop-blur-[2px] animate-[overlay-in_150ms_ease-out] data-[state=closed]:animate-[overlay-out_150ms_ease-in]',
       className
     )}
     {...props}
@@ -29,20 +29,22 @@ const DialogContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-card p-6 shadow-lg animate-[dialog-in_180ms_ease-out]',
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          'relative grid max-h-[calc(100vh-2rem)] w-full max-w-md gap-4 overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-lg animate-[dialog-in_180ms_ease-out] data-[state=closed]:animate-[dialog-out_150ms_ease-in]',
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </div>
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName

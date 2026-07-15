@@ -35,23 +35,42 @@ import {
   useDeleteSalaryGrade,
 } from '@/hooks/useSalaryGrades'
 
+// Digits only, with an optional 2-decimal-place remainder — deliberately excludes
+// "+", "-", "e"/"E" (scientific notation) and any other symbol a number input would
+// otherwise accept.
+const decimalAmount = /^\d+(\.\d{1,2})?$/
+
 const gradeSchema = z
   .object({
     grade_name: z.string().min(1, 'Grade name is required').max(50),
     min_salary: z
       .string()
-      .min(1, 'Required')
-      .refine((v) => !Number.isNaN(Number(v)) && Number(v) >= 0, 'Must be 0 or more'),
+      .min(1, 'Minimum salary is required')
+      .regex(decimalAmount, 'Numbers only, e.g. 25000 or 25000.50'),
     max_salary: z
       .string()
-      .min(1, 'Required')
-      .refine((v) => !Number.isNaN(Number(v)) && Number(v) >= 0, 'Must be 0 or more'),
+      .min(1, 'Maximum salary is required')
+      .regex(decimalAmount, 'Numbers only, e.g. 25000 or 25000.50'),
   })
-  .refine((v) => Number(v.max_salary) >= Number(v.min_salary), {
-    message: 'Maximum must be greater than or equal to minimum',
+  .refine((v) => !decimalAmount.test(v.min_salary) || Number(v.min_salary) <= Number(v.max_salary), {
+    message: 'Minimum salary cannot exceed the maximum salary',
+    path: ['min_salary'],
+  })
+  .refine((v) => !decimalAmount.test(v.max_salary) || Number(v.max_salary) >= Number(v.min_salary), {
+    message: 'Maximum salary cannot be lower than the minimum salary',
     path: ['max_salary'],
   })
 type GradeFormValues = z.infer<typeof gradeSchema>
+
+/** Strips everything but digits and a single decimal point, capped at 2 decimal places, as the user types. */
+function sanitizeAmountInput(raw: string): string {
+  const digitsAndDot = raw.replace(/[^0-9.]/g, '')
+  const firstDot = digitsAndDot.indexOf('.')
+  if (firstDot === -1) return digitsAndDot
+  const wholePart = digitsAndDot.slice(0, firstDot)
+  const fractionPart = digitsAndDot.slice(firstDot + 1).replace(/\./g, '').slice(0, 2)
+  return `${wholePart}.${fractionPart}`
+}
 
 const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 })
 
@@ -73,6 +92,8 @@ function GradeFormDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<GradeFormValues>({ resolver: zodResolver(gradeSchema) })
+  const minSalaryField = register('min_salary')
+  const maxSalaryField = register('max_salary')
 
   React.useEffect(() => {
     if (open) {
@@ -120,11 +141,16 @@ function GradeFormDialog({
               </Label>
               <Input
                 id="min_salary"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
                 className="font-mono"
                 invalid={!!errors.min_salary}
-                {...register('min_salary')}
+                {...minSalaryField}
+                onChange={(e) => {
+                  e.target.value = sanitizeAmountInput(e.target.value)
+                  minSalaryField.onChange(e)
+                }}
               />
               {errors.min_salary && <p className="text-xs text-destructive">{errors.min_salary.message}</p>}
             </div>
@@ -134,11 +160,16 @@ function GradeFormDialog({
               </Label>
               <Input
                 id="max_salary"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
                 className="font-mono"
                 invalid={!!errors.max_salary}
-                {...register('max_salary')}
+                {...maxSalaryField}
+                onChange={(e) => {
+                  e.target.value = sanitizeAmountInput(e.target.value)
+                  maxSalaryField.onChange(e)
+                }}
               />
               {errors.max_salary && <p className="text-xs text-destructive">{errors.max_salary.message}</p>}
             </div>

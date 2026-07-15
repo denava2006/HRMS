@@ -12,7 +12,10 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     ref={ref}
-    className={cn('fixed inset-0 z-50 bg-navy/40 backdrop-blur-[2px] animate-[overlay-in_150ms_ease-out]', className)}
+    className={cn(
+      'fixed inset-0 z-50 bg-navy/40 backdrop-blur-[2px] animate-[overlay-in_150ms_ease-out] data-[state=closed]:animate-[overlay-out_150ms_ease-in]',
+      className
+    )}
     {...props}
   />
 ))
@@ -24,14 +27,16 @@ const AlertDialogContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Portal>
     <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-card p-6 shadow-lg animate-[dialog-in_180ms_ease-out]',
-        className
-      )}
-      {...props}
-    />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          'grid max-h-[calc(100vh-2rem)] w-full max-w-md gap-4 overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-lg animate-[dialog-in_180ms_ease-out] data-[state=closed]:animate-[dialog-out_150ms_ease-in]',
+          className
+        )}
+        {...props}
+      />
+    </div>
   </AlertDialogPrimitive.Portal>
 ))
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName

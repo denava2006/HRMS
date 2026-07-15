@@ -4,6 +4,8 @@ function Toaster(props: ToasterProps) {
   return (
     <SonnerToaster
       position="top-right"
+      gap={12}
+      duration={4000}
       toastOptions={{
         classNames: {
           toast:
