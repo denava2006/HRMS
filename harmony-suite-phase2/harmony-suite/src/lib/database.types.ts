@@ -504,11 +504,26 @@ export type Database = {
         Row: {
           application_id: string
           created_at: string
+          final_remarks: string | null
           id: string
+          interview_notes: string | null
           interview_type: Database["public"]["Enums"]["interview_type"]
           interviewer_id: string | null
           location: string | null
+          meeting_link: string | null
           mode: string | null
+          overall_impression: string | null
+          overall_recommendation: string | null
+          rating_communication: number | null
+          rating_confidence: number | null
+          rating_culture_fit: number | null
+          rating_experience: number | null
+          rating_leadership: number | null
+          rating_problem_solving: number | null
+          rating_technical_evaluation: number | null
+          rating_technical_skills: number | null
+          recommended_salary: number | null
+          rejection_reason: string | null
           remarks: string | null
           scheduled_at: string
           status: Database["public"]["Enums"]["interview_status"]
@@ -517,11 +532,26 @@ export type Database = {
         Insert: {
           application_id: string
           created_at?: string
+          final_remarks?: string | null
           id?: string
+          interview_notes?: string | null
           interview_type: Database["public"]["Enums"]["interview_type"]
           interviewer_id?: string | null
           location?: string | null
+          meeting_link?: string | null
           mode?: string | null
+          overall_impression?: string | null
+          overall_recommendation?: string | null
+          rating_communication?: number | null
+          rating_confidence?: number | null
+          rating_culture_fit?: number | null
+          rating_experience?: number | null
+          rating_leadership?: number | null
+          rating_problem_solving?: number | null
+          rating_technical_evaluation?: number | null
+          rating_technical_skills?: number | null
+          recommended_salary?: number | null
+          rejection_reason?: string | null
           remarks?: string | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["interview_status"]
@@ -530,11 +560,26 @@ export type Database = {
         Update: {
           application_id?: string
           created_at?: string
+          final_remarks?: string | null
           id?: string
+          interview_notes?: string | null
           interview_type?: Database["public"]["Enums"]["interview_type"]
           interviewer_id?: string | null
           location?: string | null
+          meeting_link?: string | null
           mode?: string | null
+          overall_impression?: string | null
+          overall_recommendation?: string | null
+          rating_communication?: number | null
+          rating_confidence?: number | null
+          rating_culture_fit?: number | null
+          rating_experience?: number | null
+          rating_leadership?: number | null
+          rating_problem_solving?: number | null
+          rating_technical_evaluation?: number | null
+          rating_technical_skills?: number | null
+          recommended_salary?: number | null
+          rejection_reason?: string | null
           remarks?: string | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["interview_status"]
@@ -1232,3 +1277,5 @@ export type Functions<FunctionName extends keyof DefaultSchema["Functions"]> =
 // Convenience aliases used throughout the app.
 export type UserRole = Enums<"user_role">
 export type AccountStatus = Enums<"account_status">
+export type InterviewType = Enums<"interview_type">
+export type InterviewStatus = Enums<"interview_status">

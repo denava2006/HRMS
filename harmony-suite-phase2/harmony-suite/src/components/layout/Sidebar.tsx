@@ -30,7 +30,7 @@ const mainNav: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
   { label: 'Job Posting', to: '/dashboard/job-postings', icon: Briefcase },
   { label: 'Recruitment', to: '/dashboard/recruitment', icon: ClipboardList },
-  { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch, disabled: true },
+  { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch },
   { label: 'Deployment', to: '/dashboard/deployment', icon: Truck, disabled: true },
   { label: 'Employees', to: '/dashboard/employees', icon: Users, disabled: true },
   { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock, disabled: true },
