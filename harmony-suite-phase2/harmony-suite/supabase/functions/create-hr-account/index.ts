@@ -61,6 +61,7 @@ Deno.serve(async (req: Request) => {
     const email: string | undefined = body?.email
     const fullName: string | undefined = body?.full_name
     const role: string | undefined = body?.role
+    const redirectTo: string | undefined = body?.redirectTo
 
     if (!email || !fullName || !role) {
       return json({ error: 'email, full_name, and role are all required.' }, 400)
@@ -72,19 +73,26 @@ Deno.serve(async (req: Request) => {
     // Elevated client — service_role key, server-side only, never sent to the browser.
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
+    // redirectTo comes from the caller's own origin (see useHrAccounts.ts) so the
+    // invite email works in both dev and prod without hardcoding a host here.
+    // Supabase only honors it if it's in the project's Redirect URLs allow list —
+    // otherwise it silently falls back to the configured Site URL.
     const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name: fullName },
+      redirectTo,
     })
 
     if (inviteError || !invited.user) {
       return json({ error: inviteError?.message ?? 'Failed to invite user.' }, 400)
     }
 
-    // handle_new_user() already created a `profiles` row defaulting to
-    // hr_staff/active — fill in the real name and requested role now.
+    // handle_new_user() already created a `profiles` row (defaulting to
+    // hr_staff/inactive — inactive so a self-registered account can never
+    // pass is_active_staff() without an admin explicitly activating it here)
+    // — fill in the real name and requested role, and activate it now.
     const { error: updateError } = await adminClient
       .from('profiles')
-      .update({ full_name: fullName, role, created_by: user.id })
+      .update({ full_name: fullName, role, status: 'active', created_by: user.id })
       .eq('id', invited.user.id)
 
     if (updateError) return json({ error: updateError.message }, 400)

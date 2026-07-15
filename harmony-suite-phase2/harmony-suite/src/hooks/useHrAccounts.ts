@@ -45,8 +45,12 @@ export function useCreateHrAccount() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: CreateHrAccountInput) => {
+      // Prefer the configured site origin (needed for the invite email to resolve
+      // correctly from a preview/staging deploy); fall back to wherever this is
+      // actually running so invites still work if the env var is unset.
+      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
       const { data, error } = await supabase.functions.invoke('create-hr-account', {
-        body: input,
+        body: { ...input, redirectTo: `${siteUrl}/auth/setup-password` },
       })
       if (error) throw new Error(await describeFunctionError(error))
       if (data?.error) throw new Error(data.error)

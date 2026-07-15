@@ -1,15 +1,16 @@
 import * as React from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { HarmonyWaves } from '@/components/HarmonyWaves'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
@@ -17,43 +18,6 @@ const loginSchema = z.object({
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
-
-/**
- * A quiet nod to the product name: three overlapping wave lines in the brand
- * triad (navy / ocean / teal), drifting almost imperceptibly. The one
- * deliberate decorative flourish on an otherwise plain, functional screen.
- */
-function HarmonyWaves() {
-  const shouldReduceMotion = useReducedMotion()
-  const waves = [
-    { d: 'M-100,220 C 150,140 350,300 600,220 S 950,140 1200,220', color: 'var(--navy)', opacity: 0.1, duration: 40 },
-    { d: 'M-100,260 C 150,340 350,180 600,260 S 950,340 1200,260', color: 'var(--ocean)', opacity: 0.14, duration: 34 },
-    { d: 'M-100,300 C 150,220 350,380 600,300 S 950,220 1200,300', color: 'var(--teal)', opacity: 0.18, duration: 28 },
-  ]
-
-  return (
-    <svg
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      viewBox="0 0 1100 440"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-    >
-      {waves.map((wave, i) => (
-        <motion.path
-          key={i}
-          d={wave.d}
-          fill="none"
-          stroke={wave.color}
-          strokeWidth={2}
-          strokeOpacity={wave.opacity}
-          strokeLinecap="round"
-          animate={shouldReduceMotion ? undefined : { x: [0, -100, 0] }}
-          transition={{ duration: wave.duration, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      ))}
-    </svg>
-  )
-}
 
 export default function LoginPage() {
   const { session, profile, signIn } = useAuth()
@@ -95,6 +59,14 @@ export default function LoginPage() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="relative z-10 w-full max-w-sm"
       >
+        <Link
+          to="/"
+          className="group mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          Back to Home
+        </Link>
+
         <Card className="shadow-lg">
           <CardHeader className="items-center pb-2 text-center">
             <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground">

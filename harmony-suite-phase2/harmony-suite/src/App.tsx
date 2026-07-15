@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PublicLayout } from '@/layouts/PublicLayout'
 import { Toaster } from '@/components/ui/sonner'
 import LoginPage from '@/pages/LoginPage'
+import SetupPasswordPage from '@/pages/auth/SetupPasswordPage'
 import DashboardHome from '@/pages/DashboardHome'
 import DepartmentsPage from '@/pages/admin/DepartmentsPage'
 import PositionsPage from '@/pages/admin/PositionsPage'
@@ -43,6 +44,7 @@ export default function App() {
             </Route>
 
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/auth/setup-password" element={<SetupPasswordPage />} />
 
             <Route
               path="/dashboard"
