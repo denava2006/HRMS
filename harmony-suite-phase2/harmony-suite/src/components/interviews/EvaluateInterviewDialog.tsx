@@ -28,7 +28,10 @@ function RatingSelect({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label>{label}</Label>
+      {/* min-h + items-end reserves space for a 2-line label (e.g. "Technical
+       * Evaluation") so single-line labels ("Leadership") still bottom-align,
+       * keeping every Select in the row starting at the same Y position. */}
+      <Label className="flex min-h-[2.5rem] items-end">{label}</Label>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue placeholder="Rate 1-5" />

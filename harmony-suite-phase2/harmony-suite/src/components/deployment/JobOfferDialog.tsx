@@ -17,7 +17,7 @@ import { useSalaryGrades } from '@/hooks/useSalaryGrades'
 import { usePrepareJobOffer } from '@/hooks/useDeployment'
 import { useCurrency } from '@/hooks/useSystemSettings'
 import { EMPLOYMENT_TYPE_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
-import { CURRENCY_LABEL, type CurrencyCode } from '@/lib/currency'
+import { CURRENCY_LABEL, formatMoney, type CurrencyCode } from '@/lib/currency'
 
 /** Local calendar date (not UTC) in YYYY-MM-DD form, matching what a date input's own picker considers "today". */
 function todayISODate(): string {
@@ -72,9 +72,15 @@ export function JobOfferDialog({
     }
   }, [open, defaultCurrency])
 
+  const selectedGrade = salaryGrades?.find((g) => g.id === salaryGradeId) ?? null
+
   const onSubmit = () => {
     const nextErrors: Record<string, string> = {}
-    if (!salary || Number(salary) <= 0) nextErrors.salary = 'Salary is required.'
+    if (!salary || Number(salary) <= 0) {
+      nextErrors.salary = 'Salary is required.'
+    } else if (selectedGrade && (Number(salary) < selectedGrade.min_salary || Number(salary) > selectedGrade.max_salary)) {
+      nextErrors.salary = `Salary must be between ${formatMoney(selectedGrade.min_salary, currency)} and ${formatMoney(selectedGrade.max_salary, currency)} for ${selectedGrade.grade_name}.`
+    }
     if (!benefits.trim()) nextErrors.benefits = 'Benefits is required.'
     if (!startDate) nextErrors.startDate = 'Start date is required.'
     if (Object.keys(nextErrors).length > 0) {
@@ -128,7 +134,13 @@ export function JobOfferDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Salary Grade (optional)</Label>
-              <Select value={salaryGradeId} onValueChange={setSalaryGradeId}>
+              <Select
+                value={salaryGradeId}
+                onValueChange={(v) => {
+                  setSalaryGradeId(v)
+                  if (errors.salary) setErrors((prev) => ({ ...prev, salary: '' }))
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
@@ -140,6 +152,11 @@ export function JobOfferDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {selectedGrade && (
+                <p className="text-xs text-muted-foreground">
+                  Range: {formatMoney(selectedGrade.min_salary, currency)} – {formatMoney(selectedGrade.max_salary, currency)}
+                </p>
+              )}
             </div>
           </div>
 
@@ -180,11 +197,23 @@ export function JobOfferDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="working_hours">Working Hours</Label>
-              <Input id="working_hours" value={workingHours} onChange={(e) => setWorkingHours(e.target.value)} placeholder="e.g. 8:00 AM - 5:00 PM" />
+              <Input
+                id="working_hours"
+                autoComplete="off"
+                value={workingHours}
+                onChange={(e) => setWorkingHours(e.target.value)}
+                placeholder="e.g. 8:00 AM - 5:00 PM"
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="working_days">Working Days</Label>
-              <Input id="working_days" value={workingDays} onChange={(e) => setWorkingDays(e.target.value)} placeholder="e.g. Monday to Friday" />
+              <Input
+                id="working_days"
+                autoComplete="off"
+                value={workingDays}
+                onChange={(e) => setWorkingDays(e.target.value)}
+                placeholder="e.g. Monday to Friday"
+              />
             </div>
           </div>
 
@@ -208,7 +237,13 @@ export function JobOfferDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="probation_period">Probation Period</Label>
-              <Input id="probation_period" value={probationPeriod} onChange={(e) => setProbationPeriod(e.target.value)} placeholder="e.g. 6 months" />
+              <Input
+                id="probation_period"
+                autoComplete="off"
+                value={probationPeriod}
+                onChange={(e) => setProbationPeriod(e.target.value)}
+                placeholder="e.g. 6 months"
+              />
             </div>
           </div>
 

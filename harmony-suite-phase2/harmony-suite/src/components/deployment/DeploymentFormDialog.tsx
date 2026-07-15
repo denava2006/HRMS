@@ -11,18 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { useCompleteDeployment, type CompleteDeploymentInput } from '@/hooks/useDeployment'
-
-type EmploymentStatus = CompleteDeploymentInput['employmentStatus']
-
-const EMPLOYMENT_STATUS_LABEL: Record<EmploymentStatus, string> = {
-  active: 'Active',
-  on_leave: 'On Leave',
-  suspended: 'Suspended',
-  resigned: 'Resigned',
-  terminated: 'Terminated',
-}
+import { useCompleteDeployment } from '@/hooks/useDeployment'
 
 function todayISODate(): string {
   const d = new Date()
@@ -43,7 +32,6 @@ export function DeploymentFormDialog({
   const [deploymentDate, setDeploymentDate] = React.useState('')
   const [reportingManager, setReportingManager] = React.useState('')
   const [assignedBranch, setAssignedBranch] = React.useState('')
-  const [employmentStatus, setEmploymentStatus] = React.useState<EmploymentStatus>('active')
   const [workLocation, setWorkLocation] = React.useState('')
   const [reportingTime, setReportingTime] = React.useState('')
   const [remarks, setRemarks] = React.useState('')
@@ -54,7 +42,6 @@ export function DeploymentFormDialog({
       setDeploymentDate(todayISODate())
       setReportingManager('')
       setAssignedBranch('')
-      setEmploymentStatus('active')
       setWorkLocation('')
       setReportingTime('')
       setRemarks('')
@@ -74,7 +61,6 @@ export function DeploymentFormDialog({
         deploymentDate,
         reportingManager: reportingManager.trim() || undefined,
         assignedBranch: assignedBranch.trim() || undefined,
-        employmentStatus,
         workLocation: workLocation.trim() || undefined,
         reportingTime: reportingTime.trim() || undefined,
         remarks: remarks.trim() || undefined,
@@ -110,42 +96,46 @@ export function DeploymentFormDialog({
               {errors.deploymentDate && <p className="text-xs text-destructive">{errors.deploymentDate}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Employment Status</Label>
-              <Select value={employmentStatus} onValueChange={(v) => setEmploymentStatus(v as EmploymentStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(EMPLOYMENT_STATUS_LABEL).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="reporting_manager">Reporting Manager</Label>
+              <Input
+                id="reporting_manager"
+                autoComplete="off"
+                value={reportingManager}
+                onChange={(e) => setReportingManager(e.target.value)}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="reporting_manager">Reporting Manager</Label>
-              <Input id="reporting_manager" value={reportingManager} onChange={(e) => setReportingManager(e.target.value)} />
-            </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="assigned_branch">Assigned Branch</Label>
-              <Input id="assigned_branch" value={assignedBranch} onChange={(e) => setAssignedBranch(e.target.value)} />
+              <Input
+                id="assigned_branch"
+                autoComplete="off"
+                value={assignedBranch}
+                onChange={(e) => setAssignedBranch(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="work_location">Work Location</Label>
+              <Input
+                id="work_location"
+                autoComplete="off"
+                value={workLocation}
+                onChange={(e) => setWorkLocation(e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="work_location">Work Location</Label>
-              <Input id="work_location" value={workLocation} onChange={(e) => setWorkLocation(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="reporting_time">Reporting Time</Label>
-              <Input id="reporting_time" value={reportingTime} onChange={(e) => setReportingTime(e.target.value)} placeholder="e.g. 8:00 AM" />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="reporting_time">Reporting Time</Label>
+            <Input
+              id="reporting_time"
+              autoComplete="off"
+              value={reportingTime}
+              onChange={(e) => setReportingTime(e.target.value)}
+              placeholder="e.g. 8:00 AM"
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">

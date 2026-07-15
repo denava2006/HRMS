@@ -288,7 +288,6 @@ export type Database = {
           created_at: string
           deployed_by: string | null
           deployment_date: string
-          employment_status: Database["public"]["Enums"]["employment_status"]
           id: string
           remarks: string | null
           reporting_manager: string | null
@@ -302,7 +301,6 @@ export type Database = {
           created_at?: string
           deployed_by?: string | null
           deployment_date: string
-          employment_status?: Database["public"]["Enums"]["employment_status"]
           id?: string
           remarks?: string | null
           reporting_manager?: string | null
@@ -316,7 +314,6 @@ export type Database = {
           created_at?: string
           deployed_by?: string | null
           deployment_date?: string
-          employment_status?: Database["public"]["Enums"]["employment_status"]
           id?: string
           remarks?: string | null
           reporting_manager?: string | null

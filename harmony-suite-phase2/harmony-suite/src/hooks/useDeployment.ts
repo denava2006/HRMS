@@ -388,7 +388,6 @@ export interface CompleteDeploymentInput {
   deploymentDate: string
   reportingManager?: string
   assignedBranch?: string
-  employmentStatus: 'active' | 'on_leave' | 'suspended' | 'resigned' | 'terminated'
   workLocation?: string
   reportingTime?: string
   remarks?: string
@@ -404,7 +403,6 @@ export function useCompleteDeployment() {
         deployment_date: input.deploymentDate,
         reporting_manager: input.reportingManager || null,
         assigned_branch: input.assignedBranch || null,
-        employment_status: input.employmentStatus,
         work_location: input.workLocation || null,
         reporting_time: input.reportingTime || null,
         remarks: input.remarks || null,
