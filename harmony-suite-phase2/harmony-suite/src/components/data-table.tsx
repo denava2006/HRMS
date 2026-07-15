@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -26,6 +27,8 @@ interface DataTableProps<TData, TValue> {
   toolbarAction?: React.ReactNode
   /** When provided, rows become clickable (e.g. to open a details view) and get a pointer cursor. */
   onRowClick?: (row: TData) => void
+  /** 'compact' trims row/header height and padding for data-dense pages. Defaults to the standard spacing. */
+  density?: 'default' | 'compact'
 }
 
 export function DataTable<TData, TValue>({
@@ -38,6 +41,7 @@ export function DataTable<TData, TValue>({
   emptyDescription,
   toolbarAction,
   onRowClick,
+  density = 'default',
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = React.useState('')
@@ -74,10 +78,13 @@ export function DataTable<TData, TValue>({
   })
 
   const visibleColumnCount = table.getVisibleLeafColumns().length
+  const compact = density === 'compact'
+  const headClassName = compact ? 'h-9 px-3 py-1.5' : undefined
+  const cellClassName = compact ? 'px-3 py-2' : undefined
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className={cn('flex flex-col', compact ? 'gap-3' : 'gap-4')}>
+      <div className={cn('flex flex-col sm:flex-row sm:items-center sm:justify-between', compact ? 'gap-2' : 'gap-3')}>
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -95,7 +102,7 @@ export function DataTable<TData, TValue>({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead key={header.id} className={headClassName}>
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
                     <button
                       type="button"
@@ -118,7 +125,7 @@ export function DataTable<TData, TValue>({
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
                 {Array.from({ length: visibleColumnCount }).map((_, j) => (
-                  <TableCell key={j}>
+                  <TableCell key={j} className={cellClassName}>
                     <Skeleton className="h-5 w-full max-w-40" />
                   </TableCell>
                 ))}
@@ -132,7 +139,9 @@ export function DataTable<TData, TValue>({
                 className={onRowClick ? 'cursor-pointer' : undefined}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                  <TableCell key={cell.id} className={cn(cellClassName, 'align-middle')}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
                 ))}
               </TableRow>
             ))

@@ -656,7 +656,6 @@ export type Database = {
           posted_by: string | null
           requirements: string | null
           status: Database["public"]["Enums"]["job_posting_status"]
-          title: string
           updated_at: string
           vacancies: number
         }
@@ -672,7 +671,6 @@ export type Database = {
           posted_by?: string | null
           requirements?: string | null
           status?: Database["public"]["Enums"]["job_posting_status"]
-          title: string
           updated_at?: string
           vacancies?: number
         }
@@ -688,7 +686,6 @@ export type Database = {
           posted_by?: string | null
           requirements?: string | null
           status?: Database["public"]["Enums"]["job_posting_status"]
-          title?: string
           updated_at?: string
           vacancies?: number
         }

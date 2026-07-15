@@ -28,7 +28,6 @@ export default function CareersPage() {
       if (employmentTypeFilter !== ALL && p.employment_type !== employmentTypeFilter) return false
       if (!term) return true
       return (
-        p.title.toLowerCase().includes(term) ||
         (p.departments?.name ?? '').toLowerCase().includes(term) ||
         (p.positions?.title ?? '').toLowerCase().includes(term)
       )
@@ -61,7 +60,7 @@ export default function CareersPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by title, department, or position..."
+            placeholder="Search by department or position..."
             className="pl-9"
             aria-label="Search job postings"
           />

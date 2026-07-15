@@ -44,7 +44,6 @@ const ROLE_LABEL: Record<UserRole, string> = { admin: 'Administrator', hr_staff:
 const createSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
   full_name: z.string().min(1, 'Full name is required').max(150),
-  role: z.enum(['admin', 'hr_staff']),
 })
 type CreateFormValues = z.infer<typeof createSchema>
 
@@ -58,14 +57,13 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const createAccount = useCreateHrAccount()
   const {
     register,
-    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CreateFormValues>({ resolver: zodResolver(createSchema), defaultValues: { role: 'hr_staff' } })
+  } = useForm<CreateFormValues>({ resolver: zodResolver(createSchema) })
 
   React.useEffect(() => {
-    if (open) reset({ email: '', full_name: '', role: 'hr_staff' })
+    if (open) reset({ email: '', full_name: '' })
   }, [open, reset])
 
   const onSubmit = async (values: CreateFormValues) => {
@@ -97,21 +95,10 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Role</Label>
-            <Controller
-              control={control}
-              name="role"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hr_staff">HR Staff</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
+            <Input value="HR Staff" disabled />
+            <p className="text-xs text-muted-foreground">
+              New accounts are always created as HR Staff. Administrator accounts can't be created from the UI.
+            </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -150,6 +137,7 @@ function EditAccountDialog({
   }, [open, account, reset])
 
   if (!account) return null
+  const isAdmin = account.role === 'admin'
 
   const onSubmit = async (values: EditFormValues) => {
     await updateAccount.mutateAsync({ id: account.id, values })
@@ -175,17 +163,23 @@ function EditAccountDialog({
               control={control}
               name="role"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} disabled={isAdmin}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hr_staff">HR Staff</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
+                    {isAdmin ? (
+                      <SelectItem value="admin">Administrator</SelectItem>
+                    ) : (
+                      <SelectItem value="hr_staff">HR Staff</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               )}
             />
+            {isAdmin && (
+              <p className="text-xs text-muted-foreground">Administrator accounts cannot have their role changed.</p>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -261,7 +255,11 @@ export default function HrAccountsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setEditing(row.original)}>Edit</DropdownMenuItem>
               {row.original.status === 'active' ? (
-                <DropdownMenuItem destructive disabled={isSelf} onClick={() => setDeactivating(row.original)}>
+                <DropdownMenuItem
+                  destructive
+                  disabled={isSelf || row.original.role === 'admin'}
+                  onClick={() => setDeactivating(row.original)}
+                >
                   Deactivate
                 </DropdownMenuItem>
               ) : (

@@ -9,7 +9,7 @@ import { APPLICATION_STATUS_LABEL } from '@/lib/applicationStatusLabels'
 const APPLICATION_SELECT = `
   *,
   applicants (id, first_name, last_name, email, phone, address, resume_url, cover_letter),
-  job_postings (id, title, department_id, position_id, departments (name), positions (title)),
+  job_postings (id, department_id, position_id, departments (name), positions (title)),
   reviewer:profiles!applications_reviewed_by_fkey (full_name)
 `
 
@@ -19,7 +19,7 @@ export type RecruitmentApplication = Tables<'applications'> & {
     'id' | 'first_name' | 'last_name' | 'email' | 'phone' | 'address' | 'resume_url' | 'cover_letter'
   > | null
   job_postings:
-    | (Pick<Tables<'job_postings'>, 'id' | 'title' | 'department_id' | 'position_id'> & {
+    | (Pick<Tables<'job_postings'>, 'id' | 'department_id' | 'position_id'> & {
         departments: { name: string } | null
         positions: { title: string } | null
       })

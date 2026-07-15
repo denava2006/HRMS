@@ -21,18 +21,38 @@ import {
   validateResumeFile,
 } from '@/hooks/usePublicCareers'
 
+// Letters with single spaces, hyphens, or apostrophes between them — no digits,
+// no other symbols, and no leading/trailing or doubled-up separators.
+const nameRegex = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/
+const nameField = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, `${label} is required`)
+    .max(100)
+    .regex(nameRegex, `${label} can only contain letters, spaces, hyphens, and apostrophes`)
+
+// Philippine mobile numbers only: exactly 11 digits, starting with 09.
+const phoneRegex = /^09\d{9}$/
+
 const applicationSchema = z.object({
-  firstName: z.string().min(1, 'First name is required').max(100),
-  lastName: z.string().min(1, 'Last name is required').max(100),
+  firstName: nameField('First name'),
+  lastName: nameField('Last name'),
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
   phone: z
     .string()
     .min(1, 'Phone number is required')
-    .regex(/^[0-9+\-\s()]{7,20}$/, 'Enter a valid phone number'),
-  address: z.string().min(1, 'Address is required').max(500),
-  coverLetter: z.string().max(3000).optional(),
+    .regex(phoneRegex, 'Enter a valid Philippine mobile number (11 digits, starting with 09)'),
+  address: z.string().trim().min(1, 'Address is required').max(500),
+  coverLetter: z.string().max(2000, 'Cover letter cannot exceed 2,000 characters').optional(),
 })
 type ApplicationFormValues = z.infer<typeof applicationSchema>
+
+/** Strips everything but digits and caps the length at 11, as the user types —
+ * so letters, +, -, /, *, ., (), and spaces can never even be entered. */
+function sanitizePhoneInput(raw: string): string {
+  return raw.replace(/\D/g, '').slice(0, 11)
+}
 
 function formatFileSize(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
@@ -147,6 +167,7 @@ export default function ApplyPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues>({ resolver: zodResolver(applicationSchema) })
+  const phoneField = register('phone')
 
   if (isLoading) return <ApplyPageSkeleton />
 
@@ -172,7 +193,8 @@ export default function ApplyPage() {
         </div>
         <h1 className="font-display text-2xl font-bold text-foreground">Applications Closed</h1>
         <p className="max-w-md text-muted-foreground">
-          "{posting.title}" is no longer accepting applications. Take a look at our other open roles.
+          "{posting.positions?.title ?? 'This position'}" is no longer accepting applications. Take a look at our
+          other open roles.
         </p>
         <Button asChild>
           <Link to="/careers">Browse open positions</Link>
@@ -201,7 +223,7 @@ export default function ApplyPage() {
       })
       navigate('/careers/application-success', {
         replace: true,
-        state: { jobTitle: posting.title },
+        state: { jobTitle: posting.positions?.title },
       })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -231,7 +253,9 @@ export default function ApplyPage() {
               {posting.departments?.name && <Badge variant="secondary">{posting.departments.name}</Badge>}
               <Badge variant="outline">{EMPLOYMENT_TYPE_LABEL[posting.employment_type]}</Badge>
             </div>
-            <p className="font-display text-base font-semibold text-foreground">{posting.title}</p>
+            <p className="font-display text-base font-semibold text-foreground">
+              {posting.positions?.title ?? 'Open Position'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -282,7 +306,19 @@ export default function ApplyPage() {
           <Label htmlFor="phone">
             Phone number <span className="text-destructive">*</span>
           </Label>
-          <Input id="phone" type="tel" invalid={!!errors.phone} {...register('phone')} placeholder="09XX XXX XXXX" />
+          <Input
+            id="phone"
+            type="tel"
+            inputMode="numeric"
+            maxLength={11}
+            invalid={!!errors.phone}
+            {...phoneField}
+            onChange={(e) => {
+              e.target.value = sanitizePhoneInput(e.target.value)
+              phoneField.onChange(e)
+            }}
+            placeholder="09XXXXXXXXX"
+          />
           {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
         </div>
 
@@ -313,10 +349,13 @@ export default function ApplyPage() {
           <Label htmlFor="coverLetter">Cover letter</Label>
           <Textarea
             id="coverLetter"
+            invalid={!!errors.coverLetter}
+            maxLength={2000}
             {...register('coverLetter')}
             placeholder="Tell us why you're a great fit for this role (optional)"
             rows={5}
           />
+          {errors.coverLetter && <p className="text-xs text-destructive">{errors.coverLetter.message}</p>}
         </div>
 
         <Button type="submit" size="lg" className="mt-2" loading={isSubmitting || submitApplication.isPending}>

@@ -113,7 +113,12 @@ export default function RecruitmentPage() {
       // getValue() — hidden from view automatically (see data-table.tsx).
       id: '_searchText',
       accessorFn: (row) =>
-        [row.applicants?.first_name, row.applicants?.last_name, row.applicants?.email, row.job_postings?.title]
+        [
+          row.applicants?.first_name,
+          row.applicants?.last_name,
+          row.applicants?.email,
+          row.job_postings?.positions?.title,
+        ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase(),
@@ -133,7 +138,7 @@ export default function RecruitmentPage() {
     {
       id: 'position',
       header: 'Position Applied',
-      accessorFn: (row) => row.job_postings?.title ?? '',
+      accessorFn: (row) => row.job_postings?.positions?.title ?? '',
     },
     {
       id: 'department',

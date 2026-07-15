@@ -34,10 +34,9 @@ export function JobPostingCard({ posting, index = 0 }: { posting: PublicJobPosti
             </div>
             <h3 className="font-display text-lg font-semibold leading-snug text-foreground">
               <Link to={`/careers/${posting.id}`} className="hover:text-secondary hover:underline">
-                {posting.title}
+                {posting.positions?.title ?? 'Open Position'}
               </Link>
             </h3>
-            {posting.positions?.title && <p className="text-sm text-muted-foreground">{posting.positions.title}</p>}
           </div>
 
           <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">{posting.description}</p>

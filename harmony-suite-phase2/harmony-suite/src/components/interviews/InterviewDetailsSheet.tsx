@@ -229,7 +229,7 @@ export function InterviewDetailsSheet({
             </SheetBody>
           ) : (
             <>
-              <SheetHeader>
+              <SheetHeader className="gap-1 p-5">
                 <div className="flex items-center gap-2">
                   <SheetTitle>
                     {applicant?.first_name} {applicant?.last_name}
@@ -238,12 +238,12 @@ export function InterviewDetailsSheet({
                     {APPLICATION_STATUS_LABEL[application.status]}
                   </Badge>
                 </div>
-                <SheetDescription>Applied for {jobPosting?.title ?? 'a position'}</SheetDescription>
+                <SheetDescription>Applied for {jobPosting?.positions?.title ?? 'a position'}</SheetDescription>
               </SheetHeader>
 
-              <SheetBody>
-                <div className="flex flex-col gap-8">
-                  <section className="flex flex-col gap-3">
+              <SheetBody className="p-5">
+                <div className="flex flex-col gap-5">
+                  <section className="flex flex-col gap-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Personal Information
                     </h3>
@@ -254,12 +254,12 @@ export function InterviewDetailsSheet({
                     </div>
                   </section>
 
-                  <section className="flex flex-col gap-3">
+                  <section className="flex flex-col gap-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Application Information
                     </h3>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <InfoRow icon={Briefcase} label="Applied Position" value={jobPosting?.title ?? '—'} />
+                      <InfoRow icon={Briefcase} label="Applied Position" value={jobPosting?.positions?.title ?? '—'} />
                       <InfoRow icon={Building2} label="Department" value={jobPosting?.departments?.name ?? '—'} />
                       <InfoRow icon={CalendarDays} label="Date Applied" value={formatDateTime(application.created_at)} />
                     </div>
@@ -280,7 +280,7 @@ export function InterviewDetailsSheet({
                     )}
                   </section>
 
-                  <section className="flex flex-col gap-3">
+                  <section className="flex flex-col gap-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Recruitment Summary
                     </h3>
@@ -290,7 +290,7 @@ export function InterviewDetailsSheet({
                     </div>
                   </section>
 
-                  <section className="flex flex-col gap-3">
+                  <section className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Interview Stage
@@ -325,7 +325,7 @@ export function InterviewDetailsSheet({
                   </section>
 
                   {(stage === 'initial_interview_scheduled' || stage === 'under_initial_interview') && initial && (
-                    <section className="flex flex-col gap-3">
+                    <section className="flex flex-col gap-2">
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Scheduled Initial Interview
                       </h3>
@@ -334,7 +334,7 @@ export function InterviewDetailsSheet({
                   )}
 
                   {(stage === 'final_interview_scheduled' || stage === 'under_final_interview') && final && (
-                    <section className="flex flex-col gap-3">
+                    <section className="flex flex-col gap-2">
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Scheduled Final Interview
                       </h3>
@@ -343,7 +343,7 @@ export function InterviewDetailsSheet({
                   )}
 
                   {initial && (initial.status === 'passed' || initial.status === 'failed') && (
-                    <section className="flex flex-col gap-3">
+                    <section className="flex flex-col gap-2">
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Initial Interview Evaluation
                       </h3>
@@ -352,7 +352,7 @@ export function InterviewDetailsSheet({
                   )}
 
                   {final && (final.status === 'passed' || final.status === 'failed') && (
-                    <section className="flex flex-col gap-3">
+                    <section className="flex flex-col gap-2">
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Final Interview Evaluation
                       </h3>
@@ -362,7 +362,7 @@ export function InterviewDetailsSheet({
                 </div>
               </SheetBody>
 
-              <SheetFooter>
+              <SheetFooter className="p-5">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Back
                 </Button>

@@ -45,16 +45,16 @@ function StatCard({
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
       <Card>
-        <CardContent className="flex items-center gap-4 p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-            <Icon className="h-5 w-5" />
+        <CardContent className="flex items-center gap-3 p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+            <Icon className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-xs text-muted-foreground">{label}</p>
             {isLoading ? (
-              <Skeleton className="mt-1 h-7 w-12" />
+              <Skeleton className="mt-1 h-6 w-12" />
             ) : (
-              <p className="font-display text-2xl font-bold text-foreground">{value}</p>
+              <p className="font-display text-xl font-bold text-foreground">{value}</p>
             )}
           </div>
         </CardContent>
@@ -121,7 +121,12 @@ export default function InterviewsPage() {
     {
       id: '_searchText',
       accessorFn: (row) =>
-        [row.applicants?.first_name, row.applicants?.last_name, row.applicants?.email, row.job_postings?.title]
+        [
+          row.applicants?.first_name,
+          row.applicants?.last_name,
+          row.applicants?.email,
+          row.job_postings?.positions?.title,
+        ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase(),
@@ -141,7 +146,7 @@ export default function InterviewsPage() {
     {
       id: 'position',
       header: 'Position',
-      accessorFn: (row) => row.job_postings?.title ?? '',
+      accessorFn: (row) => row.job_postings?.positions?.title ?? '',
     },
     {
       id: 'department',
@@ -211,7 +216,7 @@ export default function InterviewsPage() {
   ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div>
         <h2 className="font-display text-xl font-semibold text-foreground">Interview Management</h2>
         <p className="text-sm text-muted-foreground">
@@ -219,7 +224,7 @@ export default function InterviewsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Scheduled Interviews" value={stats?.scheduledCount ?? 0} icon={CalendarClock} isLoading={statsLoading} index={0} />
         <StatCard label="Initial Interviews Today" value={stats?.initialTodayCount ?? 0} icon={CalendarDays} isLoading={statsLoading} index={1} />
         <StatCard label="Final Interviews Today" value={stats?.finalTodayCount ?? 0} icon={CalendarCheck2} isLoading={statsLoading} index={2} />
@@ -238,6 +243,7 @@ export default function InterviewsPage() {
           columns={columns}
           data={rows}
           isLoading={isLoading}
+          density="compact"
           searchPlaceholder="Search by name, email, or position..."
           searchColumn="_searchText"
           emptyTitle="No applicants in the interview pipeline"

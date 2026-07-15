@@ -215,7 +215,7 @@ export function ApplicantDetailsSheet({
                     {APPLICATION_STATUS_LABEL[application.status]}
                   </Badge>
                 </div>
-                <SheetDescription>Applied for {jobPosting?.title ?? 'a position'}</SheetDescription>
+                <SheetDescription>Applied for {jobPosting?.positions?.title ?? 'a position'}</SheetDescription>
               </SheetHeader>
 
               <SheetBody>
@@ -236,7 +236,7 @@ export function ApplicantDetailsSheet({
                       Application Information
                     </h3>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <InfoRow icon={Briefcase} label="Position Applied" value={jobPosting?.title ?? '—'} />
+                      <InfoRow icon={Briefcase} label="Position Applied" value={jobPosting?.positions?.title ?? '—'} />
                       <InfoRow icon={Building2} label="Department" value={jobPosting?.departments?.name ?? '—'} />
                       <InfoRow icon={CalendarDays} label="Application Date" value={formatDateTime(application.created_at)} />
                     </div>

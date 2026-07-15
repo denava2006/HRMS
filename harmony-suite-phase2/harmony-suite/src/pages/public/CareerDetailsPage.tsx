@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Users, CalendarClock, Building2, Briefcase, Lock } from 'lucide-react'
+import { ArrowLeft, Users, CalendarClock, Briefcase, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -80,13 +80,9 @@ export default function CareerDetailsPage() {
           <Badge variant="outline">{EMPLOYMENT_TYPE_LABEL[posting.employment_type]}</Badge>
           {!acceptingApplications && <Badge variant="muted">Applications Closed</Badge>}
         </div>
-        <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">{posting.title}</h1>
-        {posting.positions?.title && (
-          <p className="flex items-center gap-1.5 text-muted-foreground">
-            <Building2 className="h-4 w-4" />
-            {posting.positions.title}
-          </p>
-        )}
+        <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+          {posting.positions?.title ?? 'Open Position'}
+        </h1>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">

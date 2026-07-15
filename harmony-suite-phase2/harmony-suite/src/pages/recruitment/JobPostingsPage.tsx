@@ -63,7 +63,6 @@ function todayISODate(): string {
 }
 
 const jobPostingSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(150),
   department_id: z.string().min(1, 'Select a department'),
   position_id: z.string().min(1, 'Select a position'),
   description: z.string().min(1, 'Description is required').max(5000),
@@ -114,7 +113,6 @@ function JobPostingFormDialog({
   React.useEffect(() => {
     if (open) {
       reset({
-        title: posting?.title ?? '',
         department_id: posting?.department_id ?? '',
         position_id: posting?.position_id ?? '',
         description: posting?.description ?? '',
@@ -129,7 +127,6 @@ function JobPostingFormDialog({
 
   const onSubmit = async (values: JobPostingFormValues) => {
     const payload = {
-      title: values.title,
       department_id: values.department_id,
       position_id: values.position_id,
       description: values.description,
@@ -157,14 +154,6 @@ function JobPostingFormDialog({
 
         <form className="flex flex-1 flex-col overflow-hidden" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="flex flex-col gap-4 overflow-y-auto px-6 py-1">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="title">
-                Title <span className="text-destructive">*</span>
-              </Label>
-              <Input id="title" invalid={!!errors.title} {...register('title')} placeholder="e.g. Senior HR Generalist" />
-              {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label>
@@ -340,7 +329,6 @@ export default function JobPostingsPage() {
       id: posting.id,
       wasOpen: posting.status === 'open',
       values: {
-        title: posting.title,
         department_id: posting.department_id,
         position_id: posting.position_id,
         description: posting.description,
@@ -354,7 +342,6 @@ export default function JobPostingsPage() {
   }
 
   const columns: ColumnDef<JobPosting>[] = [
-    { accessorKey: 'title', header: 'Title' },
     {
       id: 'department',
       header: 'Department',
@@ -364,7 +351,7 @@ export default function JobPostingsPage() {
     },
     {
       id: 'position',
-      header: 'Position',
+      header: 'Position Name',
       accessorFn: (row) => row.positions?.title ?? '',
     },
     {
@@ -448,7 +435,7 @@ export default function JobPostingsPage() {
           data={data ?? []}
           isLoading={isLoading}
           searchPlaceholder="Search postings..."
-          searchColumn="title"
+          searchColumn="position"
           emptyTitle="No job postings yet"
           emptyDescription="Create a posting once you have at least one department and position set up."
           toolbarAction={
@@ -470,7 +457,7 @@ export default function JobPostingsPage() {
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete "{deleting?.title}"?</AlertDialogTitle>
+            <AlertDialogTitle>Delete "{deleting?.positions?.title ?? 'this posting'}"?</AlertDialogTitle>
             <AlertDialogDescription>
               This can't be undone. Postings with applications on file can't be deleted — close them instead.
             </AlertDialogDescription>

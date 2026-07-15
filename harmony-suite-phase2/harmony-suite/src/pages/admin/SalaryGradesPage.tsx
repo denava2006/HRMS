@@ -35,28 +35,33 @@ import {
   useDeleteSalaryGrade,
 } from '@/hooks/useSalaryGrades'
 
-// Digits only, with an optional 2-decimal-place remainder — deliberately excludes
-// "+", "-", "e"/"E" (scientific notation) and any other symbol a number input would
-// otherwise accept.
-const decimalAmount = /^\d+(\.\d{1,2})?$/
+const MAX_SALARY = 100_000_000
+
+// Plain digits with an optional 2-decimal remainder (while the field is focused
+// and being typed into) or Philippine-style comma-grouped thousands (what it's
+// reformatted to on blur) — deliberately excludes "+", "-", "e"/"E" (scientific
+// notation) and any other symbol a number input would otherwise accept.
+const decimalAmount = /^\d+(\.\d{1,2})?$|^\d{1,3}(,\d{3})*(\.\d{1,2})?$/
+
+const amountField = (label: string) =>
+  z
+    .string()
+    .min(1, `${label} is required`)
+    .regex(decimalAmount, 'Numbers only, e.g. 25,000 or 25,000.50')
+    .transform((v) => v.replace(/,/g, ''))
+    .refine((v) => Number(v) <= MAX_SALARY, `${label} cannot exceed 100,000,000.00`)
 
 const gradeSchema = z
   .object({
     grade_name: z.string().min(1, 'Grade name is required').max(50),
-    min_salary: z
-      .string()
-      .min(1, 'Minimum salary is required')
-      .regex(decimalAmount, 'Numbers only, e.g. 25000 or 25000.50'),
-    max_salary: z
-      .string()
-      .min(1, 'Maximum salary is required')
-      .regex(decimalAmount, 'Numbers only, e.g. 25000 or 25000.50'),
+    min_salary: amountField('Minimum salary').refine((v) => Number(v) > 0, 'Minimum salary must be greater than zero'),
+    max_salary: amountField('Maximum salary'),
   })
-  .refine((v) => !decimalAmount.test(v.min_salary) || Number(v.min_salary) <= Number(v.max_salary), {
+  .refine((v) => Number(v.min_salary) <= Number(v.max_salary), {
     message: 'Minimum salary cannot exceed the maximum salary',
     path: ['min_salary'],
   })
-  .refine((v) => !decimalAmount.test(v.max_salary) || Number(v.max_salary) >= Number(v.min_salary), {
+  .refine((v) => Number(v.max_salary) >= Number(v.min_salary), {
     message: 'Maximum salary cannot be lower than the minimum salary',
     path: ['max_salary'],
   })
@@ -72,7 +77,20 @@ function sanitizeAmountInput(raw: string): string {
   return `${wholePart}.${fractionPart}`
 }
 
-const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 })
+/** Philippine-style thousands grouping, applied once focus leaves the field — e.g. "100000" -> "100,000". */
+function formatAmountDisplay(raw: string): string {
+  if (!raw) return raw
+  const [wholePart, fractionPart] = raw.split('.')
+  const grouped = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return fractionPart !== undefined ? `${grouped}.${fractionPart}` : grouped
+}
+
+const peso = new Intl.NumberFormat('en-PH', {
+  style: 'currency',
+  currency: 'PHP',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
 
 function GradeFormDialog({
   open,
@@ -99,8 +117,8 @@ function GradeFormDialog({
     if (open) {
       reset({
         grade_name: grade?.grade_name ?? '',
-        min_salary: grade ? String(grade.min_salary) : '',
-        max_salary: grade ? String(grade.max_salary) : '',
+        min_salary: grade ? formatAmountDisplay(String(grade.min_salary)) : '',
+        max_salary: grade ? formatAmountDisplay(String(grade.max_salary)) : '',
       })
     }
   }, [open, grade, reset])
@@ -151,6 +169,13 @@ function GradeFormDialog({
                   e.target.value = sanitizeAmountInput(e.target.value)
                   minSalaryField.onChange(e)
                 }}
+                onFocus={(e) => {
+                  e.target.value = e.target.value.replace(/,/g, '')
+                }}
+                onBlur={(e) => {
+                  e.target.value = formatAmountDisplay(e.target.value)
+                  minSalaryField.onBlur(e)
+                }}
               />
               {errors.min_salary && <p className="text-xs text-destructive">{errors.min_salary.message}</p>}
             </div>
@@ -169,6 +194,13 @@ function GradeFormDialog({
                 onChange={(e) => {
                   e.target.value = sanitizeAmountInput(e.target.value)
                   maxSalaryField.onChange(e)
+                }}
+                onFocus={(e) => {
+                  e.target.value = e.target.value.replace(/,/g, '')
+                }}
+                onBlur={(e) => {
+                  e.target.value = formatAmountDisplay(e.target.value)
+                  maxSalaryField.onBlur(e)
                 }}
               />
               {errors.max_salary && <p className="text-xs text-destructive">{errors.max_salary.message}</p>}

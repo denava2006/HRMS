@@ -38,7 +38,6 @@ export function useHrAccounts() {
 interface CreateHrAccountInput {
   email: string
   full_name: string
-  role: UserRole
 }
 
 export function useCreateHrAccount() {
