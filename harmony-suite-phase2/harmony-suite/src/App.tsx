@@ -11,6 +11,7 @@ import PositionsPage from '@/pages/admin/PositionsPage'
 import SalaryGradesPage from '@/pages/admin/SalaryGradesPage'
 import SettingsPage from '@/pages/admin/SettingsPage'
 import HrAccountsPage from '@/pages/admin/HrAccountsPage'
+import JobPostingsPage from '@/pages/recruitment/JobPostingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,8 @@ export default function App() {
               }
             >
               <Route index element={<DashboardHome />} />
+
+              <Route path="recruitment/job-postings" element={<JobPostingsPage />} />
 
               <Route
                 path="admin/accounts"
