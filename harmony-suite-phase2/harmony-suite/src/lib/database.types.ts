@@ -513,7 +513,6 @@ export type Database = {
           meeting_link: string | null
           mode: string | null
           overall_impression: string | null
-          overall_recommendation: string | null
           rating_communication: number | null
           rating_confidence: number | null
           rating_culture_fit: number | null
@@ -541,7 +540,6 @@ export type Database = {
           meeting_link?: string | null
           mode?: string | null
           overall_impression?: string | null
-          overall_recommendation?: string | null
           rating_communication?: number | null
           rating_confidence?: number | null
           rating_culture_fit?: number | null
@@ -569,7 +567,6 @@ export type Database = {
           meeting_link?: string | null
           mode?: string | null
           overall_impression?: string | null
-          overall_recommendation?: string | null
           rating_communication?: number | null
           rating_confidence?: number | null
           rating_culture_fit?: number | null

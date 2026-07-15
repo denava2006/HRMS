@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -8,6 +8,7 @@ import { DataTable } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { MoneyInput } from '@/components/MoneyInput'
 import {
   Dialog,
   DialogContent,
@@ -34,21 +35,21 @@ import {
   useUpdateSalaryGrade,
   useDeleteSalaryGrade,
 } from '@/hooks/useSalaryGrades'
+import { useCurrency } from '@/hooks/useSystemSettings'
+import { formatMoney } from '@/lib/currency'
 
 const MAX_SALARY = 100_000_000
 
-// Plain digits with an optional 2-decimal remainder (while the field is focused
-// and being typed into) or Philippine-style comma-grouped thousands (what it's
-// reformatted to on blur) — deliberately excludes "+", "-", "e"/"E" (scientific
-// notation) and any other symbol a number input would otherwise accept.
-const decimalAmount = /^\d+(\.\d{1,2})?$|^\d{1,3}(,\d{3})*(\.\d{1,2})?$/
+// Plain digits with an optional 2-decimal remainder — deliberately excludes "+",
+// "-", "e"/"E" (scientific notation), and any other symbol MoneyInput wouldn't
+// otherwise produce.
+const decimalAmount = /^\d+(\.\d{1,2})?$/
 
 const amountField = (label: string) =>
   z
     .string()
     .min(1, `${label} is required`)
-    .regex(decimalAmount, 'Numbers only, e.g. 25,000 or 25,000.50')
-    .transform((v) => v.replace(/,/g, ''))
+    .regex(decimalAmount, 'Numbers only, e.g. 25000 or 25000.50')
     .refine((v) => Number(v) <= MAX_SALARY, `${label} cannot exceed 100,000,000.00`)
 
 const gradeSchema = z
@@ -67,31 +68,6 @@ const gradeSchema = z
   })
 type GradeFormValues = z.infer<typeof gradeSchema>
 
-/** Strips everything but digits and a single decimal point, capped at 2 decimal places, as the user types. */
-function sanitizeAmountInput(raw: string): string {
-  const digitsAndDot = raw.replace(/[^0-9.]/g, '')
-  const firstDot = digitsAndDot.indexOf('.')
-  if (firstDot === -1) return digitsAndDot
-  const wholePart = digitsAndDot.slice(0, firstDot)
-  const fractionPart = digitsAndDot.slice(firstDot + 1).replace(/\./g, '').slice(0, 2)
-  return `${wholePart}.${fractionPart}`
-}
-
-/** Philippine-style thousands grouping, applied once focus leaves the field — e.g. "100000" -> "100,000". */
-function formatAmountDisplay(raw: string): string {
-  if (!raw) return raw
-  const [wholePart, fractionPart] = raw.split('.')
-  const grouped = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  return fractionPart !== undefined ? `${grouped}.${fractionPart}` : grouped
-}
-
-const peso = new Intl.NumberFormat('en-PH', {
-  style: 'currency',
-  currency: 'PHP',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-})
-
 function GradeFormDialog({
   open,
   onOpenChange,
@@ -102,23 +78,23 @@ function GradeFormDialog({
   grade?: SalaryGrade | null
 }) {
   const isEdit = !!grade
+  const currency = useCurrency()
   const createGrade = useCreateSalaryGrade()
   const updateGrade = useUpdateSalaryGrade()
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<GradeFormValues>({ resolver: zodResolver(gradeSchema) })
-  const minSalaryField = register('min_salary')
-  const maxSalaryField = register('max_salary')
 
   React.useEffect(() => {
     if (open) {
       reset({
         grade_name: grade?.grade_name ?? '',
-        min_salary: grade ? formatAmountDisplay(String(grade.min_salary)) : '',
-        max_salary: grade ? formatAmountDisplay(String(grade.max_salary)) : '',
+        min_salary: grade ? String(grade.min_salary) : '',
+        max_salary: grade ? String(grade.max_salary) : '',
       })
     }
   }, [open, grade, reset])
@@ -155,53 +131,41 @@ function GradeFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="min_salary">
-                Minimum (\u20b1) <span className="text-destructive">*</span>
+                Minimum <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="min_salary"
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                className="font-mono"
-                invalid={!!errors.min_salary}
-                {...minSalaryField}
-                onChange={(e) => {
-                  e.target.value = sanitizeAmountInput(e.target.value)
-                  minSalaryField.onChange(e)
-                }}
-                onFocus={(e) => {
-                  e.target.value = e.target.value.replace(/,/g, '')
-                }}
-                onBlur={(e) => {
-                  e.target.value = formatAmountDisplay(e.target.value)
-                  minSalaryField.onBlur(e)
-                }}
+              <Controller
+                control={control}
+                name="min_salary"
+                render={({ field }) => (
+                  <MoneyInput
+                    id="min_salary"
+                    currency={currency}
+                    invalid={!!errors.min_salary}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {errors.min_salary && <p className="text-xs text-destructive">{errors.min_salary.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="max_salary">
-                Maximum (\u20b1) <span className="text-destructive">*</span>
+                Maximum <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="max_salary"
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                className="font-mono"
-                invalid={!!errors.max_salary}
-                {...maxSalaryField}
-                onChange={(e) => {
-                  e.target.value = sanitizeAmountInput(e.target.value)
-                  maxSalaryField.onChange(e)
-                }}
-                onFocus={(e) => {
-                  e.target.value = e.target.value.replace(/,/g, '')
-                }}
-                onBlur={(e) => {
-                  e.target.value = formatAmountDisplay(e.target.value)
-                  maxSalaryField.onBlur(e)
-                }}
+              <Controller
+                control={control}
+                name="max_salary"
+                render={({ field }) => (
+                  <MoneyInput
+                    id="max_salary"
+                    currency={currency}
+                    invalid={!!errors.max_salary}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {errors.max_salary && <p className="text-xs text-destructive">{errors.max_salary.message}</p>}
             </div>
@@ -222,6 +186,7 @@ function GradeFormDialog({
 
 export default function SalaryGradesPage() {
   const { data, isLoading } = useSalaryGrades()
+  const currency = useCurrency()
   const deleteGrade = useDeleteSalaryGrade()
   const [formOpen, setFormOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<SalaryGrade | null>(null)
@@ -232,12 +197,12 @@ export default function SalaryGradesPage() {
     {
       accessorKey: 'min_salary',
       header: 'Minimum',
-      cell: ({ row }) => <span className="font-mono">{peso.format(row.original.min_salary)}</span>,
+      cell: ({ row }) => <span className="font-mono">{formatMoney(row.original.min_salary, currency)}</span>,
     },
     {
       accessorKey: 'max_salary',
       header: 'Maximum',
-      cell: ({ row }) => <span className="font-mono">{peso.format(row.original.max_salary)}</span>,
+      cell: ({ row }) => <span className="font-mono">{formatMoney(row.original.max_salary, currency)}</span>,
     },
     {
       id: 'actions',

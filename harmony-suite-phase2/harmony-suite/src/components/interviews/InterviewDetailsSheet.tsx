@@ -11,6 +11,7 @@ import {
   Circle,
   Link2,
   MapPinned,
+  Lock,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import { ScheduleInterviewDialog } from '@/components/interviews/ScheduleInterviewDialog'
 import { EvaluateInterviewDialog } from '@/components/interviews/EvaluateInterviewDialog'
+import { useAuth } from '@/contexts/AuthContext'
+import { useCurrency } from '@/hooks/useSystemSettings'
+import { formatMoney, type CurrencyCode } from '@/lib/currency'
 import {
   useInterviewApplicationDetail,
   useConductInterview,
@@ -27,15 +31,7 @@ import {
   type InterviewRecord,
 } from '@/hooks/useInterviews'
 import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_VARIANT, type ApplicationStatus } from '@/lib/applicationStatusLabels'
-import {
-  DERIVED_STAGE_LABEL,
-  DERIVED_STAGE_VARIANT,
-  INTERVIEW_MODE_LABEL,
-  OVERALL_RECOMMENDATION_OPTIONS,
-  deriveStage,
-} from '@/lib/interviewLabels'
-
-const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 })
+import { DERIVED_STAGE_LABEL, DERIVED_STAGE_VARIANT, INTERVIEW_MODE_LABEL, deriveStage } from '@/lib/interviewLabels'
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('en-PH', {
@@ -68,7 +64,19 @@ function Rating({ label, value }: { label: string; value: number | null }) {
   )
 }
 
-function TimelineStep({ label, done, timestamp }: { label: string; done: boolean; timestamp?: string }) {
+function TimelineStep({
+  label,
+  done,
+  timestamp,
+  performedBy,
+  notes,
+}: {
+  label: string
+  done: boolean
+  timestamp?: string
+  performedBy?: string | null
+  notes?: string | null
+}) {
   return (
     <li className="flex gap-3">
       <div
@@ -81,7 +89,13 @@ function TimelineStep({ label, done, timestamp }: { label: string; done: boolean
       </div>
       <div>
         <p className={'text-sm font-medium ' + (done ? 'text-foreground' : 'text-muted-foreground')}>{label}</p>
-        {timestamp && <p className="text-xs text-muted-foreground">{formatDateTime(timestamp)}</p>}
+        {timestamp && (
+          <p className="text-xs text-muted-foreground">
+            {formatDateTime(timestamp)}
+            {performedBy ? ` · ${performedBy}` : ''}
+          </p>
+        )}
+        {done && notes && <p className="mt-1 text-xs text-muted-foreground">{notes}</p>}
       </div>
     </li>
   )
@@ -94,7 +108,7 @@ function ScheduledInterviewCard({ interview }: { interview: InterviewRecord }) {
         <CalendarDays className="h-4 w-4 text-muted-foreground" />
         {formatDateTime(interview.scheduled_at)}
       </div>
-      <p className="text-muted-foreground">Interviewer: {interview.interviewer?.full_name ?? '—'}</p>
+      <p className="text-muted-foreground">Assigned Interviewer: {interview.interviewer?.full_name ?? '—'}</p>
       <p className="text-muted-foreground">Format: {interview.mode ? INTERVIEW_MODE_LABEL[interview.mode] : '—'}</p>
       {interview.meeting_link && (
         <p className="flex items-center gap-1.5 text-muted-foreground">
@@ -115,7 +129,15 @@ function ScheduledInterviewCard({ interview }: { interview: InterviewRecord }) {
   )
 }
 
-function EvaluationSummary({ interview, stage }: { interview: InterviewRecord; stage: 'initial' | 'final' }) {
+function EvaluationSummary({
+  interview,
+  stage,
+  currency,
+}: {
+  interview: InterviewRecord
+  stage: 'initial' | 'final'
+  currency: CurrencyCode
+}) {
   const isRejected = interview.status === 'failed'
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
@@ -156,16 +178,7 @@ function EvaluationSummary({ interview, stage }: { interview: InterviewRecord; s
       {stage === 'final' && interview.recommended_salary != null && (
         <div>
           <p className="text-xs text-muted-foreground">Recommended Salary</p>
-          <p className="text-sm text-foreground">{peso.format(interview.recommended_salary)}</p>
-        </div>
-      )}
-      {stage === 'final' && interview.overall_recommendation && (
-        <div>
-          <p className="text-xs text-muted-foreground">Overall Recommendation</p>
-          <p className="text-sm text-foreground">
-            {OVERALL_RECOMMENDATION_OPTIONS.find((o) => o.value === interview.overall_recommendation)?.label ??
-              interview.overall_recommendation}
-          </p>
+          <p className="text-sm text-foreground">{formatMoney(interview.recommended_salary, currency)}</p>
         </div>
       )}
       {isRejected && interview.rejection_reason && (
@@ -191,6 +204,15 @@ function DetailsSkeleton() {
   )
 }
 
+function ReadOnlyNotice({ interviewerName }: { interviewerName?: string | null }) {
+  return (
+    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <Lock className="h-3.5 w-3.5" />
+      Only {interviewerName ?? 'the assigned interviewer'} can progress this interview. You have read-only access.
+    </p>
+  )
+}
+
 export function InterviewDetailsSheet({
   applicationId,
   open,
@@ -200,6 +222,8 @@ export function InterviewDetailsSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { profile } = useAuth()
+  const currency = useCurrency()
   const { data: application, isLoading } = useInterviewApplicationDetail(applicationId ?? undefined)
   const conductInterview = useConductInterview()
 
@@ -213,6 +237,12 @@ export function InterviewDetailsSheet({
   const initial = application ? getInterviewByStage(application.interviews, 'initial') : null
   const final = application ? getInterviewByStage(application.interviews, 'final') : null
   const stage = application ? deriveStage(application.status as ApplicationStatus, initial, final) : null
+
+  // Only the person who scheduled the initial interview may schedule/conduct/evaluate
+  // the rest of this applicant's interview process — everyone else is read-only.
+  // The backend (interviews_update_owner RLS + protect_interview_ownership trigger)
+  // enforces this regardless of what the UI shows.
+  const isOwner = initial ? initial.interviewer_id === profile?.id : true
 
   const onConduct = (interview: InterviewRecord, interviewStage: 'initial' | 'final') => {
     if (!applicationId) return
@@ -298,19 +328,35 @@ export function InterviewDetailsSheet({
                       <Badge variant={DERIVED_STAGE_VARIANT[stage]}>{DERIVED_STAGE_LABEL[stage]}</Badge>
                     </div>
                     <ol className="flex flex-col gap-4">
-                      <TimelineStep label="Initial Interview Scheduled" done={!!initial} timestamp={initial?.created_at} />
+                      <TimelineStep
+                        label="Initial Interview Scheduled"
+                        done={!!initial}
+                        timestamp={initial?.created_at}
+                        performedBy={initial?.interviewer?.full_name}
+                        notes={initial?.remarks}
+                      />
                       <TimelineStep
                         label="Initial Interview Completed"
                         done={!!initial && (initial.status === 'passed' || initial.status === 'failed')}
                         timestamp={
                           initial && (initial.status === 'passed' || initial.status === 'failed') ? initial.updated_at : undefined
                         }
+                        performedBy={initial?.interviewer?.full_name}
+                        notes={initial?.interview_notes ?? initial?.rejection_reason}
                       />
-                      <TimelineStep label="Final Interview Scheduled" done={!!final} timestamp={final?.created_at} />
+                      <TimelineStep
+                        label="Final Interview Scheduled"
+                        done={!!final}
+                        timestamp={final?.created_at}
+                        performedBy={final?.interviewer?.full_name}
+                        notes={final?.remarks}
+                      />
                       <TimelineStep
                         label="Final Interview Completed"
                         done={!!final && (final.status === 'passed' || final.status === 'failed')}
                         timestamp={final && (final.status === 'passed' || final.status === 'failed') ? final.updated_at : undefined}
+                        performedBy={final?.interviewer?.full_name}
+                        notes={final?.final_remarks ?? final?.rejection_reason}
                       />
                       <TimelineStep
                         label="Hiring Decision"
@@ -320,6 +366,12 @@ export function InterviewDetailsSheet({
                             ? application.updated_at
                             : undefined
                         }
+                        performedBy={
+                          application.status === 'hired'
+                            ? final?.interviewer?.full_name
+                            : (final ?? initial)?.interviewer?.full_name
+                        }
+                        notes={application.status === 'rejected' ? application.rejection_reason : undefined}
                       />
                     </ol>
                   </section>
@@ -347,7 +399,7 @@ export function InterviewDetailsSheet({
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Initial Interview Evaluation
                       </h3>
-                      <EvaluationSummary interview={initial} stage="initial" />
+                      <EvaluationSummary interview={initial} stage="initial" currency={currency} />
                     </section>
                   )}
 
@@ -356,7 +408,7 @@ export function InterviewDetailsSheet({
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Final Interview Evaluation
                       </h3>
-                      <EvaluationSummary interview={final} stage="final" />
+                      <EvaluationSummary interview={final} stage="final" currency={currency} />
                     </section>
                   )}
                 </div>
@@ -373,34 +425,49 @@ export function InterviewDetailsSheet({
                   </Button>
                 )}
 
-                {stage === 'initial_interview_scheduled' && initial && (
+                {stage === 'initial_interview_scheduled' && initial && isOwner && (
                   <Button type="button" loading={conductInterview.isPending} onClick={() => onConduct(initial, 'initial')}>
                     Conduct Interview
                   </Button>
                 )}
+                {stage === 'initial_interview_scheduled' && initial && !isOwner && (
+                  <ReadOnlyNotice interviewerName={initial.interviewer?.full_name} />
+                )}
 
-                {stage === 'under_initial_interview' && (
+                {stage === 'under_initial_interview' && isOwner && (
                   <Button type="button" onClick={() => setEvaluateDialogStage('initial')}>
                     Continue Evaluation
                   </Button>
                 )}
+                {stage === 'under_initial_interview' && !isOwner && (
+                  <ReadOnlyNotice interviewerName={initial?.interviewer?.full_name} />
+                )}
 
-                {stage === 'passed_initial_interview' && (
+                {stage === 'passed_initial_interview' && isOwner && (
                   <Button type="button" onClick={() => setScheduleDialogStage('final')}>
                     Schedule Final Interview
                   </Button>
                 )}
+                {stage === 'passed_initial_interview' && !isOwner && (
+                  <ReadOnlyNotice interviewerName={initial?.interviewer?.full_name} />
+                )}
 
-                {stage === 'final_interview_scheduled' && final && (
+                {stage === 'final_interview_scheduled' && final && isOwner && (
                   <Button type="button" loading={conductInterview.isPending} onClick={() => onConduct(final, 'final')}>
                     Conduct Interview
                   </Button>
                 )}
+                {stage === 'final_interview_scheduled' && final && !isOwner && (
+                  <ReadOnlyNotice interviewerName={final.interviewer?.full_name} />
+                )}
 
-                {stage === 'under_final_interview' && (
+                {stage === 'under_final_interview' && isOwner && (
                   <Button type="button" onClick={() => setEvaluateDialogStage('final')}>
                     Continue Evaluation
                   </Button>
+                )}
+                {stage === 'under_final_interview' && !isOwner && (
+                  <ReadOnlyNotice interviewerName={final?.interviewer?.full_name} />
                 )}
               </SheetFooter>
             </>

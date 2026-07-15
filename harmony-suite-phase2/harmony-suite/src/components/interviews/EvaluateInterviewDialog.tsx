@@ -9,12 +9,13 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { MoneyInput } from '@/components/MoneyInput'
 import { useSubmitInitialEvaluation, useSubmitFinalEvaluation } from '@/hooks/useInterviews'
+import { useCurrency } from '@/hooks/useSystemSettings'
 import type { InterviewType } from '@/lib/database.types'
-import { RATING_OPTIONS, OVERALL_RECOMMENDATION_OPTIONS } from '@/lib/interviewLabels'
+import { RATING_OPTIONS } from '@/lib/interviewLabels'
 
 function RatingSelect({
   label,
@@ -57,6 +58,7 @@ export function EvaluateInterviewDialog({
   interviewId: string
   stage: InterviewType
 }) {
+  const currency = useCurrency()
   const submitInitial = useSubmitInitialEvaluation()
   const submitFinal = useSubmitFinalEvaluation()
   const isPending = submitInitial.isPending || submitFinal.isPending
@@ -76,8 +78,8 @@ export function EvaluateInterviewDialog({
   const [leadership, setLeadership] = React.useState('')
   const [finalRemarks, setFinalRemarks] = React.useState('')
   const [recommendedSalary, setRecommendedSalary] = React.useState('')
-  const [overallRecommendation, setOverallRecommendation] = React.useState('')
 
+  const [showRejectionReason, setShowRejectionReason] = React.useState(false)
   const [rejectionReason, setRejectionReason] = React.useState('')
   const [reasonError, setReasonError] = React.useState<string | null>(null)
 
@@ -95,7 +97,7 @@ export function EvaluateInterviewDialog({
       setLeadership('')
       setFinalRemarks('')
       setRecommendedSalary('')
-      setOverallRecommendation('')
+      setShowRejectionReason(false)
       setRejectionReason('')
       setReasonError(null)
     }
@@ -103,12 +105,19 @@ export function EvaluateInterviewDialog({
 
   const toNumber = (v: string) => (v ? Number(v) : undefined)
 
-  const submitDecision = (decision: 'passed' | 'failed') => {
-    if (decision === 'failed' && !rejectionReason.trim()) {
+  const onRejectClick = () => {
+    if (!showRejectionReason) {
+      setShowRejectionReason(true)
+      return
+    }
+    if (!rejectionReason.trim()) {
       setReasonError('A rejection reason is required.')
       return
     }
+    submitDecision('failed')
+  }
 
+  const submitDecision = (decision: 'passed' | 'failed') => {
     if (stage === 'initial') {
       submitInitial.mutate(
         {
@@ -141,7 +150,6 @@ export function EvaluateInterviewDialog({
           },
           finalRemarks: finalRemarks.trim() || undefined,
           recommendedSalary: toNumber(recommendedSalary),
-          overallRecommendation: overallRecommendation || undefined,
           rejectionReason: decision === 'failed' ? rejectionReason.trim() : undefined,
         },
         { onSuccess: () => onOpenChange(false) }
@@ -157,10 +165,10 @@ export function EvaluateInterviewDialog({
           <DialogDescription>Record the evaluation and decide whether the applicant advances.</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {stage === 'initial' ? (
             <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <RatingSelect label="Communication" value={communication} onChange={setCommunication} />
                 <RatingSelect label="Technical Skills" value={technicalSkills} onChange={setTechnicalSkills} />
                 <RatingSelect label="Confidence" value={confidence} onChange={setConfidence} />
@@ -183,7 +191,7 @@ export function EvaluateInterviewDialog({
             </>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <RatingSelect label="Technical Evaluation" value={technicalEvaluation} onChange={setTechnicalEvaluation} />
                 <RatingSelect label="Culture Fit" value={cultureFit} onChange={setCultureFit} />
                 <RatingSelect label="Leadership" value={leadership} onChange={setLeadership} />
@@ -192,59 +200,45 @@ export function EvaluateInterviewDialog({
                 <Label htmlFor="final_remarks">Final Remarks</Label>
                 <Textarea id="final_remarks" value={finalRemarks} onChange={(e) => setFinalRemarks(e.target.value)} rows={3} />
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="recommended_salary">Recommended Salary (optional)</Label>
-                  <Input
-                    id="recommended_salary"
-                    type="number"
-                    min="0"
-                    value={recommendedSalary}
-                    onChange={(e) => setRecommendedSalary(e.target.value)}
-                    placeholder="e.g. 35000"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="overall_recommendation">Overall Recommendation</Label>
-                  <Select value={overallRecommendation} onValueChange={setOverallRecommendation}>
-                    <SelectTrigger id="overall_recommendation">
-                      <SelectValue placeholder="Select recommendation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {OVERALL_RECOMMENDATION_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="recommended_salary">Recommended Salary (optional)</Label>
+                <MoneyInput
+                  id="recommended_salary"
+                  currency={currency}
+                  value={recommendedSalary}
+                  onValueChange={setRecommendedSalary}
+                />
               </div>
             </>
           )}
 
-          <div className="flex flex-col gap-1.5 border-t border-border pt-4">
-            <Label htmlFor="rejection_reason">Rejection Reason (required only if rejecting)</Label>
-            <Textarea
-              id="rejection_reason"
-              invalid={!!reasonError}
-              value={rejectionReason}
-              onChange={(e) => {
-                setRejectionReason(e.target.value)
-                if (reasonError) setReasonError(null)
-              }}
-              rows={2}
-            />
-            {reasonError && <p className="text-xs text-destructive">{reasonError}</p>}
-          </div>
+          {showRejectionReason && (
+            <div className="flex flex-col gap-1.5 border-t border-border pt-4">
+              <Label htmlFor="rejection_reason">
+                Rejection Reason <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="rejection_reason"
+                invalid={!!reasonError}
+                autoFocus
+                value={rejectionReason}
+                onChange={(e) => {
+                  setRejectionReason(e.target.value)
+                  if (reasonError) setReasonError(null)
+                }}
+                rows={2}
+              />
+              {reasonError && <p className="text-xs text-destructive">{reasonError}</p>}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" variant="destructive" loading={isPending} onClick={() => submitDecision('failed')}>
-            Reject Applicant
+          <Button type="button" variant="destructive" loading={isPending} onClick={onRejectClick}>
+            {showRejectionReason ? 'Confirm Rejection' : 'Reject Applicant'}
           </Button>
           <Button type="button" variant="accent" loading={isPending} onClick={() => submitDecision('passed')}>
             {stage === 'initial' ? 'Pass Initial Interview' : 'Hire Applicant'}

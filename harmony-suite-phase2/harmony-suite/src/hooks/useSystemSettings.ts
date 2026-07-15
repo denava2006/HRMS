@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/components/ui/sonner'
+import { parseCurrencyCode, type CurrencyCode } from '@/lib/currency'
 
 const QUERY_KEY = ['system_settings']
 
@@ -18,6 +19,13 @@ export function useSystemSettings() {
       return map
     },
   })
+}
+
+/** The system-wide currency (Part 6) — reads through the same cached
+ * system_settings query, so this adds no extra network round-trip. */
+export function useCurrency(): CurrencyCode {
+  const { data } = useSystemSettings()
+  return parseCurrencyCode(data?.currency)
 }
 
 export function useUpdateSystemSettings() {

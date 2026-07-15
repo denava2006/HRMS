@@ -12,10 +12,17 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { useHrAccounts } from '@/hooks/useHrAccounts'
+import { useAuth } from '@/contexts/AuthContext'
 import { useScheduleInterview } from '@/hooks/useInterviews'
 import type { InterviewType } from '@/lib/database.types'
 import { INTERVIEW_TYPE_LABEL } from '@/lib/interviewLabels'
+
+/** Local calendar datetime (not UTC) in the format a datetime-local input expects. */
+function nowLocalDatetimeValue(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export function ScheduleInterviewDialog({
   open,
@@ -28,35 +35,36 @@ export function ScheduleInterviewDialog({
   applicationId: string
   stage: InterviewType
 }) {
-  const { data: hrAccounts } = useHrAccounts()
+  const { profile } = useAuth()
   const scheduleInterview = useScheduleInterview()
 
   const [scheduledAt, setScheduledAt] = React.useState('')
-  const [interviewerId, setInterviewerId] = React.useState('')
   const [mode, setMode] = React.useState<'online' | 'face_to_face' | ''>('')
   const [meetingLink, setMeetingLink] = React.useState('')
   const [location, setLocation] = React.useState('')
   const [notes, setNotes] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
+  const [minDatetime, setMinDatetime] = React.useState('')
 
   React.useEffect(() => {
     if (open) {
       setScheduledAt('')
-      setInterviewerId('')
       setMode('')
       setMeetingLink('')
       setLocation('')
       setNotes('')
       setErrors({})
+      setMinDatetime(nowLocalDatetimeValue())
     }
   }, [open])
 
-  const activeInterviewers = hrAccounts?.filter((a) => a.status === 'active') ?? []
-
   const onSubmit = () => {
     const nextErrors: Record<string, string> = {}
-    if (!scheduledAt) nextErrors.scheduledAt = 'Date and time are required.'
-    if (!interviewerId) nextErrors.interviewerId = 'Select an interviewer.'
+    if (!scheduledAt) {
+      nextErrors.scheduledAt = 'Date and time are required.'
+    } else if (new Date(scheduledAt) < new Date()) {
+      nextErrors.scheduledAt = 'Interview cannot be scheduled in the past.'
+    }
     if (!mode) nextErrors.mode = 'Select an interview type.'
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
@@ -68,7 +76,6 @@ export function ScheduleInterviewDialog({
         applicationId,
         stage,
         scheduledAt: new Date(scheduledAt).toISOString(),
-        interviewerId,
         mode: mode as 'online' | 'face_to_face',
         meetingLink: meetingLink.trim() || undefined,
         location: location.trim() || undefined,
@@ -83,7 +90,7 @@ export function ScheduleInterviewDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Schedule {INTERVIEW_TYPE_LABEL[stage]}</DialogTitle>
-          <DialogDescription>Set the date, interviewer, and format for this interview.</DialogDescription>
+          <DialogDescription>Set the date and format for this interview.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
@@ -94,6 +101,7 @@ export function ScheduleInterviewDialog({
             <Input
               id="scheduled_at"
               type="datetime-local"
+              min={minDatetime}
               invalid={!!errors.scheduledAt}
               value={scheduledAt}
               onChange={(e) => {
@@ -105,28 +113,11 @@ export function ScheduleInterviewDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="interviewer">
-              Interviewer <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={interviewerId}
-              onValueChange={(v) => {
-                setInterviewerId(v)
-                if (errors.interviewerId) setErrors((prev) => ({ ...prev, interviewerId: '' }))
-              }}
-            >
-              <SelectTrigger id="interviewer" invalid={!!errors.interviewerId}>
-                <SelectValue placeholder="Select interviewer" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeInterviewers.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.interviewerId && <p className="text-xs text-destructive">{errors.interviewerId}</p>}
+            <Label>Assigned Interviewer</Label>
+            <Input value={profile?.full_name ?? ''} disabled />
+            <p className="text-xs text-muted-foreground">
+              You automatically become the assigned interviewer for this interview.
+            </p>
           </div>
 
           <div className="flex flex-col gap-1.5">

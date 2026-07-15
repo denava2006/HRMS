@@ -89,10 +89,3 @@ export function deriveStage(
 export const INTERVIEW_PIPELINE_STATUSES = ['qualified', 'interview_scheduled', 'hired', 'rejected'] as const
 
 export const RATING_OPTIONS = [1, 2, 3, 4, 5] as const
-
-export const OVERALL_RECOMMENDATION_OPTIONS = [
-  { value: 'strongly_recommend', label: 'Strongly Recommend' },
-  { value: 'recommend', label: 'Recommend' },
-  { value: 'not_recommend', label: 'Not Recommend' },
-  { value: 'strongly_not_recommend', label: 'Strongly Not Recommend' },
-] as const

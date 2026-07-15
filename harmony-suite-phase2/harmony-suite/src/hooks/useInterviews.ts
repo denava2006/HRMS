@@ -139,13 +139,17 @@ export interface ScheduleInterviewInput {
   applicationId: string
   stage: InterviewType
   scheduledAt: string
-  interviewerId: string
   mode: 'online' | 'face_to_face'
   meetingLink?: string
   location?: string
   notes?: string
 }
 
+/** The HR staff member who schedules an interview automatically becomes its
+ * assigned interviewer — there is no manual assignment. The RLS policy
+ * interviews_insert_owner enforces this server-side regardless of what the
+ * client sends (self-assign only, and a final interview can only be inserted
+ * by whoever owns the corresponding initial interview). */
 export function useScheduleInterview() {
   const { profile } = useAuth()
   const invalidate = useInvalidateInterviews()
@@ -155,7 +159,7 @@ export function useScheduleInterview() {
         application_id: input.applicationId,
         interview_type: input.stage,
         scheduled_at: input.scheduledAt,
-        interviewer_id: input.interviewerId,
+        interviewer_id: profile?.id,
         mode: input.mode,
         meeting_link: input.meetingLink || null,
         location: input.location || null,
@@ -306,7 +310,6 @@ export interface FinalEvaluationInput {
   }
   finalRemarks?: string
   recommendedSalary?: number
-  overallRecommendation?: string
   rejectionReason?: string
 }
 
@@ -324,7 +327,6 @@ export function useSubmitFinalEvaluation() {
           rating_leadership: input.ratings.leadership ?? null,
           final_remarks: input.finalRemarks || null,
           recommended_salary: input.recommendedSalary ?? null,
-          overall_recommendation: input.overallRecommendation || null,
           rejection_reason: input.decision === 'failed' ? input.rejectionReason : null,
         })
         .eq('id', input.interviewId)
