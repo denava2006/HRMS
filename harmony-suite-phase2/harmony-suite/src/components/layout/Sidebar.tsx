@@ -35,7 +35,7 @@ const mainNav: NavItem[] = [
   { label: 'Employees', to: '/dashboard/employees', icon: Users },
   { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock },
   { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck },
-  { label: 'Payroll', to: '/dashboard/payroll', icon: Wallet, disabled: true },
+  { label: 'Payroll', to: '/dashboard/payroll', icon: Wallet },
   { label: 'Reports', to: '/dashboard/reports', icon: FileBarChart, disabled: true },
 ]
 

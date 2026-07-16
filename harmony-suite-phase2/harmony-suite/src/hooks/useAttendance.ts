@@ -121,7 +121,7 @@ function useInvalidateAttendance() {
 /** The employee's assigned schedule, falling back to whichever schedule is
  * marked default. Calculations must always use a schedule (spec's Work
  * Schedule section), so this throws a clear error if neither exists. */
-async function fetchEffectiveSchedule(employeeId: string): Promise<WorkSchedule> {
+export async function fetchEffectiveSchedule(employeeId: string): Promise<WorkSchedule> {
   const { data: employee, error: employeeError } = await supabase
     .from('employees')
     .select('work_schedule_id, work_schedules(working_days, start_time, end_time, break_minutes)')

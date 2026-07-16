@@ -1113,6 +1113,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          frequency: string
           id: string
           pay_date: string | null
           period_end: string
@@ -1122,6 +1123,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          frequency?: string
           id?: string
           pay_date?: string | null
           period_end: string
@@ -1131,6 +1133,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          frequency?: string
           id?: string
           pay_date?: string | null
           period_end?: string
@@ -1149,15 +1152,24 @@ export type Database = {
       }
       payroll_records: {
         Row: {
+          absent_days: number
           basic_salary: number
           created_at: string
+          currency: string
+          days_present: number
           employee_id: string
           gross_salary: number
+          holiday_pay: number
           id: string
           late_deduction: number
+          late_minutes: number
           leave_deduction: number
           net_salary: number
+          notes: string | null
           other_deductions: number
+          overtime_hours: number
+          overtime_pay: number
+          paid_leave_days: number
           payroll_period_id: string
           released_at: string | null
           reviewed_by: string | null
@@ -1165,18 +1177,30 @@ export type Database = {
           total_allowances: number
           total_deductions: number
           undertime_deduction: number
+          undertime_minutes: number
+          unpaid_leave_days: number
           updated_at: string
+          working_days: number
         }
         Insert: {
+          absent_days?: number
           basic_salary?: number
           created_at?: string
+          currency?: string
+          days_present?: number
           employee_id: string
           gross_salary?: number
+          holiday_pay?: number
           id?: string
           late_deduction?: number
+          late_minutes?: number
           leave_deduction?: number
           net_salary?: number
+          notes?: string | null
           other_deductions?: number
+          overtime_hours?: number
+          overtime_pay?: number
+          paid_leave_days?: number
           payroll_period_id: string
           released_at?: string | null
           reviewed_by?: string | null
@@ -1184,18 +1208,30 @@ export type Database = {
           total_allowances?: number
           total_deductions?: number
           undertime_deduction?: number
+          undertime_minutes?: number
+          unpaid_leave_days?: number
           updated_at?: string
+          working_days?: number
         }
         Update: {
+          absent_days?: number
           basic_salary?: number
           created_at?: string
+          currency?: string
+          days_present?: number
           employee_id?: string
           gross_salary?: number
+          holiday_pay?: number
           id?: string
           late_deduction?: number
+          late_minutes?: number
           leave_deduction?: number
           net_salary?: number
+          notes?: string | null
           other_deductions?: number
+          overtime_hours?: number
+          overtime_pay?: number
+          paid_leave_days?: number
           payroll_period_id?: string
           released_at?: string | null
           reviewed_by?: string | null
@@ -1203,7 +1239,10 @@ export type Database = {
           total_allowances?: number
           total_deductions?: number
           undertime_deduction?: number
+          undertime_minutes?: number
+          unpaid_leave_days?: number
           updated_at?: string
+          working_days?: number
         }
         Relationships: [
           {
@@ -1235,6 +1274,7 @@ export type Database = {
           file_url: string | null
           id: string
           payroll_record_id: string
+          payslip_number: string
           released_at: string | null
         }
         Insert: {
@@ -1242,6 +1282,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           payroll_record_id: string
+          payslip_number?: string
           released_at?: string | null
         }
         Update: {
@@ -1249,6 +1290,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           payroll_record_id?: string
+          payslip_number?: string
           released_at?: string | null
         }
         Relationships: [
@@ -1457,6 +1499,7 @@ export type Database = {
     }
     Functions: {
       generate_employee_number: { Args: never; Returns: string }
+      generate_payslip_number: { Args: never; Returns: string }
       is_active_staff: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       submit_job_application: {
@@ -1712,3 +1755,4 @@ export type InterviewStatus = Enums<"interview_status">
 export type EmploymentStatus = Enums<"employment_status">
 export type AttendanceStatus = Enums<"attendance_status">
 export type LeaveRequestStatus = Enums<"leave_request_status">
+export type PayrollStatus = Enums<"payroll_status">
