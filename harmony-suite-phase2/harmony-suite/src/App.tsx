@@ -24,6 +24,7 @@ import EmployeeDetailsPage from '@/pages/employees/EmployeeDetailsPage'
 import AttendancePage from '@/pages/attendance/AttendancePage'
 import WorkSchedulesPage from '@/pages/admin/WorkSchedulesPage'
 import HolidaysPage from '@/pages/admin/HolidaysPage'
+import LeavePage from '@/pages/leave/LeavePage'
 import HomePage from '@/pages/public/HomePage'
 import CareersPage from '@/pages/public/CareersPage'
 import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
@@ -137,6 +138,14 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
                     <AttendancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="leave"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <LeavePage />
                   </ProtectedRoute>
                 }
               />

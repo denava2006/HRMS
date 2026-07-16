@@ -986,10 +986,12 @@ export type Database = {
           id: string
           leave_type_id: string
           reason: string | null
+          rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           start_date: string
           status: Database["public"]["Enums"]["leave_request_status"]
+          supporting_document_url: string | null
           updated_at: string
         }
         Insert: {
@@ -1000,10 +1002,12 @@ export type Database = {
           id?: string
           leave_type_id: string
           reason?: string | null
+          rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["leave_request_status"]
+          supporting_document_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -1014,10 +1018,12 @@ export type Database = {
           id?: string
           leave_type_id?: string
           reason?: string | null
+          rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["leave_request_status"]
+          supporting_document_url?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1049,18 +1055,21 @@ export type Database = {
           created_at: string
           default_credits: number
           id: string
+          is_paid: boolean
           name: string
         }
         Insert: {
           created_at?: string
           default_credits?: number
           id?: string
+          is_paid?: boolean
           name: string
         }
         Update: {
           created_at?: string
           default_credits?: number
           id?: string
+          is_paid?: boolean
           name?: string
         }
         Relationships: []
@@ -1702,3 +1711,4 @@ export type InterviewType = Enums<"interview_type">
 export type InterviewStatus = Enums<"interview_status">
 export type EmploymentStatus = Enums<"employment_status">
 export type AttendanceStatus = Enums<"attendance_status">
+export type LeaveRequestStatus = Enums<"leave_request_status">

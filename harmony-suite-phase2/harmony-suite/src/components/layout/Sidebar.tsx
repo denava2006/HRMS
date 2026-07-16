@@ -34,7 +34,7 @@ const mainNav: NavItem[] = [
   { label: 'Deployment', to: '/dashboard/deployment', icon: Truck },
   { label: 'Employees', to: '/dashboard/employees', icon: Users },
   { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock },
-  { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck, disabled: true },
+  { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck },
   { label: 'Payroll', to: '/dashboard/payroll', icon: Wallet, disabled: true },
   { label: 'Reports', to: '/dashboard/reports', icon: FileBarChart, disabled: true },
 ]

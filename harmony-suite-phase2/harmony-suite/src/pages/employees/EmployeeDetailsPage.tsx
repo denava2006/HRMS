@@ -24,6 +24,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { EditPersonalInfoDialog } from '@/components/employees/EditPersonalInfoDialog'
 import { EditEmploymentInfoDialog } from '@/components/employees/EditEmploymentInfoDialog'
 import { EmployeeDocumentsTab } from '@/components/employees/EmployeeDocumentsTab'
+import { AdjustLeaveBalanceDialog } from '@/components/leave/AdjustLeaveBalanceDialog'
 import {
   useEmployeeDetail,
   useEmployeeHistory,
@@ -32,6 +33,7 @@ import {
   useSetEmployeeAccountStatus,
 } from '@/hooks/useEmployees'
 import { useEmployeeAttendanceSummary, type EmployeeAttendanceSummary } from '@/hooks/useAttendance'
+import { useEmployeeLeaveSummary, type EmployeeLeaveSummary } from '@/hooks/useLeave'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { EMPLOYMENT_STATUS_LABEL, EMPLOYMENT_STATUS_VARIANT, EMPLOYEE_HISTORY_EVENT_LABEL } from '@/lib/employeeLabels'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
@@ -145,6 +147,7 @@ export default function EmployeeDetailsPage() {
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="leave">Leave</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
@@ -291,6 +294,14 @@ export default function EmployeeDetailsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="leave">
+          <Card>
+            <CardContent className="p-6">
+              <EmployeeLeaveSummaryTab employeeId={employee.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="timeline">
           <Card>
             <CardContent className="p-6">
@@ -404,6 +415,55 @@ function EmployeeAttendanceSummaryTab({ employeeId }: { employeeId: string }) {
       <SummaryPeriodCard label="This Week" summary={data.thisWeek} />
       <SummaryPeriodCard label="This Month" summary={data.thisMonth} />
       <SummaryPeriodCard label="Overall" summary={data.overall} />
+    </div>
+  )
+}
+
+function EmployeeLeaveSummaryTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useEmployeeLeaveSummary(employeeId)
+  const [adjusting, setAdjusting] = React.useState<EmployeeLeaveSummary['balances'][number] | null>(null)
+
+  if (isLoading || !data) {
+    return <p className="text-sm text-muted-foreground">Loading leave summary…</p>
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-border p-3 text-center">
+          <p className="text-xs text-muted-foreground">Pending Requests</p>
+          <p className="font-display text-xl font-bold text-foreground">{data.pending}</p>
+        </div>
+        <div className="rounded-lg border border-border p-3 text-center">
+          <p className="text-xs text-muted-foreground">Approved Requests</p>
+          <p className="font-display text-xl font-bold text-foreground">{data.approved}</p>
+        </div>
+        <div className="rounded-lg border border-border p-3 text-center">
+          <p className="text-xs text-muted-foreground">Rejected Requests</p>
+          <p className="font-display text-xl font-bold text-foreground">{data.rejected}</p>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Leave Balances ({new Date().getFullYear()})</h4>
+        <div className="flex flex-col gap-2">
+          {data.balances.map((b) => (
+            <div key={b.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">{b.leave_types.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {Number(b.used_credits)} used of {Number(b.total_credits)} · {Number(b.remaining_credits)} remaining
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setAdjusting(b)}>
+                Adjust
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <AdjustLeaveBalanceDialog open={!!adjusting} onOpenChange={(open) => !open && setAdjusting(null)} balance={adjusting} />
     </div>
   )
 }
