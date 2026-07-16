@@ -33,7 +33,7 @@ const mainNav: NavItem[] = [
   { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch },
   { label: 'Deployment', to: '/dashboard/deployment', icon: Truck },
   { label: 'Employees', to: '/dashboard/employees', icon: Users },
-  { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock, disabled: true },
+  { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock },
   { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck, disabled: true },
   { label: 'Payroll', to: '/dashboard/payroll', icon: Wallet, disabled: true },
   { label: 'Reports', to: '/dashboard/reports', icon: FileBarChart, disabled: true },
@@ -44,6 +44,8 @@ const adminNav: NavItem[] = [
   { label: 'Departments', to: '/dashboard/admin/departments', icon: Building2 },
   { label: 'Positions', to: '/dashboard/admin/positions', icon: Layers },
   { label: 'Salary Grades', to: '/dashboard/admin/salary-grades', icon: DollarSign },
+  { label: 'Work Schedules', to: '/dashboard/admin/work-schedules', icon: CalendarClock },
+  { label: 'Holidays', to: '/dashboard/admin/holidays', icon: CalendarCheck },
   { label: 'Settings', to: '/dashboard/admin/settings', icon: Settings },
 ]
 

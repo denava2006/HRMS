@@ -21,6 +21,9 @@ import ContractPrintPage from '@/pages/deployment/ContractPrintPage'
 import EmployeesPage from '@/pages/employees/EmployeesPage'
 import CreateEmployeePage from '@/pages/employees/CreateEmployeePage'
 import EmployeeDetailsPage from '@/pages/employees/EmployeeDetailsPage'
+import AttendancePage from '@/pages/attendance/AttendancePage'
+import WorkSchedulesPage from '@/pages/admin/WorkSchedulesPage'
+import HolidaysPage from '@/pages/admin/HolidaysPage'
 import HomePage from '@/pages/public/HomePage'
 import CareersPage from '@/pages/public/CareersPage'
 import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
@@ -129,6 +132,14 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="attendance"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <AttendancePage />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="admin/accounts"
@@ -167,6 +178,22 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/work-schedules"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <WorkSchedulesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/holidays"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <HolidaysPage />
                   </ProtectedRoute>
                 }
               />

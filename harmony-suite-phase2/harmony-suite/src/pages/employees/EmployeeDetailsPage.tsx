@@ -31,9 +31,11 @@ import {
   useCreateEmployeeAccount,
   useSetEmployeeAccountStatus,
 } from '@/hooks/useEmployees'
+import { useEmployeeAttendanceSummary, type EmployeeAttendanceSummary } from '@/hooks/useAttendance'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { EMPLOYMENT_STATUS_LABEL, EMPLOYMENT_STATUS_VARIANT, EMPLOYEE_HISTORY_EVENT_LABEL } from '@/lib/employeeLabels'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
+import { formatHoursAsDuration } from '@/lib/attendanceCalculations'
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -142,6 +144,7 @@ export default function EmployeeDetailsPage() {
           <TabsTrigger value="employment">Employment</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
@@ -280,6 +283,14 @@ export default function EmployeeDetailsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="attendance">
+          <Card>
+            <CardContent className="p-6">
+              <EmployeeAttendanceSummaryTab employeeId={employee.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="timeline">
           <Card>
             <CardContent className="p-6">
@@ -338,6 +349,61 @@ export default function EmployeeDetailsPage() {
 
       <EditPersonalInfoDialog open={editPersonalOpen} onOpenChange={setEditPersonalOpen} employee={employee} />
       <EditEmploymentInfoDialog open={editEmploymentOpen} onOpenChange={setEditEmploymentOpen} employee={employee} />
+    </div>
+  )
+}
+
+function SummaryPeriodCard({ label, summary }: { label: string; summary: EmployeeAttendanceSummary }) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <p className="text-xs text-muted-foreground">Present</p>
+          <p className="font-medium text-foreground">{summary.present}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Late</p>
+          <p className="font-medium text-foreground">{summary.late}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Absent</p>
+          <p className="font-medium text-foreground">{summary.absent}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">On Leave</p>
+          <p className="font-medium text-foreground">{summary.onLeave}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Working Hours</p>
+          <p className="font-medium text-foreground">{formatHoursAsDuration(summary.workingHours)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Overtime</p>
+          <p className="font-medium text-foreground">{formatHoursAsDuration(summary.overtimeHours)}</p>
+        </div>
+      </div>
+      <div className="mt-2 border-t border-border pt-2">
+        <p className="text-xs text-muted-foreground">Attendance Rate</p>
+        <p className="font-display text-lg font-bold text-foreground">{summary.attendancePercentage}%</p>
+      </div>
+    </div>
+  )
+}
+
+function EmployeeAttendanceSummaryTab({ employeeId }: { employeeId: string }) {
+  const { data, isLoading } = useEmployeeAttendanceSummary(employeeId)
+
+  if (isLoading || !data) {
+    return <p className="text-sm text-muted-foreground">Loading attendance summary…</p>
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <SummaryPeriodCard label="Today" summary={data.today} />
+      <SummaryPeriodCard label="This Week" summary={data.thisWeek} />
+      <SummaryPeriodCard label="This Month" summary={data.thisMonth} />
+      <SummaryPeriodCard label="Overall" summary={data.overall} />
     </div>
   )
 }

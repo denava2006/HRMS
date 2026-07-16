@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Users, UserCheck, Building2, Layers, Briefcase, CalendarClock, CalendarCheck, Wallet, Clock } from 'lucide-react'
+import { Users, UserCheck, Building2, Layers, Briefcase, CalendarCheck, Wallet, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
@@ -128,9 +128,8 @@ export default function DashboardHome() {
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">On the way</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <ComingSoonCard label="New Applicants" icon={Briefcase} phase="Phase 3 \u2014 Recruitment" />
-          <ComingSoonCard label="Attendance Summary" icon={CalendarClock} phase="Phase 5 \u2014 Attendance" />
-          <ComingSoonCard label="Pending Leave Requests" icon={CalendarCheck} phase="Phase 6 \u2014 Leave" />
-          <ComingSoonCard label="Payroll Status" icon={Wallet} phase="Phase 7 \u2014 Payroll" />
+          <ComingSoonCard label="Pending Leave Requests" icon={CalendarCheck} phase="Phase 9 \u2014 Leave" />
+          <ComingSoonCard label="Payroll Status" icon={Wallet} phase="Phase 10 \u2014 Payroll" />
         </div>
       </div>
     </div>

@@ -446,6 +446,7 @@ export type Database = {
           probation_period: string | null
           salary_grade_id: string | null
           updated_at: string
+          work_schedule_id: string | null
         }
         Insert: {
           address?: string | null
@@ -474,6 +475,7 @@ export type Database = {
           probation_period?: string | null
           salary_grade_id?: string | null
           updated_at?: string
+          work_schedule_id?: string | null
         }
         Update: {
           address?: string | null
@@ -502,6 +504,7 @@ export type Database = {
           probation_period?: string | null
           salary_grade_id?: string | null
           updated_at?: string
+          work_schedule_id?: string | null
         }
         Relationships: [
           {
@@ -530,6 +533,13 @@ export type Database = {
             columns: ["salary_grade_id"]
             isOneToOne: false
             referencedRelation: "salary_grades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
             referencedColumns: ["id"]
           },
         ]
@@ -634,6 +644,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      holidays: {
+        Row: {
+          created_at: string
+          holiday_date: string
+          holiday_type: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          holiday_date: string
+          holiday_type: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          holiday_date?: string
+          holiday_type?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       interviews: {
         Row: {
@@ -1369,6 +1406,42 @@ export type Database = {
           },
         ]
       }
+      work_schedules: {
+        Row: {
+          break_minutes: number
+          created_at: string
+          end_time: string
+          id: string
+          is_default: boolean
+          name: string
+          start_time: string
+          updated_at: string
+          working_days: number[]
+        }
+        Insert: {
+          break_minutes?: number
+          created_at?: string
+          end_time: string
+          id?: string
+          is_default?: boolean
+          name: string
+          start_time: string
+          updated_at?: string
+          working_days?: number[]
+        }
+        Update: {
+          break_minutes?: number
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          start_time?: string
+          updated_at?: string
+          working_days?: number[]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1406,7 +1479,16 @@ export type Database = {
         | "hired"
         | "closed"
         | "deployed"
-      attendance_status: "present" | "absent" | "late" | "on_leave" | "holiday"
+      attendance_status:
+        | "present"
+        | "absent"
+        | "late"
+        | "on_leave"
+        | "holiday"
+        | "half_day"
+        | "rest_day"
+        | "official_business"
+        | "work_from_home"
       contract_status: "draft" | "printed" | "signed"
       employment_status:
         | "active"
@@ -1571,7 +1653,17 @@ export const Constants = {
         "closed",
         "deployed",
       ],
-      attendance_status: ["present", "absent", "late", "on_leave", "holiday"],
+      attendance_status: [
+        "present",
+        "absent",
+        "late",
+        "on_leave",
+        "holiday",
+        "half_day",
+        "rest_day",
+        "official_business",
+        "work_from_home",
+      ],
       contract_status: ["draft", "printed", "signed"],
       employment_status: [
         "active",
@@ -1609,3 +1701,4 @@ export type AccountStatus = Enums<"account_status">
 export type InterviewType = Enums<"interview_type">
 export type InterviewStatus = Enums<"interview_status">
 export type EmploymentStatus = Enums<"employment_status">
+export type AttendanceStatus = Enums<"attendance_status">
