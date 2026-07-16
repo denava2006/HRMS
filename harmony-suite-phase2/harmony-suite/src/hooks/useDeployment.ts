@@ -151,6 +151,9 @@ function useInvalidateDeployment() {
   return (applicationId: string) => {
     queryClient.invalidateQueries({ queryKey: LIST_KEY })
     queryClient.invalidateQueries({ queryKey: ['application-history', applicationId] })
+    // A deployment reaching 'deployed' status is exactly what makes it show up
+    // as a pending employee record in the Employee module (see usePendingEmployees).
+    queryClient.invalidateQueries({ queryKey: ['pending-employees'] })
   }
 }
 
@@ -416,15 +419,23 @@ export function useCompleteDeployment() {
         .eq('id', input.applicationId)
       if (appError) throw appError
 
-      await supabase.from('application_history').insert({
-        application_id: input.applicationId,
-        event: 'deployment_completed',
+      await supabase.from('application_history').insert([
+        { application_id: input.applicationId, event: 'deployment_completed', actor_id: profile?.id },
+        { application_id: input.applicationId, event: 'pending_employee_record_created', actor_id: profile?.id },
+      ])
+      // No employees row exists yet at this point (see usePendingEmployees) — the
+      // application itself is the only record to anchor this audit entry to.
+      await supabase.from('audit_logs').insert({
         actor_id: profile?.id,
+        action: 'Pending Employee Record Created',
+        table_name: 'applications',
+        record_id: input.applicationId,
       })
     },
     onSuccess: (_data, { applicationId }) => {
       invalidate(applicationId)
       toast.success('Employee Deployed Successfully')
+      toast.success('Pending employee record created.')
     },
     onError: (error) => toast.error(error.message),
   })

@@ -37,6 +37,7 @@ const phoneRegex = /^09\d{9}$/
 
 const applicationSchema = z.object({
   firstName: nameField('First name'),
+  middleName: nameField('Middle name'),
   lastName: nameField('Last name'),
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
   phone: z
@@ -214,6 +215,7 @@ export default function ApplyPage() {
       await submitApplication.mutateAsync({
         jobPostingId: posting.id,
         firstName: values.firstName,
+        middleName: values.middleName,
         lastName: values.lastName,
         email: values.email,
         phone: values.phone,
@@ -271,13 +273,20 @@ export default function ApplyPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="firstName">
               First name <span className="text-destructive">*</span>
             </Label>
             <Input id="firstName" invalid={!!errors.firstName} {...register('firstName')} placeholder="Juan" />
             {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="middleName">
+              Middle name <span className="text-destructive">*</span>
+            </Label>
+            <Input id="middleName" invalid={!!errors.middleName} {...register('middleName')} placeholder="Santos" />
+            {errors.middleName && <p className="text-xs text-destructive">{errors.middleName.message}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="lastName">

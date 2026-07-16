@@ -74,6 +74,74 @@ export function useEmployeeDetail(employeeId: string | undefined) {
   })
 }
 
+// ---- Pending employee records (deployed applicants awaiting Step 2-4 of Create Employee) ----
+
+export interface PendingEmployee {
+  applicationId: string
+  firstName: string
+  middleName: string | null
+  lastName: string
+  email: string
+  phone: string | null
+  address: string | null
+  deployedAt: string
+}
+
+const PENDING_KEY = ['pending-employees']
+
+/** A "pending employee" is never a stored row — it's a deployed application that
+ * has no matching employees.application_id yet. Modeling it as a computed view
+ * (rather than an early, half-filled employees insert) keeps every other module's
+ * assumptions about employees (basic_salary, hire_date, etc. always present)
+ * intact, and matches the spec's own "Employee ID is generated after saving". */
+export function usePendingEmployees() {
+  return useQuery({
+    queryKey: PENDING_KEY,
+    queryFn: async () => {
+      const [deployedRes, linkedRes] = await Promise.all([
+        supabase
+          .from('applications')
+          .select('id, updated_at, applicants(first_name, middle_name, last_name, email, phone, address)')
+          .eq('status', 'deployed'),
+        supabase.from('employees').select('application_id').not('application_id', 'is', null),
+      ])
+      if (deployedRes.error) throw deployedRes.error
+      if (linkedRes.error) throw linkedRes.error
+
+      const linkedApplicationIds = new Set(linkedRes.data.map((e) => e.application_id))
+      return (deployedRes.data ?? [])
+        .filter((a) => !linkedApplicationIds.has(a.id))
+        .map((a) => ({
+          applicationId: a.id,
+          firstName: a.applicants?.first_name ?? '',
+          middleName: a.applicants?.middle_name ?? null,
+          lastName: a.applicants?.last_name ?? '',
+          email: a.applicants?.email ?? '',
+          phone: a.applicants?.phone ?? null,
+          address: a.applicants?.address ?? null,
+          deployedAt: a.updated_at,
+        })) satisfies PendingEmployee[]
+    },
+  })
+}
+
+/** Powers Step 1's auto-fill when Create Employee is opened from a pending row. */
+export function useApplicationForEmployeeCreation(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: ['application-for-employee-creation', applicationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('id, applicants(first_name, middle_name, last_name, email, phone, address)')
+        .eq('id', applicationId as string)
+        .single()
+      if (error) throw error
+      return data
+    },
+    enabled: !!applicationId,
+  })
+}
+
 /** "Inactive" = no longer with the company (resigned/terminated/retired) —
  * distinct from On Leave/Contractual/Temporary, which are still-employed states. */
 const INACTIVE_STATUSES: EmploymentStatus[] = ['resigned', 'terminated', 'retired']
@@ -105,6 +173,7 @@ function useInvalidateEmployees() {
   return (employeeId?: string) => {
     queryClient.invalidateQueries({ queryKey: LIST_KEY })
     queryClient.invalidateQueries({ queryKey: STATS_KEY })
+    queryClient.invalidateQueries({ queryKey: PENDING_KEY })
     if (employeeId) {
       queryClient.invalidateQueries({ queryKey: ['employee-history', employeeId] })
       queryClient.invalidateQueries({ queryKey: ['employee-audit-log', employeeId] })
@@ -113,6 +182,7 @@ function useInvalidateEmployees() {
 }
 
 export interface CreateEmployeeInput {
+  applicationId?: string
   firstName: string
   middleName?: string
   lastName: string
@@ -142,6 +212,7 @@ export function useCreateEmployee() {
       const { data, error } = await supabase
         .from('employees')
         .insert({
+          application_id: input.applicationId || null,
           first_name: input.firstName,
           middle_name: input.middleName || null,
           last_name: input.lastName,
@@ -175,18 +246,16 @@ export function useCreateEmployee() {
         { employee_id: data.id, event: 'department_assigned', actor_id: profile?.id },
         { employee_id: data.id, event: 'position_assigned', actor_id: profile?.id },
       ])
-      await supabase.from('audit_logs').insert({
-        actor_id: profile?.id,
-        action: 'Employee Created',
-        table_name: 'employees',
-        record_id: data.id,
-      })
+      await supabase.from('audit_logs').insert([
+        { actor_id: profile?.id, action: 'Employee Record Saved', table_name: 'employees', record_id: data.id },
+        { actor_id: profile?.id, action: 'Employee ID Generated', table_name: 'employees', record_id: data.id, new_data: { employee_number: data.employee_number } },
+      ])
 
       return data
     },
     onSuccess: () => {
       invalidate()
-      toast.success('Employee record created successfully.')
+      toast.success('Employee record saved.')
     },
     onError: (error) => toast.error(friendlyEmployeeError(error)),
   })
@@ -217,7 +286,7 @@ export function useUpdateEmployee() {
       const otherKeys = Object.keys(values).filter((k) => !['department_id', 'position_id', 'employment_status'].includes(k))
       if (otherKeys.length > 0 || historyEvents.length === 0) {
         historyEvents.push({ employee_id: id, event: 'information_updated', actor_id: profile?.id })
-        auditActions.push('Employee Edited')
+        auditActions.push('Employee Profile Updated')
       }
 
       await supabase.from('employee_history').insert(historyEvents)
@@ -302,19 +371,22 @@ export function useSetEmployeeAccountStatus() {
 
       await supabase.from('employee_history').insert({
         employee_id: employeeId,
-        event: status === 'active' ? 'account_activated' : 'account_disabled',
+        // Distinct from the 'account_activated' event, which is reserved for the
+        // employee's own one-time password-creation moment (see the DB trigger
+        // on profiles.activated_at) — this is HR enabling/disabling the login gate.
+        event: status === 'active' ? 'account_enabled' : 'account_disabled',
         actor_id: profile?.id,
       })
       await supabase.from('audit_logs').insert({
         actor_id: profile?.id,
-        action: status === 'active' ? 'Employee Account Activated' : 'Employee Account Disabled',
+        action: status === 'active' ? 'Employee Account Enabled' : 'Employee Account Disabled',
         table_name: 'employees',
         record_id: employeeId,
       })
     },
     onSuccess: (_data, { employeeId, status }) => {
       invalidate(employeeId)
-      toast.success(status === 'active' ? 'Account activated' : 'Account disabled')
+      toast.success(status === 'active' ? 'Account enabled' : 'Account disabled')
     },
     onError: (error) => toast.error(error.message),
   })

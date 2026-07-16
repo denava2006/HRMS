@@ -23,6 +23,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          middle_name: string | null
           phone: string | null
           resume_url: string | null
           updated_at: string
@@ -35,6 +36,7 @@ export type Database = {
           first_name: string
           id?: string
           last_name: string
+          middle_name?: string | null
           phone?: string | null
           resume_url?: string | null
           updated_at?: string
@@ -47,6 +49,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          middle_name?: string | null
           phone?: string | null
           resume_url?: string | null
           updated_at?: string
@@ -510,7 +513,7 @@ export type Database = {
           {
             foreignKeyName: "employees_application_id_fkey"
             columns: ["application_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "applications"
             referencedColumns: ["id"]
           },
@@ -1510,6 +1513,7 @@ export type Database = {
           p_first_name: string
           p_job_posting_id: string
           p_last_name: string
+          p_middle_name?: string
           p_phone: string
           p_resume_path: string
         }

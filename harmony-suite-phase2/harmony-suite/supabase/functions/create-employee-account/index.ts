@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
     })
     await adminClient.from('audit_logs').insert({
       actor_id: user.id,
-      action: isResend ? 'Invitation Email Resent' : 'Employee Account Created',
+      action: isResend ? 'Invitation Email Resent' : 'Activation Email Sent',
       table_name: 'employees',
       record_id: employeeId,
     })

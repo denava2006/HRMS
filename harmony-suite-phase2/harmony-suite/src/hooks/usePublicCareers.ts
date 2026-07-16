@@ -86,6 +86,7 @@ async function uploadResume(jobPostingId: string, file: File): Promise<string> {
 export interface SubmitApplicationInput {
   jobPostingId: string
   firstName: string
+  middleName: string
   lastName: string
   email: string
   phone: string
@@ -109,6 +110,7 @@ export function useSubmitApplication() {
       const { data, error } = await supabase.rpc('submit_job_application', {
         p_job_posting_id: input.jobPostingId,
         p_first_name: input.firstName,
+        p_middle_name: input.middleName || undefined,
         p_last_name: input.lastName,
         p_email: input.email,
         p_phone: input.phone,

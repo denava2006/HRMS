@@ -25,6 +25,11 @@ export const EMPLOYMENT_STATUS_VARIANT: Record<EmploymentStatus, BadgeProps['var
   retired: 'muted',
 }
 
+/** Not a stored employment_status value — a deployed applicant with no employees
+ * row yet renders with this client-side-only pseudo-status. See usePendingEmployees. */
+export const PENDING_EMPLOYEE_STATUS = 'pending_creation'
+export const PENDING_EMPLOYEE_STATUS_LABEL = 'Pending Employee Creation'
+
 export const CIVIL_STATUS_OPTIONS = ['Single', 'Married', 'Widowed', 'Separated', 'Divorced'] as const
 
 export const DOCUMENT_TYPE_OPTIONS = [
@@ -47,6 +52,7 @@ export const EMPLOYEE_HISTORY_EVENT_LABEL: Record<string, string> = {
   invitation_sent: 'Invitation Email Sent',
   invitation_resent: 'Invitation Email Resent',
   account_activated: 'Employee Activated Account',
+  account_enabled: 'Employee Account Enabled',
   account_disabled: 'Employee Account Disabled',
   documents_uploaded: 'Documents Uploaded',
   department_assigned: 'Department Assigned',

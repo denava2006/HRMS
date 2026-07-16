@@ -76,6 +76,7 @@ const HISTORY_EVENT_LABEL: Record<string, string> = {
   contract_generated: 'Contract Generated',
   contract_signed: 'Contract Signed',
   deployment_completed: 'Employee Deployed Successfully',
+  pending_employee_record_created: 'Pending Employee Record Created',
 }
 
 function formatDateTime(value: string) {

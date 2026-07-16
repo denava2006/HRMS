@@ -2,20 +2,29 @@ import * as React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, FileText, Upload, X } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Check, FileText, Sparkles, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { MoneyInput } from '@/components/MoneyInput'
 import { cn } from '@/lib/utils'
+import { toast } from '@/components/ui/sonner'
 import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
 import { useSalaryGrades } from '@/hooks/useSalaryGrades'
-import { useCreateEmployee, useCreateEmployeeAccount, useUploadEmployeeDocument, validateEmployeeDocumentFile } from '@/hooks/useEmployees'
+import {
+  useApplicationForEmployeeCreation,
+  useCreateEmployee,
+  useCreateEmployeeAccount,
+  useUploadEmployeeDocument,
+  validateEmployeeDocumentFile,
+} from '@/hooks/useEmployees'
 import { useCurrency } from '@/hooks/useSystemSettings'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { CURRENCY_LABEL, type CurrencyCode } from '@/lib/currency'
@@ -113,17 +122,46 @@ function StepIndicator({ step }: { step: number }) {
   )
 }
 
+const AUTO_FILLABLE_FIELDS = ['firstName', 'middleName', 'lastName', 'phone', 'email', 'address'] as const
+
+function PersonalInfoSkeleton() {
+  return (
+    <div className="flex flex-col gap-4" aria-label="Importing applicant information">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+      <Skeleton className="h-16 w-full" />
+    </div>
+  )
+}
+
 export default function CreateEmployeePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const applicationId = searchParams.get('applicationId') ?? undefined
   const defaultCurrency = useCurrency()
   const { data: departments } = useDepartments()
   const { data: positions } = usePositions()
   const { data: salaryGrades } = useSalaryGrades()
+  const { data: applicationData, isLoading: isImportingApplicant } = useApplicationForEmployeeCreation(applicationId)
   const createEmployee = useCreateEmployee()
   const createAccount = useCreateEmployeeAccount()
   const uploadDocument = useUploadEmployeeDocument()
 
   const [step, setStep] = React.useState(0)
+  const [autoFilledFields, setAutoFilledFields] = React.useState<Set<string>>(new Set())
   const [staged, setStaged] = React.useState<StagedDocument[]>([])
   const [pendingDocType, setPendingDocType] = React.useState<string>(DOCUMENT_TYPE_OPTIONS[0])
   const [pendingFile, setPendingFile] = React.useState<File | null>(null)
@@ -146,6 +184,8 @@ export default function CreateEmployeePage() {
     trigger,
     watch,
     setValue,
+    reset,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -156,6 +196,35 @@ export default function CreateEmployeePage() {
       employmentStatus: 'probationary',
     },
   })
+
+  // Deployment already collected this person's personal information once —
+  // Step 1 just verifies it instead of asking HR to retype it.
+  const importedApplicantRef = React.useRef(false)
+  React.useEffect(() => {
+    const applicant = applicationData?.applicants
+    if (!applicant || importedApplicantRef.current) return
+    importedApplicantRef.current = true
+    reset({
+      ...getValues(),
+      firstName: applicant.first_name ?? '',
+      middleName: applicant.middle_name ?? '',
+      lastName: applicant.last_name ?? '',
+      phone: applicant.phone ?? '',
+      email: applicant.email ?? '',
+      address: applicant.address ?? '',
+    })
+    setAutoFilledFields(new Set(AUTO_FILLABLE_FIELDS))
+    toast.success('Applicant information imported successfully.')
+  }, [applicationData, reset, getValues])
+
+  const clearAutoFilled = (field: string) =>
+    setAutoFilledFields((prev) => {
+      if (!prev.has(field)) return prev
+      const next = new Set(prev)
+      next.delete(field)
+      return next
+    })
+  const autoFillClass = (field: string) => (autoFilledFields.has(field) ? 'border-warning/60 bg-warning/5 ring-1 ring-warning/30' : undefined)
 
   const departmentId = watch('departmentId')
   const currency = watch('currency')
@@ -203,6 +272,7 @@ export default function CreateEmployeePage() {
 
   const submitEmployee = async (values: EmployeeFormValues) => {
     const employee = await createEmployee.mutateAsync({
+      applicationId,
       firstName: values.firstName,
       middleName: values.middleName || undefined,
       lastName: values.lastName,
@@ -270,26 +340,60 @@ export default function CreateEmployeePage() {
            * default-action phase reads it). Submitting via handleSubmit(onSubmit)
            * directly from that button's onClick sidesteps native submit entirely. */}
           <div>
-            {step === 0 && (
+            {step === 0 && (isImportingApplicant && applicationId ? (
+              <PersonalInfoSkeleton />
+            ) : (
               <div className="flex flex-col gap-4">
+                {applicationId && (
+                  <div className="flex items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">
+                    <Sparkles className="h-4 w-4 shrink-0" />
+                    <span>Personal information was imported from this applicant's job application. Review and correct anything that needs it.</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="firstName">
+                    <Label htmlFor="firstName" className="flex items-center gap-1.5">
                       First Name <span className="text-destructive">*</span>
+                      {autoFilledFields.has('firstName') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                     </Label>
-                    <Input id="firstName" autoComplete="off" invalid={!!errors.firstName} {...register('firstName')} />
+                    <Input
+                      id="firstName"
+                      autoComplete="off"
+                      invalid={!!errors.firstName}
+                      className={autoFillClass('firstName')}
+                      {...register('firstName')}
+                      onFocus={() => clearAutoFilled('firstName')}
+                    />
                     {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="middleName">Middle Name</Label>
-                    <Input id="middleName" autoComplete="off" invalid={!!errors.middleName} {...register('middleName')} />
+                    <Label htmlFor="middleName" className="flex items-center gap-1.5">
+                      Middle Name
+                      {autoFilledFields.has('middleName') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
+                    </Label>
+                    <Input
+                      id="middleName"
+                      autoComplete="off"
+                      invalid={!!errors.middleName}
+                      className={autoFillClass('middleName')}
+                      {...register('middleName')}
+                      onFocus={() => clearAutoFilled('middleName')}
+                    />
                     {errors.middleName && <p className="text-xs text-destructive">{errors.middleName.message}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="lastName">
+                    <Label htmlFor="lastName" className="flex items-center gap-1.5">
                       Last Name <span className="text-destructive">*</span>
+                      {autoFilledFields.has('lastName') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                     </Label>
-                    <Input id="lastName" autoComplete="off" invalid={!!errors.lastName} {...register('lastName')} />
+                    <Input
+                      id="lastName"
+                      autoComplete="off"
+                      invalid={!!errors.lastName}
+                      className={autoFillClass('lastName')}
+                      {...register('lastName')}
+                      onFocus={() => clearAutoFilled('lastName')}
+                    />
                     {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
                   </div>
                 </div>
@@ -359,8 +463,9 @@ export default function CreateEmployeePage() {
                     {errors.nationality && <p className="text-xs text-destructive">{errors.nationality.message}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="phone">
+                    <Label htmlFor="phone" className="flex items-center gap-1.5">
                       Contact Number <span className="text-destructive">*</span>
+                      {autoFilledFields.has('phone') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                     </Label>
                     <Controller
                       control={control}
@@ -372,32 +477,51 @@ export default function CreateEmployeePage() {
                           inputMode="numeric"
                           placeholder="09171234567"
                           invalid={!!errors.phone}
+                          className={autoFillClass('phone')}
                           value={field.value ?? ''}
                           onChange={(e) => field.onChange(sanitizePhoneInput(e.target.value))}
                           onBlur={field.onBlur}
+                          onFocus={() => clearAutoFilled('phone')}
                         />
                       )}
                     />
                     {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="email">
+                    <Label htmlFor="email" className="flex items-center gap-1.5">
                       Email Address <span className="text-destructive">*</span>
+                      {autoFilledFields.has('email') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                     </Label>
-                    <Input id="email" type="email" autoComplete="off" invalid={!!errors.email} {...register('email')} />
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="off"
+                      invalid={!!errors.email}
+                      className={autoFillClass('email')}
+                      {...register('email')}
+                      onFocus={() => clearAutoFilled('email')}
+                    />
                     {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="address">
+                  <Label htmlFor="address" className="flex items-center gap-1.5">
                     Complete Address <span className="text-destructive">*</span>
+                    {autoFilledFields.has('address') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                   </Label>
-                  <Textarea id="address" invalid={!!errors.address} {...register('address')} rows={2} />
+                  <Textarea
+                    id="address"
+                    invalid={!!errors.address}
+                    className={autoFillClass('address')}
+                    {...register('address')}
+                    rows={2}
+                    onFocus={() => clearAutoFilled('address')}
+                  />
                   {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
                 </div>
               </div>
-            )}
+            ))}
 
             {step === 1 && (
               <div className="flex flex-col gap-4">
