@@ -36,7 +36,12 @@ function WelcomeSection({ name }: { name: string }) {
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-accent/10 px-4 py-2.5 text-accent">
           <Clock className="h-4 w-4" />
-
+          <div className="leading-tight">
+            <p className="font-mono text-sm font-semibold">
+              {now.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+            </p>
+            <p className="text-xs">{now.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          </div>
         </div>
       </CardContent>
     </Card>
