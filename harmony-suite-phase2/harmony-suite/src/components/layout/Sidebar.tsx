@@ -32,7 +32,7 @@ const mainNav: NavItem[] = [
   { label: 'Recruitment', to: '/dashboard/recruitment', icon: ClipboardList },
   { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch },
   { label: 'Deployment', to: '/dashboard/deployment', icon: Truck },
-  { label: 'Employees', to: '/dashboard/employees', icon: Users, disabled: true },
+  { label: 'Employees', to: '/dashboard/employees', icon: Users },
   { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock, disabled: true },
   { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck, disabled: true },
   { label: 'Payroll', to: '/dashboard/payroll', icon: Wallet, disabled: true },
@@ -77,6 +77,10 @@ function NavRow({ item }: { item: NavItem }) {
 
 export function Sidebar() {
   const { profile } = useAuth()
+  // Employee logins have no internal HR back-office access yet (see
+  // DashboardHome's EmployeePortalPlaceholder) — every other route redirects
+  // them straight back to /dashboard, so there's nothing for these links to do.
+  const visibleMainNav = profile?.role === 'employee' ? mainNav.filter((item) => item.to === '/dashboard') : mainNav
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex print:hidden">
@@ -88,7 +92,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-        {mainNav.map((item) => (
+        {visibleMainNav.map((item) => (
           <NavRow key={item.to} item={item} />
         ))}
 

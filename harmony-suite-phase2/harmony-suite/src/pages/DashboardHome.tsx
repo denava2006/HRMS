@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Users, UserCheck, Building2, Layers, Briefcase, CalendarClock, CalendarCheck, Wallet } from 'lucide-react'
+import { Users, UserCheck, Building2, Layers, Briefcase, CalendarClock, CalendarCheck, Wallet, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
@@ -80,9 +80,33 @@ function ComingSoonCard({ label, icon: Icon, phase }: { label: string; icon: Rea
   )
 }
 
+/** No self-service portal exists yet for employee-role logins — they're
+ * fully blocked from the internal HR dashboard routes, so this is the only
+ * thing they ever see after activating their account. */
+function EmployeePortalPlaceholder() {
+  const { profile } = useAuth()
+  return (
+    <div className="flex flex-col items-center gap-3 py-24 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
+        <Clock className="h-6 w-6" />
+      </div>
+      <h2 className="font-display text-xl font-semibold text-foreground">
+        Welcome, {profile?.full_name?.split(' ')[0]}.
+      </h2>
+      <p className="max-w-sm text-sm text-muted-foreground">
+        Your employee self-service portal is coming soon. Contact HR if you need anything in the meantime.
+      </p>
+    </div>
+  )
+}
+
 export default function DashboardHome() {
   const { profile } = useAuth()
   const { data, isLoading } = useDashboardCounts()
+
+  if (profile?.role === 'employee') {
+    return <EmployeePortalPlaceholder />
+  }
 
   return (
     <div className="flex flex-col gap-6">

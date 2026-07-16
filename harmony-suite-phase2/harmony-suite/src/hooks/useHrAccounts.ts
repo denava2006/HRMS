@@ -28,7 +28,9 @@ export function useHrAccounts() {
   return useQuery({
     queryKey: QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('*').order('full_name')
+      // Employee logins (added by the Employee Management module) share this
+      // same table but are managed from the Employee Details page, not here.
+      const { data, error } = await supabase.from('profiles').select('*').in('role', ['admin', 'hr_staff']).order('full_name')
       if (error) throw error
       return data
     },

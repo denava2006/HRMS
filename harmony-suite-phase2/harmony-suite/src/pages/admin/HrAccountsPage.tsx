@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/contexts/AuthContext'
-import type { UserRole } from '@/lib/database.types'
 import {
   type HrAccount,
   useHrAccounts,
@@ -39,7 +38,10 @@ import {
   useSetAccountStatus,
 } from '@/hooks/useHrAccounts'
 
-const ROLE_LABEL: Record<UserRole, string> = { admin: 'Administrator', hr_staff: 'HR Staff' }
+// This page only ever manages Admin/HR Staff logins — employee logins (added
+// by the Employee Management module) live in the same `profiles` table but
+// are excluded from useHrAccounts()'s query and never appear here.
+const ROLE_LABEL: Record<'admin' | 'hr_staff', string> = { admin: 'Administrator', hr_staff: 'HR Staff' }
 
 const createSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
@@ -133,7 +135,7 @@ function EditAccountDialog({
   } = useForm<EditFormValues>({ resolver: zodResolver(editSchema) })
 
   React.useEffect(() => {
-    if (open && account) reset({ full_name: account.full_name, role: account.role })
+    if (open && account) reset({ full_name: account.full_name, role: account.role as 'admin' | 'hr_staff' })
   }, [open, account, reset])
 
   if (!account) return null
@@ -221,7 +223,8 @@ export default function HrAccountsPage() {
       cell: ({ row }) => (
         <Badge variant={row.original.role === 'admin' ? 'secondary' : 'outline'}>
           {row.original.role === 'admin' && <ShieldCheck className="h-3 w-3" />}
-          {ROLE_LABEL[row.original.role]}
+          {/* useHrAccounts() only ever returns admin/hr_staff rows (see below). */}
+          {ROLE_LABEL[row.original.role as 'admin' | 'hr_staff']}
         </Badge>
       ),
     },

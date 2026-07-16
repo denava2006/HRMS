@@ -1,7 +1,3 @@
-// Auto-generated from the live Supabase schema via the Supabase MCP
-// `generate_typescript_types` tool. Regenerate after every future migration:
-//   supabase gen types typescript --project-id tmvdiqeluqyretmemwsr > src/lib/database.types.ts
-
 export type Json =
   | string
   | number
@@ -380,13 +376,58 @@ export type Database = {
           },
         ]
       }
+      employee_history: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          employee_id: string
+          event: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          employee_id: string
+          event: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          employee_id?: string
+          event?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_history_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address: string | null
           application_id: string | null
           basic_salary: number
+          benefits: string | null
           birth_date: string | null
+          civil_status: string | null
           created_at: string
+          currency: string
           department_id: string | null
           email: string
           employee_number: string
@@ -397,9 +438,12 @@ export type Database = {
           hire_date: string
           id: string
           last_name: string
+          middle_name: string | null
+          nationality: string | null
           phone: string | null
           photo_url: string | null
           position_id: string | null
+          probation_period: string | null
           salary_grade_id: string | null
           updated_at: string
         }
@@ -407,8 +451,11 @@ export type Database = {
           address?: string | null
           application_id?: string | null
           basic_salary?: number
+          benefits?: string | null
           birth_date?: string | null
+          civil_status?: string | null
           created_at?: string
+          currency?: string
           department_id?: string | null
           email: string
           employee_number?: string
@@ -419,9 +466,12 @@ export type Database = {
           hire_date?: string
           id?: string
           last_name: string
+          middle_name?: string | null
+          nationality?: string | null
           phone?: string | null
           photo_url?: string | null
           position_id?: string | null
+          probation_period?: string | null
           salary_grade_id?: string | null
           updated_at?: string
         }
@@ -429,8 +479,11 @@ export type Database = {
           address?: string | null
           application_id?: string | null
           basic_salary?: number
+          benefits?: string | null
           birth_date?: string | null
+          civil_status?: string | null
           created_at?: string
+          currency?: string
           department_id?: string | null
           email?: string
           employee_number?: string
@@ -441,9 +494,12 @@ export type Database = {
           hire_date?: string
           id?: string
           last_name?: string
+          middle_name?: string | null
+          nationality?: string | null
           phone?: string | null
           photo_url?: string | null
           position_id?: string | null
+          probation_period?: string | null
           salary_grade_id?: string | null
           updated_at?: string
         }
@@ -1196,6 +1252,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          activated_at: string | null
           avatar_url: string | null
           created_at: string
           created_by: string | null
@@ -1203,12 +1260,14 @@ export type Database = {
           employee_id: string | null
           full_name: string
           id: string
+          invited_at: string | null
           last_login_at: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
         }
         Insert: {
+          activated_at?: string | null
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1216,12 +1275,14 @@ export type Database = {
           employee_id?: string | null
           full_name: string
           id: string
+          invited_at?: string | null
           last_login_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
         }
         Update: {
+          activated_at?: string | null
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1229,6 +1290,7 @@ export type Database = {
           employee_id?: string | null
           full_name?: string
           id?: string
+          invited_at?: string | null
           last_login_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
@@ -1238,7 +1300,7 @@ export type Database = {
           {
             foreignKeyName: "fk_profiles_employee"
             columns: ["employee_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -1348,10 +1410,14 @@ export type Database = {
       contract_status: "draft" | "printed" | "signed"
       employment_status:
         | "active"
+        | "probationary"
+        | "regular"
+        | "contractual"
+        | "temporary"
         | "on_leave"
-        | "suspended"
         | "resigned"
         | "terminated"
+        | "retired"
       employment_type: "full_time" | "part_time"
       interview_status:
         | "scheduled"
@@ -1365,7 +1431,7 @@ export type Database = {
       offer_status: "pending" | "accepted" | "declined"
       payroll_status: "draft" | "reviewed" | "released"
       report_format: "pdf" | "docx" | "excel"
-      user_role: "admin" | "hr_staff"
+      user_role: "admin" | "hr_staff" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1373,30 +1439,173 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database["public"]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  TableName extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"]),
-> = (DefaultSchema["Tables"] & DefaultSchema["Views"])[TableName] extends {
-  Row: infer R
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
-  ? R
-  : never
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-export type TablesInsert<TableName extends keyof DefaultSchema["Tables"]> =
-  DefaultSchema["Tables"][TableName] extends { Insert: infer I } ? I : never
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
-export type TablesUpdate<TableName extends keyof DefaultSchema["Tables"]> =
-  DefaultSchema["Tables"][TableName] extends { Update: infer U } ? U : never
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
-export type Enums<EnumName extends keyof DefaultSchema["Enums"]> =
-  DefaultSchema["Enums"][EnumName]
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
-export type Functions<FunctionName extends keyof DefaultSchema["Functions"]> =
-  DefaultSchema["Functions"][FunctionName]
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      account_status: ["active", "inactive"],
+      application_status: [
+        "submitted",
+        "under_review",
+        "qualified",
+        "rejected",
+        "interview_scheduled",
+        "offered",
+        "hired",
+        "closed",
+        "deployed",
+      ],
+      attendance_status: ["present", "absent", "late", "on_leave", "holiday"],
+      contract_status: ["draft", "printed", "signed"],
+      employment_status: [
+        "active",
+        "probationary",
+        "regular",
+        "contractual",
+        "temporary",
+        "on_leave",
+        "resigned",
+        "terminated",
+        "retired",
+      ],
+      employment_type: ["full_time", "part_time"],
+      interview_status: [
+        "scheduled",
+        "passed",
+        "failed",
+        "completed",
+        "cancelled",
+      ],
+      interview_type: ["initial", "final"],
+      job_posting_status: ["draft", "open", "closed"],
+      leave_request_status: ["pending", "approved", "rejected", "cancelled"],
+      offer_status: ["pending", "accepted", "declined"],
+      payroll_status: ["draft", "reviewed", "released"],
+      report_format: ["pdf", "docx", "excel"],
+      user_role: ["admin", "hr_staff", "employee"],
+    },
+  },
+} as const
 
 // Convenience aliases used throughout the app.
 export type UserRole = Enums<"user_role">
 export type AccountStatus = Enums<"account_status">
 export type InterviewType = Enums<"interview_type">
 export type InterviewStatus = Enums<"interview_status">
+export type EmploymentStatus = Enums<"employment_status">

@@ -1,4 +1,4 @@
-// Creates a new HR Staff / Admin login for Harmony Suite.
+// Creates a new HR Staff login for Harmony Suite.
 //
 // Why this has to be an Edge Function rather than a client-side call:
 // creating an auth user (or setting anyone's role) requires the Supabase
@@ -60,15 +60,18 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null)
     const email: string | undefined = body?.email
     const fullName: string | undefined = body?.full_name
-    const role: string | undefined = body?.role
     const redirectTo: string | undefined = body?.redirectTo
 
-    if (!email || !fullName || !role) {
-      return json({ error: 'email, full_name, and role are all required.' }, 400)
+    if (!email || !fullName) {
+      return json({ error: 'email and full_name are both required.' }, 400)
     }
-    if (role !== 'admin' && role !== 'hr_staff') {
-      return json({ error: 'role must be "admin" or "hr_staff".' }, 400)
-    }
+
+    // New accounts are always HR Staff — the system never creates additional
+    // Administrators, from the UI or otherwise. The lone Administrator account
+    // is provisioned outside this app. Even if a caller sends role: "admin" in
+    // the request body, it's ignored here, and the database trigger
+    // (protect_admin_accounts) would reject the resulting profile update anyway.
+    const role = 'hr_staff'
 
     // Elevated client — service_role key, server-side only, never sent to the browser.
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
@@ -89,10 +92,13 @@ Deno.serve(async (req: Request) => {
     // handle_new_user() already created a `profiles` row (defaulting to
     // hr_staff/inactive — inactive so a self-registered account can never
     // pass is_active_staff() without an admin explicitly activating it here)
-    // — fill in the real name and requested role, and activate it now.
+    // — fill in the real name and activate it now. invited_at/activated_at
+    // track invite vs. actual password-creation so the UI can tell "Pending
+    // Activation" apart from "Activated" (status alone can't, since it's
+    // flipped to active immediately here, before the invite link is used).
     const { error: updateError } = await adminClient
       .from('profiles')
-      .update({ full_name: fullName, role, status: 'active', created_by: user.id })
+      .update({ full_name: fullName, role, status: 'active', created_by: user.id, invited_at: new Date().toISOString() })
       .eq('id', invited.user.id)
 
     if (updateError) return json({ error: updateError.message }, 400)

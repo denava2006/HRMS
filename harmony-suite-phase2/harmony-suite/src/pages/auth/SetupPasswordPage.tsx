@@ -19,7 +19,8 @@ const passwordSchema = z
       .min(8, 'Must be at least 8 characters')
       .regex(/[a-z]/, 'Must include a lowercase letter')
       .regex(/[A-Z]/, 'Must include an uppercase letter')
-      .regex(/[0-9]/, 'Must include a number'),
+      .regex(/[0-9]/, 'Must include a number')
+      .regex(/[^a-zA-Z0-9]/, 'Must include a special character'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine((v) => v.password === v.confirmPassword, {
@@ -142,7 +143,7 @@ function SetupPasswordForm() {
 
   const onSubmit = async (values: PasswordFormValues) => {
     setSubmitError(null)
-    const { error } = await supabase.auth.updateUser({ password: values.password })
+    const { data, error } = await supabase.auth.updateUser({ password: values.password })
     if (error) {
       setSubmitError(
         /session|expired|token/i.test(error.message)
@@ -150,6 +151,13 @@ function SetupPasswordForm() {
           : 'We couldn’t set your password. Please try again.'
       )
       return
+    }
+    // Stamp activation while the invite-link session is still live (about to
+    // be signed out below) — this is what lets the UI distinguish "Pending
+    // Activation" from "Activated" (profiles.status flips to active at
+    // invite time, before the password is ever set).
+    if (data.user) {
+      await supabase.from('profiles').update({ activated_at: new Date().toISOString() }).eq('id', data.user.id)
     }
     await supabase.auth.signOut()
     setActivated(true)
@@ -161,7 +169,7 @@ function SetupPasswordForm() {
     <>
       <BrandHeader
         title="Welcome to Harmony Suite"
-        description="Your HR account has been created. Create a secure password to activate your account."
+        description="Your account has been created. Create a secure password to activate it."
       />
       <CardContent>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -202,7 +210,7 @@ function SetupPasswordForm() {
               <p className="text-xs text-destructive">{errors.password.message}</p>
             ) : (
               <p id="password-hint" className="text-xs text-muted-foreground">
-                At least 8 characters, with an uppercase letter, a lowercase letter, and a number.
+                At least 8 characters, with an uppercase letter, a lowercase letter, a number, and a special character.
               </p>
             )}
           </div>

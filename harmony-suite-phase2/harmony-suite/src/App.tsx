@@ -18,6 +18,9 @@ import RecruitmentPage from '@/pages/recruitment/RecruitmentPage'
 import InterviewsPage from '@/pages/interviews/InterviewsPage'
 import DeploymentPage from '@/pages/deployment/DeploymentPage'
 import ContractPrintPage from '@/pages/deployment/ContractPrintPage'
+import EmployeesPage from '@/pages/employees/EmployeesPage'
+import CreateEmployeePage from '@/pages/employees/CreateEmployeePage'
+import EmployeeDetailsPage from '@/pages/employees/EmployeeDetailsPage'
 import HomePage from '@/pages/public/HomePage'
 import CareersPage from '@/pages/public/CareersPage'
 import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
@@ -60,11 +63,72 @@ export default function App() {
             >
               <Route index element={<DashboardHome />} />
 
-              <Route path="job-postings" element={<JobPostingsPage />} />
-              <Route path="recruitment" element={<RecruitmentPage />} />
-              <Route path="interviews" element={<InterviewsPage />} />
-              <Route path="deployment" element={<DeploymentPage />} />
-              <Route path="deployment/:applicationId/contract" element={<ContractPrintPage />} />
+              {/* Internal HR back-office — employee-role logins are blocked from
+                  all of it and land on DashboardHome's placeholder instead. */}
+              <Route
+                path="job-postings"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <JobPostingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="recruitment"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <RecruitmentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="interviews"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <InterviewsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="deployment"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <DeploymentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="deployment/:applicationId/contract"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <ContractPrintPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="employees"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <EmployeesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="employees/new"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <CreateEmployeePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="employees/:employeeId"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <EmployeeDetailsPage />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="admin/accounts"
