@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { CalendarWidget } from '@/components/layout/CalendarWidget'
 import { ClockWidget } from '@/components/layout/ClockWidget'
+import { useMyEmployeeRecord } from '@/hooks/useEmployeePortal'
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrator',
@@ -28,6 +29,8 @@ function initials(name: string) {
 
 export function Navbar({ title }: { title: string }) {
   const { profile, signOut } = useAuth()
+  const { data: myEmployee } = useMyEmployeeRecord()
+  const isEmployee = profile?.role === 'employee'
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6 print:hidden">
@@ -42,7 +45,13 @@ export function Navbar({ title }: { title: string }) {
           <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <div className="hidden text-right leading-tight sm:block">
               <p className="text-sm font-medium text-foreground">{profile?.full_name}</p>
-              <p className="text-xs text-muted-foreground">{profile ? ROLE_LABEL[profile.role] : ''}</p>
+              <p className="text-xs text-muted-foreground">
+                {isEmployee && myEmployee
+                  ? [myEmployee.positions?.title, myEmployee.departments?.name].filter(Boolean).join(' · ')
+                  : profile
+                    ? ROLE_LABEL[profile.role]
+                    : ''}
+              </p>
             </div>
             <Avatar>
               <AvatarFallback>{profile ? initials(profile.full_name) : <User className="h-4 w-4" />}</AvatarFallback>

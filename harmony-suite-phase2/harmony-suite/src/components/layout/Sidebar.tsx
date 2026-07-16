@@ -39,6 +39,16 @@ const mainNav: NavItem[] = [
   { label: 'Reports', to: '/dashboard/reports', icon: FileBarChart },
 ]
 
+// The Employee Portal is a much smaller, self-service-only slice of the same
+// app -- its own nav array (rather than filtering mainNav) since the route
+// targets are entirely different pages from the HR/Admin ones of the same name.
+const employeeNav: NavItem[] = [
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+  { label: 'Attendance', to: '/dashboard/my-attendance', icon: CalendarClock },
+  { label: 'Leave', to: '/dashboard/my-leave', icon: CalendarCheck },
+  { label: 'Payroll', to: '/dashboard/my-payroll', icon: Wallet },
+]
+
 const adminNav: NavItem[] = [
   { label: 'HR Accounts', to: '/dashboard/admin/accounts', icon: ShieldCheck },
   { label: 'Departments', to: '/dashboard/admin/departments', icon: Building2 },
@@ -79,10 +89,7 @@ function NavRow({ item }: { item: NavItem }) {
 
 export function Sidebar() {
   const { profile } = useAuth()
-  // Employee logins have no internal HR back-office access yet (see
-  // DashboardHome's EmployeePortalPlaceholder) — every other route redirects
-  // them straight back to /dashboard, so there's nothing for these links to do.
-  const visibleMainNav = profile?.role === 'employee' ? mainNav.filter((item) => item.to === '/dashboard') : mainNav
+  const visibleMainNav = profile?.role === 'employee' ? employeeNav : mainNav
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex print:hidden">

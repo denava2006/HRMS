@@ -30,6 +30,9 @@ import PayslipPrintPage from '@/pages/payroll/PayslipPrintPage'
 import ReportsPage from '@/pages/reports/ReportsPage'
 import GenerateReportPage from '@/pages/reports/GenerateReportPage'
 import ReportPrintPage from '@/pages/reports/ReportPrintPage'
+import MyAttendancePage from '@/pages/employee-portal/MyAttendancePage'
+import MyLeavePage from '@/pages/employee-portal/MyLeavePage'
+import MyPayrollPage from '@/pages/employee-portal/MyPayrollPage'
 import HomePage from '@/pages/public/HomePage'
 import CareersPage from '@/pages/public/CareersPage'
 import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
@@ -165,7 +168,11 @@ export default function App() {
               <Route
                 path="payroll/:recordId/payslip"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  // Employees may view their own payslip here too — RLS on
+                  // payroll_records/payslips scopes the underlying query to
+                  // "own records only" regardless of role, so widening this
+                  // route can't leak another employee's payslip.
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff', 'employee']}>
                     <PayslipPrintPage />
                   </ProtectedRoute>
                 }
@@ -192,6 +199,31 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
                     <ReportPrintPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="my-attendance"
+                element={
+                  <ProtectedRoute allowedRoles={['employee']}>
+                    <MyAttendancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="my-leave"
+                element={
+                  <ProtectedRoute allowedRoles={['employee']}>
+                    <MyLeavePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="my-payroll"
+                element={
+                  <ProtectedRoute allowedRoles={['employee']}>
+                    <MyPayrollPage />
                   </ProtectedRoute>
                 }
               />

@@ -43,7 +43,7 @@ function byCreatedAtDesc<T extends { created_at: string }>(rows: T[] | null | un
   return [...(rows ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))
 }
 
-export function getLatestPayslip(record: PayrollRecord): Tables<'payslips'> | null {
+export function getLatestPayslip(record: { payslips: Tables<'payslips'>[] }): Tables<'payslips'> | null {
   return byCreatedAtDesc(record.payslips)[0] ?? null
 }
 

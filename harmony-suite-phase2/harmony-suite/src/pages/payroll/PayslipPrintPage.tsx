@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/contexts/AuthContext'
 import { useSystemSettings } from '@/hooks/useSystemSettings'
 import { usePayrollRecord, getLatestPayslip } from '@/hooks/usePayroll'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
@@ -16,6 +17,8 @@ export default function PayslipPrintPage() {
   const { recordId } = useParams<{ recordId: string }>()
   const { data: record, isLoading } = usePayrollRecord(recordId)
   const { data: settings } = useSystemSettings()
+  const { profile } = useAuth()
+  const backTo = profile?.role === 'employee' ? '/dashboard/my-payroll' : '/dashboard/payroll'
 
   if (isLoading) {
     return (
@@ -34,7 +37,7 @@ export default function PayslipPrintPage() {
         <h1 className="font-display text-2xl font-bold text-foreground">Payslip not available</h1>
         <p className="text-muted-foreground">This payroll record doesn't have a released payslip yet.</p>
         <Button asChild variant="outline">
-          <Link to="/dashboard/payroll">
+          <Link to={backTo}>
             <ArrowLeft className="h-4 w-4" />
             Back to Payroll
           </Link>
@@ -53,7 +56,7 @@ export default function PayslipPrintPage() {
     <div className="mx-auto max-w-3xl px-6 py-10 print:p-0">
       <div className="mb-6 flex items-center justify-between print:hidden">
         <Button asChild variant="outline" size="sm">
-          <Link to="/dashboard/payroll">
+          <Link to={backTo}>
             <ArrowLeft className="h-4 w-4" />
             Back
           </Link>

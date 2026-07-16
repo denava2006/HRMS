@@ -181,7 +181,6 @@ export interface CreateLeaveRequestInput {
 }
 
 export function useCreateLeaveRequest() {
-  const { profile } = useAuth()
   const invalidate = useInvalidateLeave()
   return useMutation({
     mutationFn: async (input: CreateLeaveRequestInput) => {
@@ -225,13 +224,10 @@ export function useCreateLeaveRequest() {
         status: 'pending',
       })
       if (error) throw error
-
-      await supabase.from('audit_logs').insert({
-        actor_id: profile?.id,
-        action: 'Leave Request Submitted',
-        table_name: 'leave_requests',
-        record_id: input.employeeId,
-      })
+      // Audited by the on_leave_request_submitted DB trigger, which fires
+      // regardless of who submitted it (HR on the employee's behalf, or the
+      // employee themselves) -- a client-side insert here would either
+      // duplicate that entry or silently fail under RLS for non-staff callers.
     },
     onSuccess: (_data, { employeeId }) => {
       invalidate(employeeId)

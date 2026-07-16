@@ -1,7 +1,5 @@
-import * as React from 'react'
-import { Clock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Card, CardContent } from '@/components/ui/card'
+import { WelcomeSection } from '@/components/dashboard/WelcomeSection'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import { OrganizationOverviewSection, RecruitmentOverviewSection, EmployeeOverviewSection } from '@/components/dashboard/OverviewSections'
 import { TodaysInterviewsSection } from '@/components/dashboard/TodaysInterviewsSection'
@@ -15,72 +13,21 @@ import { NotificationsSection, RecentActivitySection, UpcomingScheduleSection } 
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
 import { HrAccountsSection, SystemStatusSection, RecentAuditLogsSection } from '@/components/dashboard/AdminWidgets'
 import { useDashboardRealtimeAlerts } from '@/hooks/useDashboard'
-
-function useLiveClock() {
-  const [now, setNow] = React.useState(() => new Date())
-  React.useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(interval)
-  }, [])
-  return now
-}
-
-function WelcomeSection({ name }: { name: string }) {
-  const now = useLiveClock()
-  return (
-    <Card>
-      <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-        <div>
-          <h2 className="font-display text-xl font-semibold text-foreground">Welcome back, {name}.</h2>
-          <p className="text-sm text-muted-foreground">Here's the current state of your organization.</p>
-        </div>
-        <div className="flex items-center gap-2 rounded-lg bg-accent/10 px-4 py-2.5 text-accent">
-          <Clock className="h-4 w-4" />
-          <div className="leading-tight">
-            <p className="font-mono text-sm font-semibold">
-              {now.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
-            </p>
-            <p className="text-xs">{now.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-/** No self-service portal exists yet for employee-role logins — they're
- * fully blocked from the internal HR dashboard routes, so this is the only
- * thing they ever see after activating their account. */
-function EmployeePortalPlaceholder() {
-  const { profile } = useAuth()
-  return (
-    <div className="flex flex-col items-center gap-3 py-24 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
-        <Clock className="h-6 w-6" />
-      </div>
-      <h2 className="font-display text-xl font-semibold text-foreground">
-        Welcome, {profile?.full_name?.split(' ')[0]}.
-      </h2>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        Your employee self-service portal is coming soon. Contact HR if you need anything in the meantime.
-      </p>
-    </div>
-  )
-}
+import EmployeeDashboard from '@/pages/employee-portal/EmployeeDashboard'
 
 export default function DashboardHome() {
   const { profile } = useAuth()
   useDashboardRealtimeAlerts()
 
   if (profile?.role === 'employee') {
-    return <EmployeePortalPlaceholder />
+    return <EmployeeDashboard />
   }
 
   const isAdmin = profile?.role === 'admin'
 
   return (
     <div className="flex flex-col gap-4">
-      <WelcomeSection name={profile?.full_name ?? 'there'} />
+      <WelcomeSection name={profile?.full_name ?? 'there'} subtitle="Here's the current state of your organization." />
 
       <QuickActions isAdmin={isAdmin} />
 
