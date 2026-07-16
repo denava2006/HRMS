@@ -1,79 +1,47 @@
-import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
-import { Users, UserCheck, Building2, Layers, Briefcase, Clock } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import * as React from 'react'
+import { Clock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { QuickActions } from '@/components/dashboard/QuickActions'
+import { OrganizationOverviewSection, RecruitmentOverviewSection, EmployeeOverviewSection } from '@/components/dashboard/OverviewSections'
+import { TodaysInterviewsSection } from '@/components/dashboard/TodaysInterviewsSection'
+import {
+  AttendanceSummarySection,
+  LeaveRequestsSection,
+  DeploymentStatusSection,
+  PayrollSummarySection,
+} from '@/components/dashboard/OperationsSections'
+import { NotificationsSection, RecentActivitySection, UpcomingScheduleSection } from '@/components/dashboard/ActivitySections'
+import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
+import { HrAccountsSection, SystemStatusSection, RecentAuditLogsSection } from '@/components/dashboard/AdminWidgets'
+import { useDashboardRealtimeAlerts } from '@/hooks/useDashboard'
 
-function useDashboardCounts() {
-  return useQuery({
-    queryKey: ['dashboard-counts'],
-    queryFn: async () => {
-      const [employees, activeEmployees, departments, positions] = await Promise.all([
-        supabase.from('employees').select('*', { count: 'exact', head: true }),
-        supabase.from('employees').select('*', { count: 'exact', head: true }).eq('employment_status', 'active'),
-        supabase.from('departments').select('*', { count: 'exact', head: true }),
-        supabase.from('positions').select('*', { count: 'exact', head: true }),
-      ])
-      return {
-        employees: employees.count ?? 0,
-        activeEmployees: activeEmployees.count ?? 0,
-        departments: departments.count ?? 0,
-        positions: positions.count ?? 0,
-      }
-    },
-  })
+function useLiveClock() {
+  const [now, setNow] = React.useState(() => new Date())
+  React.useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+  return now
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  isLoading,
-  index,
-}: {
-  label: string
-  value: number
-  icon: React.ComponentType<{ className?: string }>
-  isLoading: boolean
-  index: number
-}) {
+function WelcomeSection({ name }: { name: string }) {
+  const now = useLiveClock()
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-    >
-      <Card>
-        <CardContent className="flex items-center gap-4 p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-            <Icon className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            {isLoading ? (
-              <Skeleton className="mt-1 h-7 w-12" />
-            ) : (
-              <p className="font-display text-2xl font-bold text-foreground">{value}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
-}
-
-function ComingSoonCard({ label, icon: Icon, phase }: { label: string; icon: React.ComponentType<{ className?: string }>; phase: string }) {
-  return (
-    <Card className="border-dashed">
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Icon className="h-5 w-5" />
-        </div>
+    <Card>
+      <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
         <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-sm font-medium text-muted-foreground/70">{phase}</p>
+          <h2 className="font-display text-xl font-semibold text-foreground">Welcome back, {name}.</h2>
+          <p className="text-sm text-muted-foreground">Here's the current state of your organization.</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg bg-accent/10 px-4 py-2.5 text-accent">
+          <Clock className="h-4 w-4" />
+          <div className="leading-tight">
+            <p className="font-mono text-sm font-semibold">
+              {now.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+            </p>
+            <p className="text-xs">{now.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -102,34 +70,58 @@ function EmployeePortalPlaceholder() {
 
 export default function DashboardHome() {
   const { profile } = useAuth()
-  const { data, isLoading } = useDashboardCounts()
+  useDashboardRealtimeAlerts()
 
   if (profile?.role === 'employee') {
     return <EmployeePortalPlaceholder />
   }
 
+  const isAdmin = profile?.role === 'admin'
+
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-display text-xl font-semibold text-foreground">
-          Welcome back, {profile?.full_name?.split(' ')[0]}.
-        </h2>
-        <p className="text-sm text-muted-foreground">Here's the current state of your organization.</p>
+    <div className="flex flex-col gap-4">
+      <WelcomeSection name={profile?.full_name ?? 'there'} />
+
+      <QuickActions isAdmin={isAdmin} />
+
+      <OrganizationOverviewSection />
+      <RecruitmentOverviewSection />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <TodaysInterviewsSection interviewerId={isAdmin ? undefined : profile?.id} />
+        <AttendanceSummarySection />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Employees" value={data?.employees ?? 0} icon={Users} isLoading={isLoading} index={0} />
-        <StatCard label="Active Employees" value={data?.activeEmployees ?? 0} icon={UserCheck} isLoading={isLoading} index={1} />
-        <StatCard label="Departments" value={data?.departments ?? 0} icon={Building2} isLoading={isLoading} index={2} />
-        <StatCard label="Positions" value={data?.positions ?? 0} icon={Layers} isLoading={isLoading} index={3} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <LeaveRequestsSection />
+        <PayrollSummarySection />
       </div>
 
+      <DeploymentStatusSection />
+      <EmployeeOverviewSection />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <NotificationsSection />
+        <UpcomingScheduleSection />
+      </div>
+
+      <RecentActivitySection />
+
       <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">On the way</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <ComingSoonCard label="New Applicants" icon={Briefcase} phase="Phase 3 \u2014 Recruitment" />
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Analytics</h3>
+        <DashboardCharts />
+      </div>
+
+      {isAdmin && (
+        <div className="flex flex-col gap-4">
+          <h3 className="mt-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Administration</h3>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <HrAccountsSection />
+            <SystemStatusSection />
+          </div>
+          <RecentAuditLogsSection />
         </div>
-      </div>
+      )}
     </div>
   )
 }

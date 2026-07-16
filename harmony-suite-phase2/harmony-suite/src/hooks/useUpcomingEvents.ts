@@ -1,13 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
-/** A single dated item shown on the global calendar widget. Currently only
- * Interview Management produces these — Deployment, Leave, and Payroll will
- * add their own 'type' once those modules exist, reusing this same shape. */
+/** A single dated item shown on the global calendar widget and the Dashboard's
+ * Upcoming Schedule card. */
 export interface CalendarEvent {
   date: string
   label: string
-  type: 'interview' | 'deployment' | 'leave' | 'payroll'
+  type: 'interview' | 'deployment' | 'leave' | 'payroll' | 'holiday'
 }
 
 interface UpcomingInterviewRow {
@@ -18,6 +17,11 @@ interface UpcomingInterviewRow {
   } | null
 }
 
+function todayISODate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 /** Every upcoming scheduled interview org-wide — the calendar is a shared
  * awareness widget, not an action surface, so it isn't scoped to "my"
  * interviews the way the ownership-gated action buttons are. */
@@ -25,22 +29,63 @@ export function useUpcomingEvents() {
   return useQuery({
     queryKey: ['upcoming-events'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('interviews')
-        .select('scheduled_at, interview_type, applications(applicants(first_name, last_name))')
-        .eq('status', 'scheduled')
-        .gte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at', { ascending: true })
-        .limit(20)
-      if (error) throw error
+      const today = todayISODate()
 
-      return (data as unknown as UpcomingInterviewRow[]).map(
-        (row): CalendarEvent => ({
-          date: row.scheduled_at,
-          label: `${row.interview_type === 'initial' ? 'Initial' : 'Final'} Interview — ${row.applications?.applicants?.first_name ?? ''} ${row.applications?.applicants?.last_name ?? ''}`.trim(),
-          type: 'interview',
-        })
-      )
+      const [interviewsRes, holidaysRes, leavesRes, periodsRes] = await Promise.all([
+        supabase
+          .from('interviews')
+          .select('scheduled_at, interview_type, applications(applicants(first_name, last_name))')
+          .eq('status', 'scheduled')
+          .gte('scheduled_at', new Date().toISOString())
+          .order('scheduled_at', { ascending: true })
+          .limit(20),
+        supabase.from('holidays').select('holiday_date, name').gte('holiday_date', today).order('holiday_date', { ascending: true }).limit(10),
+        supabase
+          .from('leave_requests')
+          .select('start_date, employees(first_name, last_name), leave_types(name)')
+          .eq('status', 'approved')
+          .gte('start_date', today)
+          .order('start_date', { ascending: true })
+          .limit(10),
+        supabase
+          .from('payroll_periods')
+          .select('pay_date, period_start, period_end')
+          .not('pay_date', 'is', null)
+          .gte('pay_date', today)
+          .neq('status', 'released')
+          .order('pay_date', { ascending: true })
+          .limit(5),
+      ])
+      if (interviewsRes.error) throw interviewsRes.error
+      if (holidaysRes.error) throw holidaysRes.error
+      if (leavesRes.error) throw leavesRes.error
+      if (periodsRes.error) throw periodsRes.error
+
+      const interviewEvents: CalendarEvent[] = (interviewsRes.data as unknown as UpcomingInterviewRow[]).map((row) => ({
+        date: row.scheduled_at,
+        label: `${row.interview_type === 'initial' ? 'Initial' : 'Final'} Interview — ${row.applications?.applicants?.first_name ?? ''} ${row.applications?.applicants?.last_name ?? ''}`.trim(),
+        type: 'interview',
+      }))
+
+      const holidayEvents: CalendarEvent[] = holidaysRes.data.map((row) => ({
+        date: row.holiday_date,
+        label: row.name,
+        type: 'holiday',
+      }))
+
+      const leaveEvents: CalendarEvent[] = leavesRes.data.map((row) => ({
+        date: row.start_date,
+        label: `${row.leave_types?.name ?? 'Leave'} — ${row.employees?.first_name ?? ''} ${row.employees?.last_name ?? ''}`.trim(),
+        type: 'leave',
+      }))
+
+      const payrollEvents: CalendarEvent[] = periodsRes.data.map((row) => ({
+        date: row.pay_date as string,
+        label: `Payroll Pay Date — ${row.period_start} to ${row.period_end}`,
+        type: 'payroll',
+      }))
+
+      return [...interviewEvents, ...holidayEvents, ...leaveEvents, ...payrollEvents].sort((a, b) => a.date.localeCompare(b.date))
     },
     staleTime: 60_000,
   })
