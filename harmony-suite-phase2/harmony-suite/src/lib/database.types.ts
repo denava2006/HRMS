@@ -1756,3 +1756,4 @@ export type EmploymentStatus = Enums<"employment_status">
 export type AttendanceStatus = Enums<"attendance_status">
 export type LeaveRequestStatus = Enums<"leave_request_status">
 export type PayrollStatus = Enums<"payroll_status">
+export type ReportFormat = Enums<"report_format">

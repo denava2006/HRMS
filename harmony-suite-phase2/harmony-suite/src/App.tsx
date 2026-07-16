@@ -27,6 +27,9 @@ import HolidaysPage from '@/pages/admin/HolidaysPage'
 import LeavePage from '@/pages/leave/LeavePage'
 import PayrollPage from '@/pages/payroll/PayrollPage'
 import PayslipPrintPage from '@/pages/payroll/PayslipPrintPage'
+import ReportsPage from '@/pages/reports/ReportsPage'
+import GenerateReportPage from '@/pages/reports/GenerateReportPage'
+import ReportPrintPage from '@/pages/reports/ReportPrintPage'
 import HomePage from '@/pages/public/HomePage'
 import CareersPage from '@/pages/public/CareersPage'
 import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
@@ -164,6 +167,31 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
                     <PayslipPrintPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="reports"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="reports/new"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <GenerateReportPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="reports/print"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                    <ReportPrintPage />
                   </ProtectedRoute>
                 }
               />
