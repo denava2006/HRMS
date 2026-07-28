@@ -7,8 +7,17 @@
 // environment. The client instead sends the caller's own access token; this
 // function re-verifies that caller is an active Admin using THEIR
 // permissions (not the service key) before it does anything privileged.
+//
+// This app runs on a per-deployer local Supabase stack (see README) rather
+// than one shared mailbox-reachable project, so an email-invite link can
+// never reach a real inbox for anyone other than whoever is running it
+// locally. Accounts are created immediately active with this fixed, publicly
+// documented default password instead — the same tradeoff already made for
+// the seeded admin login (supabase/seed.sql).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const DEFAULT_HR_PASSWORD = 'HrStaff123'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,7 +69,6 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null)
     const email: string | undefined = body?.email
     const fullName: string | undefined = body?.full_name
-    const redirectTo: string | undefined = body?.redirectTo
 
     if (!email || !fullName) {
       return json({ error: 'email and full_name are both required.' }, 400)
@@ -76,34 +84,34 @@ Deno.serve(async (req: Request) => {
     // Elevated client — service_role key, server-side only, never sent to the browser.
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
-    // redirectTo comes from the caller's own origin (see useHrAccounts.ts) so the
-    // invite email works in both dev and prod without hardcoding a host here.
-    // Supabase only honors it if it's in the project's Redirect URLs allow list —
-    // otherwise it silently falls back to the configured Site URL.
-    const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: fullName },
-      redirectTo,
+    // See DEFAULT_HR_PASSWORD above for why this is a fixed password rather
+    // than an emailed invite link. email_confirm: true skips Auth's own
+    // "confirm your email" gate — there's no inbox to confirm from here either.
+    const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+      email,
+      password: DEFAULT_HR_PASSWORD,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
     })
 
-    if (inviteError || !invited.user) {
-      return json({ error: inviteError?.message ?? 'Failed to invite user.' }, 400)
+    if (createError || !created.user) {
+      return json({ error: createError?.message ?? 'Failed to create account.' }, 400)
     }
 
     // handle_new_user() already created a `profiles` row (defaulting to
-    // hr_staff/inactive — inactive so a self-registered account can never
-    // pass is_active_staff() without an admin explicitly activating it here)
-    // — fill in the real name and activate it now. invited_at/activated_at
-    // track invite vs. actual password-creation so the UI can tell "Pending
-    // Activation" apart from "Activated" (status alone can't, since it's
-    // flipped to active immediately here, before the invite link is used).
+    // hr_staff/inactive) — fill in the real name and activate it now.
+    // activated_at is stamped immediately too: with a fixed default password
+    // there's no separate "create your password" step left to wait on, so the
+    // account is fully usable the moment this returns.
+    const now = new Date().toISOString()
     const { error: updateError } = await adminClient
       .from('profiles')
-      .update({ full_name: fullName, role, status: 'active', created_by: user.id, invited_at: new Date().toISOString() })
-      .eq('id', invited.user.id)
+      .update({ full_name: fullName, role, status: 'active', created_by: user.id, invited_at: now, activated_at: now })
+      .eq('id', created.user.id)
 
     if (updateError) return json({ error: updateError.message }, 400)
 
-    return json({ id: invited.user.id, email: invited.user.email })
+    return json({ id: created.user.id, email: created.user.email, password: DEFAULT_HR_PASSWORD })
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : 'Unexpected error.' }, 500)
   }

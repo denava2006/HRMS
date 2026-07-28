@@ -46,20 +46,14 @@ export function useCreateHrAccount() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: CreateHrAccountInput) => {
-      // Prefer the configured site origin (needed for the invite email to resolve
-      // correctly from a preview/staging deploy); fall back to wherever this is
-      // actually running so invites still work if the env var is unset.
-      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
-      const { data, error } = await supabase.functions.invoke('create-hr-account', {
-        body: { ...input, redirectTo: `${siteUrl}/auth/setup-password` },
-      })
+      const { data, error } = await supabase.functions.invoke('create-hr-account', { body: input })
       if (error) throw new Error(await describeFunctionError(error))
       if (data?.error) throw new Error(data.error)
-      return data
+      return data as { id: string; email: string; password: string }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
-      toast.success('Account created — an invite email has been sent.')
+      toast.success(`Account created. They can sign in now with ${data.email} / ${data.password}.`)
     },
     onError: (error) => toast.error(error.message),
   })

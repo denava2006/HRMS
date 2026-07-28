@@ -78,7 +78,9 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New HR account</DialogTitle>
-          <DialogDescription>They'll receive an email invite to set their own password.</DialogDescription>
+          <DialogDescription>
+            They can sign in immediately with the email below and the default password <strong>HrStaff123</strong>.
+          </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="flex flex-col gap-1.5">
@@ -107,7 +109,7 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting}>
-              Send invite
+              Create account
             </Button>
           </DialogFooter>
         </form>

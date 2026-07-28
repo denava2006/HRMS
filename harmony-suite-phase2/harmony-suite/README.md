@@ -49,6 +49,19 @@ npm run dev
 
 Open http://localhost:5173 and sign in with **admin@suite.com / Admin123**.
 
+### HR Staff and Employee logins
+
+Because this runs on a local, per-person Supabase stack rather than one shared
+mailbox-reachable project, account creation doesn't send a real invite email —
+there's no inbox for it to reach for anyone other than whoever is running it
+locally. Instead, HR Staff and Employee accounts created from the UI (*HR
+Accounts → New account*, or *Employees → Create Employee* / *Generate Employee
+Account*) are active immediately with a fixed default password:
+
+- **HR Staff:** the email you enter, password `HrStaff123`
+- **Employee:** the applicant's own email (carried through from their job
+  application — not re-entered), password `Employee123`
+
 Useful commands:
 
 | Command | Purpose |

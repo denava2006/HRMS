@@ -346,27 +346,22 @@ export function useEmployeeAuditLog(employeeId: string | undefined) {
   })
 }
 
-// ---- Employee account (invite/resend/enable/disable) ----
+// ---- Employee account (create/enable/disable) ----
 
 export function useCreateEmployeeAccount() {
   const invalidate = useInvalidateEmployees()
   return useMutation({
     mutationFn: async ({ employeeId, email, fullName }: { employeeId: string; email: string; fullName: string }) => {
-      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
       const { data, error } = await supabase.functions.invoke('create-employee-account', {
-        body: { employeeId, email, fullName, redirectTo: `${siteUrl}/auth/setup-password` },
+        body: { employeeId, email, fullName },
       })
       if (error) throw new Error(await describeFunctionError(error))
       if (data?.error) throw new Error(data.error)
-      return data as { id: string; email: string; resent: boolean }
+      return data as { id: string; email: string; password: string }
     },
     onSuccess: (data, { employeeId }) => {
       invalidate(employeeId)
-      toast.success(
-        data.resent
-          ? 'Invitation email resent.'
-          : 'Employee account created successfully. An invitation email has been sent.'
-      )
+      toast.success(`Employee account created. They can sign in now with ${data.email} / ${data.password}.`)
     },
     onError: (error) => toast.error(error.message),
   })

@@ -1,13 +1,22 @@
-// Creates (or resends the invite for) an employee login for Harmony Suite.
+// Creates an employee login for Harmony Suite.
 //
 // Mirrors create-hr-account's shape (same reason this has to be an Edge
 // Function: creating an auth user requires the service_role key, which must
-// never reach the browser). The differences: any active Admin OR HR Staff
-// may call this (not Admin-only), the resulting profile is role='employee'
-// and linked to a specific employees row, and calling it a second time for
-// the same not-yet-activated employee resends the invite instead of erroring.
+// never reach the browser; same reason it uses a fixed default password
+// instead of an emailed invite link — see DEFAULT_EMPLOYEE_PASSWORD below).
+// The differences: any active Admin OR HR Staff may call this (not
+// Admin-only), and the resulting profile is role='employee' and linked to a
+// specific employees row.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// This app runs on a per-deployer local Supabase stack (see README) rather
+// than one shared mailbox-reachable project, so an email-invite link can
+// never reach a real inbox for anyone other than whoever is running it
+// locally. Accounts are created immediately active with this fixed, publicly
+// documented default password instead — the login email is always the
+// applicant's own email, carried through from their job application.
+const DEFAULT_EMPLOYEE_PASSWORD = 'Employee123'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,7 +71,6 @@ Deno.serve(async (req: Request) => {
     const employeeId: string | undefined = body?.employeeId
     const email: string | undefined = body?.email
     const fullName: string | undefined = body?.fullName
-    const redirectTo: string | undefined = body?.redirectTo
 
     if (!employeeId || !email || !fullName) {
       return json({ error: 'employeeId, email, and fullName are all required.' }, 400)
@@ -80,34 +88,35 @@ Deno.serve(async (req: Request) => {
 
     const { data: existingProfile, error: existingProfileError } = await adminClient
       .from('profiles')
-      .select('id, activated_at')
+      .select('id')
       .eq('employee_id', employeeId)
       .maybeSingle()
     if (existingProfileError) return json({ error: existingProfileError.message }, 400)
 
-    if (existingProfile && existingProfile.activated_at) {
-      return json({ error: 'This employee’s account has already been activated.' }, 400)
+    // With a fixed default password there's no "pending activation" state left
+    // to resend for — every account this function creates is fully usable the
+    // moment it's created, so a second call for the same employee is always
+    // a duplicate, not a resend.
+    if (existingProfile) {
+      return json({ error: 'This employee already has an account.' }, 400)
     }
 
-    const isResend = !!existingProfile
-
-    // redirectTo comes from the caller's own origin so the invite email works
-    // in both dev and prod without hardcoding a host here. Supabase only
-    // honors it if it's in the project's Redirect URLs allow list — otherwise
-    // it silently falls back to the configured Site URL.
-    const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: fullName },
-      redirectTo,
+    const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+      email,
+      password: DEFAULT_EMPLOYEE_PASSWORD,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
     })
 
-    if (inviteError || !invited.user) {
-      return json({ error: inviteError?.message ?? 'Failed to invite user.' }, 400)
+    if (createError || !created.user) {
+      return json({ error: createError?.message ?? 'Failed to create account.' }, 400)
     }
 
-    // handle_new_user() already created a `profiles` row on first invite
-    // (defaulting to hr_staff/inactive) — overwrite it for an employee login.
-    // On resend, invited.user.id is the SAME auth user as before (Supabase
-    // resends rather than recreating), so this update just refreshes invited_at.
+    // handle_new_user() already created a `profiles` row (defaulting to
+    // hr_staff/inactive) — overwrite it for an employee login. activated_at is
+    // stamped immediately since there's no separate password-creation step
+    // left to wait on (see DEFAULT_EMPLOYEE_PASSWORD above).
+    const now = new Date().toISOString()
     const { error: updateError } = await adminClient
       .from('profiles')
       .update({
@@ -116,25 +125,26 @@ Deno.serve(async (req: Request) => {
         status: 'active',
         employee_id: employeeId,
         created_by: user.id,
-        invited_at: new Date().toISOString(),
+        invited_at: now,
+        activated_at: now,
       })
-      .eq('id', invited.user.id)
+      .eq('id', created.user.id)
 
     if (updateError) return json({ error: updateError.message }, 400)
 
     await adminClient.from('employee_history').insert({
       employee_id: employeeId,
-      event: isResend ? 'invitation_resent' : 'account_created',
+      event: 'account_created',
       actor_id: user.id,
     })
     await adminClient.from('audit_logs').insert({
       actor_id: user.id,
-      action: isResend ? 'Invitation Email Resent' : 'Activation Email Sent',
+      action: 'Employee Account Created',
       table_name: 'employees',
       record_id: employeeId,
     })
 
-    return json({ id: invited.user.id, email: invited.user.email, resent: isResend })
+    return json({ id: created.user.id, email: created.user.email, password: DEFAULT_EMPLOYEE_PASSWORD })
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : 'Unexpected error.' }, 500)
   }

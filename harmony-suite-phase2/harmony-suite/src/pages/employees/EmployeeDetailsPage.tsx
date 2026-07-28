@@ -204,7 +204,8 @@ export default function EmployeeDetailsPage() {
               {!account ? (
                 <div className="flex flex-col items-start gap-3">
                   <p className="text-sm text-muted-foreground">
-                    No account has been created for this employee yet. An invitation email will be sent to {employee.email}.
+                    No account has been created for this employee yet. They'll be able to sign in immediately with{' '}
+                    {employee.email} and the default password <strong>Employee123</strong>.
                   </p>
                   <Button
                     loading={createAccount.isPending}
@@ -238,21 +239,6 @@ export default function EmployeeDetailsPage() {
                     <Field icon={Calendar} label="Last Login" value={formatDateTime(account.last_login_at)} />
                   </div>
                   <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-                    {!account.activated_at && (
-                      <Button
-                        variant="outline"
-                        loading={createAccount.isPending}
-                        onClick={() =>
-                          createAccount.mutate({
-                            employeeId: employee.id,
-                            email: account.email,
-                            fullName: `${employee.first_name} ${employee.last_name}`,
-                          })
-                        }
-                      >
-                        Resend Invitation
-                      </Button>
-                    )}
                     {account.status === 'active' ? (
                       <Button
                         variant="outline"
