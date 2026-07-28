@@ -49,7 +49,7 @@ function SiteHeader() {
 
         <div className="hidden items-center gap-2 md:flex">
           <Button asChild variant="outline">
-            <Link to="/login">HR Login</Link>
+            <Link to="/login">Login</Link>
           </Button>
         </div>
 
@@ -84,7 +84,7 @@ function SiteHeader() {
                 </Link>
               ))}
               <Button asChild variant="outline" className="mt-1">
-                <Link to="/login">HR Login</Link>
+                <Link to="/login">Login</Link>
               </Button>
             </nav>
           </motion.div>
@@ -125,7 +125,7 @@ function SiteFooter() {
             </li>
             <li>
               <Link to="/login" className="text-primary-foreground/80 hover:text-white">
-                HR Login
+                Login
               </Link>
             </li>
           </ul>

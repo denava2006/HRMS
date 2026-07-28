@@ -1,0 +1,23 @@
+-- SECURITY FIX (user-authorized): public sign-up is enabled on this project's
+-- Auth settings (confirmed live: an anonymous client can call
+-- supabase.auth.signUp() with just the public anon key and get an immediate
+-- session — no email confirmation required). handle_new_user() inserts a
+-- profiles row without specifying status, so it silently took the column's
+-- default of 'active', meaning any self-registered stranger instantly
+-- passed is_active_staff() and got full RLS access to every "any active
+-- staff" table (job postings, applicants and their PII, applications,
+-- interviews, offers, contracts, leave data, reports) plus the HR
+-- dashboard itself.
+--
+-- Defense-in-depth at the data layer: new profiles now default to
+-- 'inactive' regardless of how the underlying auth.users row was created,
+-- so RLS blocks a self-registered account even with a valid session. The
+-- legitimate admin-invite path (create-hr-account edge function) explicitly
+-- sets status = 'active' when it assigns the real role, since it can no
+-- longer rely on the old default.
+--
+-- This does NOT fix the root cause — "Enable sign ups" must still be turned
+-- off in the Supabase Dashboard under Authentication > Sign In / Providers,
+-- which requires dashboard access this migration can't reach.
+alter table public.profiles alter column status set default 'inactive';
+

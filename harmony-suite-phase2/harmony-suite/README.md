@@ -3,19 +3,13 @@
 A modern Human Resource Management System — recruitment through payroll, built on
 React, TypeScript, and Supabase.
 
-## Status: Phase 1 of 8 — Auth & Access Control
+## Status
 
-- [x] **Phase 0** — Database schema (23 tables, RLS, audit/report infrastructure)
-- [x] **Phase 1** — Auth & RBAC (this codebase: login, sessions, protected routes,
-      role-based access)
-- [ ] Phase 2 — Admin foundations (dashboard shell, HR accounts, departments,
-      positions, salary grades, settings)
-- [ ] Phase 3 — Recruitment (job postings, applicants, interviews, offers, contracts)
-- [ ] Phase 4 — Employee Management
-- [ ] Phase 5 — Attendance
-- [ ] Phase 6 — Leave Management
-- [ ] Phase 7 — Payroll
-- [ ] Phase 8 — Reports, Audit Logs, Backup/Restore
+All core modules are built: Auth & RBAC, Admin foundations (HR accounts,
+departments, positions, salary grades, settings), Recruitment, Interview
+Management, Deployment, Employee Management, Attendance, Leave, Payroll,
+Reports & Export, a live HR/Admin Dashboard, and a self-service Employee
+Portal (Dashboard, Attendance, Leave, Payroll).
 
 ## Tech stack
 
@@ -31,17 +25,55 @@ React, TypeScript, and Supabase.
 > equivalent — but if you have CLI access, `npx shadcn@latest add <component>` will
 > work normally for anything new you need.
 
-## Getting started
+## Getting started (local Supabase — recommended)
+
+The whole backend (Postgres, Auth, Storage, Realtime, Edge Functions) runs
+locally in Docker via the Supabase CLI. No cloud project, API keys, or network
+access needed — this is also what makes the app easy to hand to someone else
+or run live during a demo.
+
+**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+running, and the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)
+(`npm i -g supabase`, or see the link for other install methods).
 
 ```bash
 npm install
-cp .env.example .env
-# then fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env
+cp .env.example .env          # already points at the local stack's fixed dev URL/anon key
+
+supabase start                # first run pulls Docker images — a few minutes
+                               # applies every migration in supabase/migrations/
+                               # and seeds supabase/seed.sql (admin login + sample
+                               # departments/positions/salary grades)
 npm run dev
 ```
 
-Open http://localhost:5173. You'll land on `/login`; a valid Supabase Auth user
-with a matching, active row in `public.profiles` is required to sign in.
+Open http://localhost:5173 and sign in with **admin@suite.com / Admin123**.
+
+Useful commands:
+
+| Command | Purpose |
+|---|---|
+| `supabase start` | Start the local stack (idempotent — safe to re-run) |
+| `supabase stop` | Stop it (add `--no-backup` to also discard local data) |
+| `supabase db reset` | Wipe local data and replay all migrations + the seed — the fastest way back to a clean demo state |
+| `supabase status` | Print the local API URL, Studio URL, and keys again |
+
+Supabase Studio (a local admin UI for the database, auth users, storage, and
+logs) is at http://127.0.0.1:55323. Inbucket, the local email inbox that
+catches invite/reset emails instead of sending them, is at
+http://127.0.0.1:55324.
+
+This project's local ports are shifted to the `5532x` range (instead of the
+CLI's `5432x` defaults) in `supabase/config.toml`, so it can run alongside
+other local Supabase projects on the same machine without a port clash.
+
+### Using a hosted (cloud) project instead
+
+Uncomment the `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` pair under
+"Remote (cloud) Supabase project" in `.env.example` and fill in your own
+project's values from *Project Settings → API*. Everything in
+`supabase/migrations/` applies there too via `supabase link` + `supabase db push`
+if you're setting up a fresh cloud project from this codebase.
 
 ## Scripts
 
@@ -85,6 +117,9 @@ Vercel project settings (not committed to the repo).
 
 ## Database
 
-See `hrms_schema.sql` (delivered alongside this project) for the full schema. It
-covers all 8 modules, is fully normalized with FKs and indexes, and has Row Level
-Security enabled on every table.
+The full schema — every table, enum, function, trigger, and RLS policy — lives
+as an ordered set of SQL migrations in `supabase/migrations/`, applied in
+order by `supabase start` / `supabase db reset`. There is no separate schema
+dump to keep in sync; the migrations directory *is* the schema. RLS is enabled
+on every table, and `supabase/seed.sql` seeds a starter admin login plus
+reference data (departments, positions, salary grades) for local/demo use.
