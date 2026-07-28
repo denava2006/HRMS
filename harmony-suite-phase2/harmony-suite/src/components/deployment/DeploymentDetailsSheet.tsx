@@ -184,6 +184,23 @@ export function DeploymentDetailsSheet({
   const finalInterview = application ? getFinalInterview(application) : null
   const deploymentRecord = application ? getDeploymentRecord(application) : null
 
+  // Deployment can't predate the start date the offer promised, nor the day
+  // the contract was actually signed — whichever of those landed later is the
+  // earliest valid deployment date.
+  const contractSignedDate = contract?.signed_at ? contract.signed_at.slice(0, 10) : null
+  let deploymentMinDate: string | null = null
+  let deploymentMinDateReason: string | undefined
+  if (offer?.start_date && contractSignedDate && contractSignedDate > offer.start_date) {
+    deploymentMinDate = contractSignedDate
+    deploymentMinDateReason = 'the contract signing date'
+  } else if (offer?.start_date) {
+    deploymentMinDate = offer.start_date
+    deploymentMinDateReason = 'the agreed offer start date'
+  } else if (contractSignedDate) {
+    deploymentMinDate = contractSignedDate
+    deploymentMinDateReason = 'the contract signing date'
+  }
+
   const stage = application
     ? deriveDeploymentStage({
         applicationStatus: application.status as ApplicationStatus,
@@ -517,6 +534,8 @@ export function DeploymentDetailsSheet({
           open={deploymentDialogOpen}
           onOpenChange={setDeploymentDialogOpen}
           applicationId={applicationId}
+          minDate={deploymentMinDate}
+          minDateReason={deploymentMinDateReason}
         />
       )}
 

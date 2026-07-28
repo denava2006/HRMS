@@ -6,6 +6,7 @@ import type { Tables, TablesInsert, TablesUpdate, AttendanceStatus } from '@/lib
 import { toast } from '@/components/ui/sonner'
 import {
   calculateAttendanceMetrics,
+  calculateLateMinutes,
   isScheduledWorkingDay,
   EXPLICIT_ATTENDANCE_STATUSES,
   type WorkSchedule,
@@ -208,9 +209,7 @@ export function useRecordAttendance() {
         payload.status = metrics.status
       } else if (timeIn && !timeOut) {
         const schedule = await fetchEffectiveSchedule(input.employeeId)
-        const lateMinutes = timeIn.getTime() > new Date(`${input.attendanceDate}T${schedule.start_time}`).getTime()
-          ? Math.round((timeIn.getTime() - new Date(`${input.attendanceDate}T${schedule.start_time}`).getTime()) / 60000)
-          : 0
+        const lateMinutes = calculateLateMinutes(input.attendanceDate, timeIn, schedule)
         payload.late_minutes = lateMinutes
         payload.status = lateMinutes > 0 ? 'late' : 'present'
       }

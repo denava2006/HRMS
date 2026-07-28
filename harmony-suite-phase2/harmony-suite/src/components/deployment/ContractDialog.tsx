@@ -45,16 +45,23 @@ export function ContractDialog({
   const [companyPolicies, setCompanyPolicies] = React.useState('')
   const [terms, setTerms] = React.useState('')
   const [additionalNotes, setAdditionalNotes] = React.useState('')
+  const [errors, setErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
     if (open) {
       setCompanyPolicies('')
       setTerms('')
       setAdditionalNotes('')
+      setErrors({})
     }
   }, [open])
 
   const onSubmit = () => {
+    if (!terms.trim()) {
+      setErrors({ terms: 'Terms & conditions are required — the contract must state what the employee is agreeing to.' })
+      return
+    }
+
     prepareContract.mutate(
       {
         applicationId,
@@ -105,8 +112,20 @@ export function ContractDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="terms">Terms</Label>
-            <Textarea id="terms" value={terms} onChange={(e) => setTerms(e.target.value)} rows={3} placeholder="Optional" />
+            <Label htmlFor="terms">
+              Terms &amp; Conditions <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="terms"
+              invalid={!!errors.terms}
+              value={terms}
+              onChange={(e) => {
+                setTerms(e.target.value)
+                if (errors.terms) setErrors({})
+              }}
+              rows={3}
+            />
+            {errors.terms && <p className="text-xs text-destructive">{errors.terms}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contract_additional_notes">Additional Notes</Label>

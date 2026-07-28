@@ -66,6 +66,12 @@ export function ScheduleInterviewDialog({
       nextErrors.scheduledAt = 'Interview cannot be scheduled in the past.'
     }
     if (!mode) nextErrors.mode = 'Select an interview type.'
+    if (mode === 'online' && !meetingLink.trim()) {
+      nextErrors.meetingLink = 'A meeting link is required for online interviews.'
+    }
+    if (mode === 'face_to_face' && !location.trim()) {
+      nextErrors.location = 'A location is required for face-to-face interviews.'
+    }
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
       return
@@ -128,7 +134,11 @@ export function ScheduleInterviewDialog({
               value={mode}
               onValueChange={(v) => {
                 setMode(v as 'online' | 'face_to_face')
-                if (errors.mode) setErrors((prev) => ({ ...prev, mode: '' }))
+                // Clear whichever field no longer applies so a stale value from
+                // before switching mode can never be saved as the "current" one.
+                setMeetingLink('')
+                setLocation('')
+                setErrors((prev) => ({ ...prev, mode: '', meetingLink: '', location: '' }))
               }}
             >
               <SelectTrigger id="mode" invalid={!!errors.mode}>
@@ -142,21 +152,43 @@ export function ScheduleInterviewDialog({
             {errors.mode && <p className="text-xs text-destructive">{errors.mode}</p>}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {mode === 'online' && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="meeting_link">Meeting Link (optional)</Label>
+              <Label htmlFor="meeting_link">
+                Meeting Link <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="meeting_link"
+                invalid={!!errors.meetingLink}
                 value={meetingLink}
-                onChange={(e) => setMeetingLink(e.target.value)}
+                onChange={(e) => {
+                  setMeetingLink(e.target.value)
+                  if (errors.meetingLink) setErrors((prev) => ({ ...prev, meetingLink: '' }))
+                }}
                 placeholder="https://..."
               />
+              {errors.meetingLink && <p className="text-xs text-destructive">{errors.meetingLink}</p>}
             </div>
+          )}
+
+          {mode === 'face_to_face' && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="location">Location (optional)</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Office / room" />
+              <Label htmlFor="location">
+                Location <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="location"
+                invalid={!!errors.location}
+                value={location}
+                onChange={(e) => {
+                  setLocation(e.target.value)
+                  if (errors.location) setErrors((prev) => ({ ...prev, location: '' }))
+                }}
+                placeholder="Office / room"
+              />
+              {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
             </div>
-          </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="schedule_notes">Notes</Label>

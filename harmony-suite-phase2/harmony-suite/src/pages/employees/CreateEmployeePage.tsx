@@ -197,13 +197,20 @@ export default function CreateEmployeePage() {
     },
   })
 
-  // Deployment already collected this person's personal information once —
-  // Step 1 just verifies it instead of asking HR to retype it.
+  // Deployment already collected this person's personal information — and, via
+  // the accepted job offer, already decided their department/position/employment
+  // type/salary — once. Step 1 and Step 2 just verify those instead of asking HR
+  // to retype them (and risk Employee Management disagreeing with what Deployment
+  // actually offered).
   const importedApplicantRef = React.useRef(false)
   React.useEffect(() => {
     const applicant = applicationData?.applicants
     if (!applicant || importedApplicantRef.current) return
     importedApplicantRef.current = true
+
+    const jobPosting = applicationData.job_postings
+    const offer = applicationData.latestOffer
+
     reset({
       ...getValues(),
       firstName: applicant.first_name ?? '',
@@ -212,9 +219,31 @@ export default function CreateEmployeePage() {
       phone: applicant.phone ?? '',
       email: applicant.email ?? '',
       address: applicant.address ?? '',
+      ...(jobPosting?.department_id ? { departmentId: jobPosting.department_id } : {}),
+      ...(jobPosting?.position_id ? { positionId: jobPosting.position_id } : {}),
+      ...(offer
+        ? {
+            employmentType: offer.employment_type,
+            salaryGradeId: offer.salary_grade_id ?? undefined,
+            basicSalary: String(offer.proposed_salary),
+            currency: offer.currency as CurrencyCode,
+            probationPeriod: offer.probation_period ?? undefined,
+          }
+        : {}),
     })
-    setAutoFilledFields(new Set(AUTO_FILLABLE_FIELDS))
-    toast.success('Applicant information imported successfully.')
+    setAutoFilledFields(
+      new Set([
+        ...AUTO_FILLABLE_FIELDS,
+        ...(jobPosting?.department_id ? (['departmentId'] as const) : []),
+        ...(jobPosting?.position_id ? (['positionId'] as const) : []),
+        ...(offer ? (['employmentType', 'salaryGradeId', 'basicSalary', 'currency', 'probationPeriod'] as const) : []),
+      ])
+    )
+    toast.success(
+      offer
+        ? 'Applicant and job offer information imported successfully.'
+        : 'Applicant information imported successfully.'
+    )
   }, [applicationData, reset, getValues])
 
   const clearAutoFilled = (field: string) =>
@@ -525,6 +554,12 @@ export default function CreateEmployeePage() {
 
             {step === 1 && (
               <div className="flex flex-col gap-4">
+                {applicationData?.latestOffer && (
+                  <div className="flex items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">
+                    <Sparkles className="h-4 w-4 shrink-0" />
+                    <span>Department, position, and salary were imported from this applicant's accepted job offer. Review and correct anything that needs it.</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label>

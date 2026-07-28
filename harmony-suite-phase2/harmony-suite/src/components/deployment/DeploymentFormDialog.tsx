@@ -22,10 +22,17 @@ export function DeploymentFormDialog({
   open,
   onOpenChange,
   applicationId,
+  minDate,
+  minDateReason,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   applicationId: string
+  /** Earliest allowable deployment date — the later of the agreed offer start
+   * date and the contract signing date, whichever landed last. Deploying
+   * someone before either of those happened is an impossible date order. */
+  minDate?: string | null
+  minDateReason?: string
 }) {
   const completeDeployment = useCompleteDeployment()
 
@@ -39,7 +46,8 @@ export function DeploymentFormDialog({
 
   React.useEffect(() => {
     if (open) {
-      setDeploymentDate(todayISODate())
+      const today = todayISODate()
+      setDeploymentDate(minDate && minDate > today ? minDate : today)
       setReportingManager('')
       setAssignedBranch('')
       setWorkLocation('')
@@ -47,11 +55,17 @@ export function DeploymentFormDialog({
       setRemarks('')
       setErrors({})
     }
-  }, [open])
+  }, [open, minDate])
 
   const onSubmit = () => {
     if (!deploymentDate) {
       setErrors({ deploymentDate: 'Deployment date is required.' })
+      return
+    }
+    if (minDate && deploymentDate < minDate) {
+      setErrors({
+        deploymentDate: `Deployment date cannot be earlier than ${minDate}${minDateReason ? ` (${minDateReason})` : ''}.`,
+      })
       return
     }
 
@@ -86,6 +100,7 @@ export function DeploymentFormDialog({
               <Input
                 id="deployment_date"
                 type="date"
+                min={minDate ?? undefined}
                 invalid={!!errors.deploymentDate}
                 value={deploymentDate}
                 onChange={(e) => {

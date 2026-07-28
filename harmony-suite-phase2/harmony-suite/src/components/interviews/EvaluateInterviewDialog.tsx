@@ -21,19 +21,23 @@ function RatingSelect({
   label,
   value,
   onChange,
+  invalid,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
+  invalid?: boolean
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       {/* min-h + items-end reserves space for a 2-line label (e.g. "Technical
        * Evaluation") so single-line labels ("Leadership") still bottom-align,
        * keeping every Select in the row starting at the same Y position. */}
-      <Label className="flex min-h-[2.5rem] items-end">{label}</Label>
+      <Label className="flex min-h-[2.5rem] items-end">
+        {label} <span className="text-destructive">*</span>
+      </Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger>
+        <SelectTrigger invalid={invalid}>
           <SelectValue placeholder="Rate 1-5" />
         </SelectTrigger>
         <SelectContent>
@@ -85,6 +89,7 @@ export function EvaluateInterviewDialog({
   const [showRejectionReason, setShowRejectionReason] = React.useState(false)
   const [rejectionReason, setRejectionReason] = React.useState('')
   const [reasonError, setReasonError] = React.useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
     if (open) {
@@ -103,21 +108,49 @@ export function EvaluateInterviewDialog({
       setShowRejectionReason(false)
       setRejectionReason('')
       setReasonError(null)
+      setFieldErrors({})
     }
   }, [open])
 
   const toNumber = (v: string) => (v ? Number(v) : undefined)
+
+  /** No evaluation should be saved without its ratings and a comment on file —
+   * required regardless of whether the applicant passes or is rejected. */
+  const validateEvaluationFields = (): boolean => {
+    const nextErrors: Record<string, string> = {}
+    if (stage === 'initial') {
+      if (!communication) nextErrors.communication = 'Required'
+      if (!technicalSkills) nextErrors.technicalSkills = 'Required'
+      if (!confidence) nextErrors.confidence = 'Required'
+      if (!experience) nextErrors.experience = 'Required'
+      if (!problemSolving) nextErrors.problemSolving = 'Required'
+      if (!overallImpression.trim()) nextErrors.overallImpression = 'Overall impression is required.'
+    } else {
+      if (!technicalEvaluation) nextErrors.technicalEvaluation = 'Required'
+      if (!cultureFit) nextErrors.cultureFit = 'Required'
+      if (!leadership) nextErrors.leadership = 'Required'
+      if (!finalRemarks.trim()) nextErrors.finalRemarks = 'Final remarks are required.'
+    }
+    setFieldErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
 
   const onRejectClick = () => {
     if (!showRejectionReason) {
       setShowRejectionReason(true)
       return
     }
+    if (!validateEvaluationFields()) return
     if (!rejectionReason.trim()) {
       setReasonError('A rejection reason is required.')
       return
     }
     submitDecision('failed')
+  }
+
+  const onPassClick = () => {
+    if (!validateEvaluationFields()) return
+    submitDecision('passed')
   }
 
   const submitDecision = (decision: 'passed' | 'failed') => {
@@ -169,23 +202,34 @@ export function EvaluateInterviewDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
+          {Object.keys(fieldErrors).length > 0 && (
+            <p className="text-xs text-destructive">Every rating and the required comment must be filled in before this evaluation can be saved.</p>
+          )}
+
           {stage === 'initial' ? (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <RatingSelect label="Communication" value={communication} onChange={setCommunication} />
-                <RatingSelect label="Technical Skills" value={technicalSkills} onChange={setTechnicalSkills} />
-                <RatingSelect label="Confidence" value={confidence} onChange={setConfidence} />
-                <RatingSelect label="Experience" value={experience} onChange={setExperience} />
-                <RatingSelect label="Problem Solving" value={problemSolving} onChange={setProblemSolving} />
+                <RatingSelect label="Communication" value={communication} onChange={setCommunication} invalid={!!fieldErrors.communication} />
+                <RatingSelect label="Technical Skills" value={technicalSkills} onChange={setTechnicalSkills} invalid={!!fieldErrors.technicalSkills} />
+                <RatingSelect label="Confidence" value={confidence} onChange={setConfidence} invalid={!!fieldErrors.confidence} />
+                <RatingSelect label="Experience" value={experience} onChange={setExperience} invalid={!!fieldErrors.experience} />
+                <RatingSelect label="Problem Solving" value={problemSolving} onChange={setProblemSolving} invalid={!!fieldErrors.problemSolving} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="overall_impression">Overall Impression</Label>
+                <Label htmlFor="overall_impression">
+                  Overall Impression <span className="text-destructive">*</span>
+                </Label>
                 <Textarea
                   id="overall_impression"
+                  invalid={!!fieldErrors.overallImpression}
                   value={overallImpression}
-                  onChange={(e) => setOverallImpression(e.target.value)}
+                  onChange={(e) => {
+                    setOverallImpression(e.target.value)
+                    if (fieldErrors.overallImpression) setFieldErrors((prev) => ({ ...prev, overallImpression: '' }))
+                  }}
                   rows={2}
                 />
+                {fieldErrors.overallImpression && <p className="text-xs text-destructive">{fieldErrors.overallImpression}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="interview_notes">Interview Notes</Label>
@@ -195,13 +239,25 @@ export function EvaluateInterviewDialog({
           ) : (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <RatingSelect label="Technical Evaluation" value={technicalEvaluation} onChange={setTechnicalEvaluation} />
-                <RatingSelect label="Culture Fit" value={cultureFit} onChange={setCultureFit} />
-                <RatingSelect label="Leadership" value={leadership} onChange={setLeadership} />
+                <RatingSelect label="Technical Evaluation" value={technicalEvaluation} onChange={setTechnicalEvaluation} invalid={!!fieldErrors.technicalEvaluation} />
+                <RatingSelect label="Culture Fit" value={cultureFit} onChange={setCultureFit} invalid={!!fieldErrors.cultureFit} />
+                <RatingSelect label="Leadership" value={leadership} onChange={setLeadership} invalid={!!fieldErrors.leadership} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="final_remarks">Final Remarks</Label>
-                <Textarea id="final_remarks" value={finalRemarks} onChange={(e) => setFinalRemarks(e.target.value)} rows={3} />
+                <Label htmlFor="final_remarks">
+                  Final Remarks <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="final_remarks"
+                  invalid={!!fieldErrors.finalRemarks}
+                  value={finalRemarks}
+                  onChange={(e) => {
+                    setFinalRemarks(e.target.value)
+                    if (fieldErrors.finalRemarks) setFieldErrors((prev) => ({ ...prev, finalRemarks: '' }))
+                  }}
+                  rows={3}
+                />
+                {fieldErrors.finalRemarks && <p className="text-xs text-destructive">{fieldErrors.finalRemarks}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="recommended_salary">Recommended Salary (optional)</Label>
@@ -243,7 +299,7 @@ export function EvaluateInterviewDialog({
           <Button type="button" variant="destructive" loading={isPending} onClick={onRejectClick}>
             {showRejectionReason ? 'Confirm Rejection' : 'Reject Applicant'}
           </Button>
-          <Button type="button" variant="accent" loading={isPending} onClick={() => submitDecision('passed')}>
+          <Button type="button" variant="accent" loading={isPending} onClick={onPassClick}>
             {stage === 'initial' ? 'Pass Initial Interview' : 'Hire Applicant'}
           </Button>
         </DialogFooter>

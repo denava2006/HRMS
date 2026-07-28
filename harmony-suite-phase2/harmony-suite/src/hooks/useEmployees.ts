@@ -125,18 +125,29 @@ export function usePendingEmployees() {
   })
 }
 
-/** Powers Step 1's auto-fill when Create Employee is opened from a pending row. */
+/** Powers Step 1 and Step 2's auto-fill when Create Employee is opened from a
+ * pending row — Deployment already decided position/department/salary/
+ * employment type via the accepted job offer, so Employee Management must
+ * reuse those values rather than have HR re-key them and risk the two
+ * modules disagreeing on what was actually offered. */
 export function useApplicationForEmployeeCreation(applicationId: string | undefined) {
   return useQuery({
     queryKey: ['application-for-employee-creation', applicationId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('applications')
-        .select('id, applicants(first_name, middle_name, last_name, email, phone, address)')
+        .select(
+          `id,
+          applicants (first_name, middle_name, last_name, email, phone, address),
+          job_postings (department_id, position_id),
+          job_offers (employment_type, salary_grade_id, proposed_salary, currency, probation_period, created_at)`
+        )
         .eq('id', applicationId as string)
         .single()
       if (error) throw error
-      return data
+
+      const latestOffer = [...(data.job_offers ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null
+      return { ...data, latestOffer }
     },
     enabled: !!applicationId,
   })
