@@ -77,8 +77,8 @@ export default function MyPayrollPage() {
           isLoading={isLoading}
           density="compact"
           searchPlaceholder="Search..."
-          emptyTitle="No payroll records yet"
-          emptyDescription="Your payroll history will appear here once HR generates it."
+          emptyTitle="No payslips yet"
+          emptyDescription="Your payslip appears here once HR has approved and released that period's payroll."
         />
       )}
     </div>

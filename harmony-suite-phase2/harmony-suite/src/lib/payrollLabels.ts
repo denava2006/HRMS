@@ -1,9 +1,14 @@
 import type { PayrollStatus } from '@/lib/database.types'
 import type { BadgeProps } from '@/components/ui/badge'
 
+/** The lifecycle, in the order it happens:
+ *   Draft     — computed, still being checked by HR Staff
+ *   Approved  — HR Manager signed off; ready to release  (enum value: 'reviewed')
+ *   Released  — payslips generated and visible to employees
+ * 'reviewed' keeps its database name; "Approved" is what it means to a user. */
 export const PAYROLL_STATUS_LABEL: Record<PayrollStatus, string> = {
   draft: 'Draft',
-  reviewed: 'Reviewed',
+  reviewed: 'Approved',
   released: 'Released',
 }
 

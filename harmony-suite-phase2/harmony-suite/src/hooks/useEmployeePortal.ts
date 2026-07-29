@@ -158,6 +158,10 @@ export function useMyPayrollRecords() {
         .from('payroll_records')
         .select(MY_PAYROLL_SELECT)
         .eq('employee_id', employeeId as string)
+        // Payroll is the employee's business only once it's released — a draft
+        // is still being checked and its figures can still change. RLS enforces
+        // this too; the filter keeps the intent visible here.
+        .eq('status', 'released')
         .order('created_at', { ascending: false })
       if (error) throw error
       return data as unknown as MyPayrollRecord[]

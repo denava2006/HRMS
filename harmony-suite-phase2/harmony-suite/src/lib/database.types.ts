@@ -1207,6 +1207,9 @@ export type Database = {
       }
       payroll_records: {
         Row: {
+          pagibig_contribution: number
+          philhealth_contribution: number
+          sss_contribution: number
           absent_days: number
           basic_salary: number
           created_at: string
@@ -1238,6 +1241,9 @@ export type Database = {
           working_days: number
         }
         Insert: {
+          pagibig_contribution?: number
+          philhealth_contribution?: number
+          sss_contribution?: number
           absent_days?: number
           basic_salary?: number
           created_at?: string
@@ -1269,6 +1275,9 @@ export type Database = {
           working_days?: number
         }
         Update: {
+          pagibig_contribution?: number
+          philhealth_contribution?: number
+          sss_contribution?: number
           absent_days?: number
           basic_salary?: number
           created_at?: string

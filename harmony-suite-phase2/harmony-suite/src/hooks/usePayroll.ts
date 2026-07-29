@@ -19,6 +19,7 @@ import {
   calculateGrossSalary,
   calculateNetSalary,
 } from '@/lib/payrollCalculations'
+import { calculateStatutoryContributions, periodsPerMonth } from '@/lib/statutoryContributions'
 
 const STANDARD_WORKING_DAYS_PER_MONTH = 22
 
@@ -186,7 +187,7 @@ export function useGeneratePayroll() {
     mutationFn: async ({ periodId }: { periodId: string }) => {
       const { data: period, error: periodError } = await supabase
         .from('payroll_periods')
-        .select('period_start, period_end')
+        .select('period_start, period_end, frequency')
         .eq('id', periodId)
         .single()
       if (periodError) throw periodError
@@ -286,8 +287,18 @@ export function useGeneratePayroll() {
         const absenceDeduction = calculateAbsenceDeduction(absentDays, dailyRate)
         const leaveDeduction = calculateLeaveWithoutPayDeduction(unpaidLeaveDays, dailyRate)
 
+        // Statutory contributions are monthly figures set by the agencies, so
+        // they're computed from the employee's monthly basic salary and
+        // pro-rated for shorter runs — a weekly payroll must not deduct a full
+        // month of SSS.
+        const statutory = calculateStatutoryContributions(
+          Number(employee.basic_salary),
+          periodsPerMonth(period.frequency)
+        )
+
         const totalAllowances = overtimePay + holidayPay
-        const totalDeductions = lateDeduction + undertimeDeduction + absenceDeduction + leaveDeduction
+        const totalDeductions =
+          lateDeduction + undertimeDeduction + absenceDeduction + leaveDeduction + statutory.total
         const periodBasicSalary = Math.round(dailyRate * workingDays * 100) / 100
         const grossSalary = calculateGrossSalary(periodBasicSalary, totalAllowances)
         const netSalary = calculateNetSalary(grossSalary, totalDeductions)
@@ -306,6 +317,9 @@ export function useGeneratePayroll() {
             late_deduction: lateDeduction,
             undertime_deduction: undertimeDeduction,
             leave_deduction: leaveDeduction,
+            sss_contribution: statutory.sss,
+            philhealth_contribution: statutory.philHealth,
+            pagibig_contribution: statutory.pagIbig,
             other_deductions: 0,
             total_deductions: totalDeductions,
             net_salary: netSalary,
@@ -330,6 +344,11 @@ export function useGeneratePayroll() {
         if (undertimeDeduction > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'Undertime Deduction', amount: undertimeDeduction })
         if (absenceDeduction > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'Absences', amount: absenceDeduction })
         if (leaveDeduction > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'Leave Without Pay', amount: leaveDeduction })
+        // Statutory contributions are itemised so the payslip shows exactly
+        // what was withheld and under which programme.
+        if (statutory.sss > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'SSS Contribution', amount: statutory.sss })
+        if (statutory.philHealth > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'PhilHealth Contribution', amount: statutory.philHealth })
+        if (statutory.pagIbig > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'Pag-IBIG Contribution', amount: statutory.pagIbig })
         if (lineItems.length > 0) {
           const { error: lineItemsError } = await supabase.from('payroll_line_items').insert(lineItems)
           if (lineItemsError) throw lineItemsError

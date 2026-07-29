@@ -334,22 +334,27 @@ export default function PayrollPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* Draft -> Approved -> Released. Both transitions are the HR
+                    * Manager's; HR Staff prepares and checks the figures first. */}
                   {selectedPeriod.status === 'draft' &&
                     (canApprove ? (
                       <Button variant="outline" size="sm" loading={reviewPayroll.isPending} onClick={() => setReviewConfirmOpen(true)}>
                         Review &amp; Approve
                       </Button>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Waiting for HR Manager approval</p>
+                      <p className="text-xs text-muted-foreground">Checked — waiting for HR Manager approval</p>
                     ))}
                   {selectedPeriod.status === 'reviewed' &&
                     (canApprove ? (
                       <Button size="sm" loading={releasePayroll.isPending} onClick={() => setReleaseConfirmOpen(true)}>
-                        Release Payroll
+                        Release Payslips
                       </Button>
                     ) : (
                       <p className="text-xs text-muted-foreground">Approved — waiting for HR Manager to release</p>
                     ))}
+                  {selectedPeriod.status === 'released' && (
+                    <p className="text-xs text-muted-foreground">Released — payslips are visible to employees</p>
+                  )}
                 </div>
               }
             />
