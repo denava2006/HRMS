@@ -15,6 +15,7 @@ import { MoneyInput } from '@/components/MoneyInput'
 import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
 import { useSalaryGrades } from '@/hooks/useSalaryGrades'
+import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import { useUpdateEmployee, type Employee } from '@/hooks/useEmployees'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { CURRENCY_LABEL, type CurrencyCode } from '@/lib/currency'
@@ -33,6 +34,7 @@ export function EditEmploymentInfoDialog({
   const { data: departments } = useDepartments()
   const { data: positions } = usePositions()
   const { data: salaryGrades } = useSalaryGrades()
+  const { data: workSchedules } = useWorkSchedules()
   const updateEmployee = useUpdateEmployee()
 
   const [departmentId, setDepartmentId] = React.useState('')
@@ -43,6 +45,7 @@ export function EditEmploymentInfoDialog({
   const [basicSalary, setBasicSalary] = React.useState('')
   const [currency, setCurrency] = React.useState<CurrencyCode>('PHP')
   const [hireDate, setHireDate] = React.useState('')
+  const [workScheduleId, setWorkScheduleId] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
@@ -55,6 +58,7 @@ export function EditEmploymentInfoDialog({
       setBasicSalary(String(employee.basic_salary))
       setCurrency((employee.currency as CurrencyCode) ?? 'PHP')
       setHireDate(employee.hire_date)
+      setWorkScheduleId(employee.work_schedule_id ?? '')
       setErrors({})
     }
   }, [open, employee])
@@ -70,6 +74,7 @@ export function EditEmploymentInfoDialog({
     if (!positionId) nextErrors.positionId = 'Position is required.'
     if (!basicSalary || Number(basicSalary) <= 0) nextErrors.basicSalary = 'Basic salary is required.'
     if (!hireDate) nextErrors.hireDate = 'Date hired is required.'
+    if (!workScheduleId) nextErrors.workScheduleId = 'Work schedule is required.'
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
       return
@@ -87,6 +92,7 @@ export function EditEmploymentInfoDialog({
           basic_salary: Number(basicSalary),
           currency,
           hire_date: hireDate,
+          work_schedule_id: workScheduleId,
         },
       },
       { onSuccess: () => onOpenChange(false) }
@@ -197,6 +203,37 @@ export function EditEmploymentInfoDialog({
               <Input id="edit_hire_date" type="date" invalid={!!errors.hireDate} value={hireDate} onChange={(e) => setHireDate(e.target.value)} />
               {errors.hireDate && <p className="text-xs text-destructive">{errors.hireDate}</p>}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Work Schedule</Label>
+            <Select
+              value={workScheduleId}
+              onValueChange={(v) => {
+                setWorkScheduleId(v)
+                if (errors.workScheduleId) setErrors((prev) => ({ ...prev, workScheduleId: '' }))
+              }}
+            >
+              <SelectTrigger invalid={!!errors.workScheduleId}>
+                <SelectValue placeholder="Select a shift" />
+              </SelectTrigger>
+              <SelectContent>
+                {workSchedules?.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                    {s.is_default ? ' (default)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.workScheduleId ? (
+              <p className="text-xs text-destructive">{errors.workScheduleId}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Changing this affects future attendance only — records already logged keep the figures calculated under
+                the old shift.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">

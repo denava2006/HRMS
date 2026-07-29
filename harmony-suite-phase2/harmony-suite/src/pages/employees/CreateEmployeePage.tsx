@@ -18,6 +18,8 @@ import { toast } from '@/components/ui/sonner'
 import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
 import { useSalaryGrades } from '@/hooks/useSalaryGrades'
+import { useWorkSchedules } from '@/hooks/useWorkSchedules'
+import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 import {
   useApplicationForEmployeeCreation,
   useCreateEmployee,
@@ -95,12 +97,13 @@ const employeeSchema = z.object({
   currency: z.enum(['PHP', 'USD']),
   hireDate: z.string().min(1, 'Date hired is required'),
   employmentStatus: z.string().min(1, 'Employment status is required'),
+  workScheduleId: z.string().min(1, 'Work schedule is required'),
 })
 type EmployeeFormValues = z.infer<typeof employeeSchema>
 
 const STEP_FIELDS: (keyof EmployeeFormValues)[][] = [
   ['firstName', 'middleName', 'lastName', 'gender', 'birthDate', 'civilStatus', 'nationality', 'phone', 'email', 'address'],
-  ['departmentId', 'positionId', 'employmentType', 'salaryGradeId', 'basicSalary', 'currency', 'hireDate', 'employmentStatus'],
+  ['departmentId', 'positionId', 'employmentType', 'salaryGradeId', 'basicSalary', 'currency', 'hireDate', 'employmentStatus', 'workScheduleId'],
   [],
   [],
 ]
@@ -173,6 +176,7 @@ export default function CreateEmployeePage() {
   const { data: departments } = useDepartments()
   const { data: positions } = usePositions()
   const { data: salaryGrades } = useSalaryGrades()
+  const { data: workSchedules } = useWorkSchedules()
   const { data: applicationData, isLoading: isImportingApplicant } = useApplicationForEmployeeCreation(applicationId)
   const createEmployee = useCreateEmployee()
   const createAccount = useCreateEmployeeAccount()
@@ -247,6 +251,8 @@ export default function CreateEmployeePage() {
             currency: offer.currency as CurrencyCode,
           }
         : {}),
+      // Whichever shift the deployment confirmed (falling back to the offer's).
+      ...(applicationData.workScheduleId ? { workScheduleId: applicationData.workScheduleId } : {}),
     })
     setAutoFilledFields(
       new Set([
@@ -254,6 +260,7 @@ export default function CreateEmployeePage() {
         ...(jobPosting?.department_id ? (['departmentId'] as const) : []),
         ...(jobPosting?.position_id ? (['positionId'] as const) : []),
         ...(offer ? (['employmentType', 'salaryGradeId', 'basicSalary', 'currency'] as const) : []),
+        ...(applicationData.workScheduleId ? (['workScheduleId'] as const) : []),
       ])
     )
     toast.success(
@@ -337,6 +344,7 @@ export default function CreateEmployeePage() {
       currency: values.currency,
       hireDate: values.hireDate,
       employmentStatus: values.employmentStatus as EmploymentStatus,
+      workScheduleId: values.workScheduleId,
     })
 
     for (const doc of staged) {
@@ -357,6 +365,7 @@ export default function CreateEmployeePage() {
   const selectedDepartment = departments?.find((d) => d.id === departmentId)
   const selectedPosition = filteredPositions?.find((p) => p.id === watch('positionId'))
   const selectedGrade = salaryGrades?.find((g) => g.id === watch('salaryGradeId'))
+  const selectedSchedule = workSchedules?.find((s) => s.id === watch('workScheduleId'))
 
   return (
     <div className="flex flex-col gap-6">
@@ -705,6 +714,49 @@ export default function CreateEmployeePage() {
                   </div>
                 </div>
 
+                <div className="flex flex-col gap-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    Work Schedule <span className="text-destructive">*</span>
+                    {autoFilledFields.has('workScheduleId') && (
+                      <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>
+                    )}
+                  </Label>
+                  <Controller
+                    control={control}
+                    name="workScheduleId"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          field.onChange(v)
+                          clearAutoFilled('workScheduleId')
+                        }}
+                      >
+                        <SelectTrigger invalid={!!errors.workScheduleId} className={autoFillClass('workScheduleId')}>
+                          <SelectValue placeholder={workSchedules?.length ? 'Select a shift' : 'No work schedules configured'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {workSchedules?.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.name}
+                              {s.is_default ? ' (default)' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.workScheduleId ? (
+                    <p className="text-xs text-destructive">{errors.workScheduleId.message}</p>
+                  ) : selectedSchedule ? (
+                    <p className="text-xs text-muted-foreground">
+                      {formatWorkingDays(selectedSchedule.working_days)} ·{' '}
+                      {formatScheduleTime(selectedSchedule.start_time)} – {formatScheduleTime(selectedSchedule.end_time)}
+                      {' · '}late, undertime, and overtime are measured against this shift
+                    </p>
+                  ) : null}
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label>Salary Grade (optional)</Label>
@@ -904,6 +956,7 @@ export default function CreateEmployeePage() {
                     <ReviewField label="Salary Grade" value={selectedGrade?.grade_name ?? 'None'} />
                     <ReviewField label="Basic Salary" value={watch('basicSalary') ? `${watch('currency')} ${watch('basicSalary')}` : undefined} />
                     <ReviewField label="Date Hired" value={watch('hireDate')} />
+                    <ReviewField label="Work Schedule" value={selectedSchedule?.name} />
                   </div>
                 </div>
                 {staged.length > 0 && (

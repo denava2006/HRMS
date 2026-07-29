@@ -33,6 +33,7 @@ import { ContractDialog } from '@/components/deployment/ContractDialog'
 import { SigningDialog } from '@/components/deployment/SigningDialog'
 import { DeploymentFormDialog } from '@/components/deployment/DeploymentFormDialog'
 import { useApplicationHistory } from '@/hooks/useRecruitment'
+import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import {
   useDeploymentApplicationDetail,
   useGenerateContract,
@@ -168,6 +169,7 @@ export function DeploymentDetailsSheet({
   const { data: application, isLoading } = useDeploymentApplicationDetail(applicationId ?? undefined)
   const { data: history } = useApplicationHistory(applicationId ?? undefined)
   const generateContract = useGenerateContract()
+  const { data: workSchedules } = useWorkSchedules()
 
   const [offerDialogOpen, setOfferDialogOpen] = React.useState(false)
   const [contractDialogOpen, setContractDialogOpen] = React.useState(false)
@@ -201,6 +203,9 @@ export function DeploymentDetailsSheet({
     deploymentMinDate = contractSignedDate
     deploymentMinDateReason = 'the contract signing date'
   }
+
+  const deploymentSchedule =
+    workSchedules?.find((s) => s.id === deploymentRecord?.work_schedule_id) ?? null
 
   // How long the applicant has had the offer, measured from when it was sent.
   const offerDaysWaited = offer ? daysSince(offer.created_at) : 0
@@ -391,6 +396,7 @@ export function DeploymentDetailsSheet({
                         <Field label="Deployment Date" value={formatDate(deploymentRecord.deployment_date)} />
                         <Field label="Assigned Branch" value={deploymentRecord.assigned_branch ?? '—'} />
                         <Field label="Work Location" value={deploymentRecord.work_location ?? '—'} />
+                        <Field label="Work Schedule" value={deploymentSchedule?.name ?? '—'} />
                         <Field label="Deployed By" value={deploymentRecord.deployer?.full_name ?? '—'} />
                       </div>
                     </section>
@@ -536,6 +542,7 @@ export function DeploymentDetailsSheet({
           applicationId={applicationId}
           minDate={deploymentMinDate}
           minDateReason={deploymentMinDateReason}
+          offerWorkScheduleId={offer?.work_schedule_id}
         />
       )}
 

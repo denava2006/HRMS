@@ -140,14 +140,19 @@ export function useApplicationForEmployeeCreation(applicationId: string | undefi
           `id,
           applicants (first_name, middle_name, last_name, email, phone, address),
           job_postings (department_id, position_id),
-          job_offers (employment_type, salary_grade_id, proposed_salary, currency, created_at)`
+          job_offers (employment_type, salary_grade_id, proposed_salary, currency, work_schedule_id, created_at),
+          deployment_records (work_schedule_id)`
         )
         .eq('id', applicationId as string)
         .single()
       if (error) throw error
 
       const latestOffer = [...(data.job_offers ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null
-      return { ...data, latestOffer }
+      // Deployment is the later, confirmed decision — it wins over whatever the
+      // offer originally proposed if HR changed the shift on the way through.
+      const deployment = data.deployment_records as unknown as { work_schedule_id: string | null } | null
+      const workScheduleId = deployment?.work_schedule_id ?? latestOffer?.work_schedule_id ?? null
+      return { ...data, latestOffer, workScheduleId }
     },
     enabled: !!applicationId,
   })
@@ -210,6 +215,9 @@ export interface CreateEmployeeInput {
   currency: CurrencyCode
   hireDate: string
   employmentStatus: EmploymentStatus
+  /** Shift the employee reports on — drives every late/undertime/overtime
+   * figure attendance and payroll produce for them. */
+  workScheduleId?: string
 }
 
 export function useCreateEmployee() {
@@ -239,6 +247,7 @@ export function useCreateEmployee() {
           currency: input.currency,
           hire_date: input.hireDate,
           employment_status: input.employmentStatus,
+          work_schedule_id: input.workScheduleId || null,
         })
         .select('id, employee_number')
         .single()

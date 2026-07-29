@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useCompleteDeployment } from '@/hooks/useDeployment'
 import { useBranches, useWorkLocations } from '@/hooks/useBranches'
+import { useWorkSchedules } from '@/hooks/useWorkSchedules'
+import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 
 function todayISODate(): string {
   const d = new Date()
@@ -26,6 +28,7 @@ export function DeploymentFormDialog({
   applicationId,
   minDate,
   minDateReason,
+  offerWorkScheduleId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -35,13 +38,18 @@ export function DeploymentFormDialog({
    * someone before either of those happened is an impossible date order. */
   minDate?: string | null
   minDateReason?: string
+  /** Shift agreed on the accepted job offer — pre-selected here so deployment
+   * confirms what was offered rather than starting from a blank field. */
+  offerWorkScheduleId?: string | null
 }) {
   const completeDeployment = useCompleteDeployment()
   const { data: branches } = useBranches()
+  const { data: workSchedules } = useWorkSchedules()
 
   const [deploymentDate, setDeploymentDate] = React.useState('')
   const [branchId, setBranchId] = React.useState('')
   const [workLocationId, setWorkLocationId] = React.useState('')
+  const [workScheduleId, setWorkScheduleId] = React.useState('')
   const [remarks, setRemarks] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
@@ -55,13 +63,15 @@ export function DeploymentFormDialog({
       setDeploymentDate(minDate && minDate > today ? minDate : today)
       setBranchId('')
       setWorkLocationId('')
+      setWorkScheduleId(offerWorkScheduleId ?? workSchedules?.find((s) => s.is_default)?.id ?? '')
       setRemarks('')
       setErrors({})
     }
-  }, [open, minDate])
+  }, [open, minDate, offerWorkScheduleId, workSchedules])
 
   const selectedBranch = branches?.find((b) => b.id === branchId) ?? null
   const selectedLocation = locations?.find((l) => l.id === workLocationId) ?? null
+  const selectedSchedule = workSchedules?.find((s) => s.id === workScheduleId) ?? null
 
   const onSubmit = () => {
     const nextErrors: Record<string, string> = {}
@@ -72,6 +82,7 @@ export function DeploymentFormDialog({
     }
     if (!branchId) nextErrors.branchId = 'Assigned branch is required.'
     if (!workLocationId) nextErrors.workLocationId = 'Work location is required.'
+    if (!workScheduleId) nextErrors.workScheduleId = 'Work schedule is required.'
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
       return
@@ -83,6 +94,7 @@ export function DeploymentFormDialog({
         deploymentDate,
         branchId,
         workLocationId,
+        workScheduleId,
         // The text columns stay populated so existing views and any historical
         // record keep reading the same way.
         assignedBranch: selectedBranch?.name,
@@ -171,6 +183,40 @@ export function DeploymentFormDialog({
               </Select>
               {errors.workLocationId && <p className="text-xs text-destructive">{errors.workLocationId}</p>}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="deployment_work_schedule">
+              Work Schedule <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={workScheduleId}
+              onValueChange={(v) => {
+                setWorkScheduleId(v)
+                if (errors.workScheduleId) setErrors((prev) => ({ ...prev, workScheduleId: '' }))
+              }}
+            >
+              <SelectTrigger id="deployment_work_schedule" invalid={!!errors.workScheduleId}>
+                <SelectValue placeholder={workSchedules?.length ? 'Select a shift' : 'No work schedules configured'} />
+              </SelectTrigger>
+              <SelectContent>
+                {workSchedules?.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                    {s.is_default ? ' (default)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.workScheduleId ? (
+              <p className="text-xs text-destructive">{errors.workScheduleId}</p>
+            ) : selectedSchedule ? (
+              <p className="text-xs text-muted-foreground">
+                {formatWorkingDays(selectedSchedule.working_days)} ·{' '}
+                {formatScheduleTime(selectedSchedule.start_time)} – {formatScheduleTime(selectedSchedule.end_time)}
+                {' · '}the employee&apos;s attendance is measured against this shift
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">

@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useScheduleInterview } from '@/hooks/useInterviews'
+import { useBranches, useWorkLocations } from '@/hooks/useBranches'
 import type { InterviewType } from '@/lib/database.types'
 import { INTERVIEW_TYPE_LABEL } from '@/lib/interviewLabels'
 
@@ -37,6 +38,17 @@ export function ScheduleInterviewDialog({
 }) {
   const { profile } = useAuth()
   const scheduleInterview = useScheduleInterview()
+  const { data: branches } = useBranches()
+  const { data: workLocations } = useWorkLocations()
+
+  // "Branch · Location" labels — interviews.location is free text, so the
+  // readable label is what gets stored and shown to the applicant.
+  const locationOptions = React.useMemo(() => {
+    const branchName = new Map((branches ?? []).map((b) => [b.id, b.name]))
+    return (workLocations ?? []).map((l) =>
+      l.branch_id && branchName.has(l.branch_id) ? `${branchName.get(l.branch_id)} · ${l.name}` : l.name
+    )
+  }, [branches, workLocations])
 
   const [scheduledAt, setScheduledAt] = React.useState('')
   const [mode, setMode] = React.useState<'online' | 'face_to_face' | ''>('')
@@ -176,16 +188,27 @@ export function ScheduleInterviewDialog({
               <Label htmlFor="location">
                 Location <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="location"
-                invalid={!!errors.location}
+              {/* Picked from the branches and work locations Admin maintains,
+                * so an interview venue is always a real place rather than
+                * whatever each interviewer happened to type. */}
+              <Select
                 value={location}
-                onChange={(e) => {
-                  setLocation(e.target.value)
+                onValueChange={(v) => {
+                  setLocation(v)
                   if (errors.location) setErrors((prev) => ({ ...prev, location: '' }))
                 }}
-                placeholder="Office / room"
-              />
+              >
+                <SelectTrigger id="location" invalid={!!errors.location}>
+                  <SelectValue placeholder={locationOptions.length ? 'Select a location' : 'No work locations configured'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {locationOptions.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
             </div>
           )}

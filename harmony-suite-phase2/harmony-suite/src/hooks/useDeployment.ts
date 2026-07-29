@@ -437,6 +437,7 @@ export interface CompleteDeploymentInput {
   deploymentDate: string
   branchId: string
   workLocationId: string
+  workScheduleId: string
   assignedBranch?: string
   workLocation?: string
   remarks?: string
@@ -452,6 +453,7 @@ export function useCompleteDeployment() {
         deployment_date: input.deploymentDate,
         branch_id: input.branchId,
         work_location_id: input.workLocationId,
+        work_schedule_id: input.workScheduleId,
         assigned_branch: input.assignedBranch || null,
         work_location: input.workLocation || null,
         remarks: input.remarks || null,
