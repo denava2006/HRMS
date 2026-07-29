@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus } from 'lucide-react'
+import { MoreHorizontal, Plus, Clock } from 'lucide-react'
 import { DataTable } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -85,13 +85,32 @@ function ScheduleFormDialog({
 
   const isPending = createSchedule.isPending || updateSchedule.isPending
 
+  const shiftSummary = React.useMemo(() => {
+    if (!startTime || !endTime || startTime === endTime) return null
+    const isOvernight = endTime <= startTime
+    const [sh, sm] = startTime.split(':').map(Number)
+    const [eh, em] = endTime.split(':').map(Number)
+    const spanMinutes = (eh * 60 + em) - (sh * 60 + sm) + (isOvernight ? 24 * 60 : 0)
+    const paid = Math.max(0, spanMinutes - (Number(breakMinutes) || 0))
+    const hrs = Math.floor(paid / 60)
+    const mins = paid % 60
+    return `${hrs}h${mins ? ` ${mins}m` : ''} of paid time${isOvernight ? ' · overnight shift, ends the next day' : ''}`
+  }, [startTime, endTime, breakMinutes])
+
   const onSubmit = () => {
     const nextErrors: Record<string, string> = {}
     if (!name.trim()) nextErrors.name = 'Name is required.'
     if (workingDays.length === 0) nextErrors.workingDays = 'Select at least one working day.'
     if (!startTime) nextErrors.startTime = 'Start time is required.'
     if (!endTime) nextErrors.endTime = 'End time is required.'
-    if (startTime && endTime && startTime >= endTime) nextErrors.endTime = 'End time must be after start time.'
+    // An end time at or before the start means the shift runs past midnight
+    // (e.g. 10:00 PM - 7:00 AM), which is a legitimate night shift rather than
+    // an error. The only genuinely invalid case is start == end, which is a
+    // zero-length shift. Attendance treats end <= start as overnight — see
+    // isOvernightSchedule() in attendanceCalculations.
+    if (startTime && endTime && startTime === endTime) {
+      nextErrors.endTime = 'Start and end time cannot be the same.'
+    }
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
       return
@@ -171,6 +190,15 @@ function ScheduleFormDialog({
               <Input id="break_minutes" type="number" min="0" value={breakMinutes} onChange={(e) => setBreakMinutes(e.target.value)} />
             </div>
           </div>
+
+          {/* Spells out what the times add up to, so an overnight shift reads
+            * as deliberate rather than looking like a mistake. */}
+          {shiftSummary && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              {shiftSummary}
+            </p>
+          )}
 
           <label className="flex items-center justify-between rounded-lg border border-border p-3">
             <span className="flex flex-col">

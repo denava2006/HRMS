@@ -7,8 +7,11 @@
 -- calculations treat end_time <= start_time as an overnight schedule and roll
 -- the end to the following day — see isOvernightSchedule() in
 -- src/lib/attendanceCalculations.ts.
+-- Each is a 9-hour span with a 60-minute unpaid break, giving 8 paid hours —
+-- the same shape as the existing Standard Day Shift (08:00-17:00). The
+-- one-hour overlap between shifts is the handover.
 insert into public.work_schedules (id, name, working_days, start_time, end_time, break_minutes, is_default) values
-  ('a1000000-0000-0000-0000-000000000001', 'Morning Shift',  '{1,2,3,4,5}', '06:00', '14:00', 0, false),
-  ('a1000000-0000-0000-0000-000000000002', 'Evening Shift',  '{1,2,3,4,5}', '14:00', '22:00', 0, false),
-  ('a1000000-0000-0000-0000-000000000003', 'Midnight Shift', '{1,2,3,4,5}', '22:00', '06:00', 0, false)
+  ('a1000000-0000-0000-0000-000000000001', 'Morning Shift',  '{1,2,3,4,5}', '06:00', '15:00', 60, false),
+  ('a1000000-0000-0000-0000-000000000002', 'Evening Shift',  '{1,2,3,4,5}', '14:00', '23:00', 60, false),
+  ('a1000000-0000-0000-0000-000000000003', 'Midnight Shift', '{1,2,3,4,5}', '22:00', '07:00', 60, false)
 on conflict (id) do nothing;
