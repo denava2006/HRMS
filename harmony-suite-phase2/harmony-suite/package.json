@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "demo:seed": "docker exec -i supabase_db_harmony-suite psql -U postgres -d postgres -f - < supabase/demo-seed.sql",
+    "demo:reset": "supabase db reset && npm run demo:seed"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",

@@ -3,11 +3,22 @@
 ## Setup (do this before presenting)
 
 ```bash
-supabase start                 # if it isn't already running
-supabase db reset              # clean schema + base seed
-docker exec -i supabase_db_harmony-suite psql -U postgres -d postgres < supabase/demo-seed.sql
+supabase start        # if it isn't already running
+npm run demo:reset    # wipes the DB, replays every migration, loads demo data
 npm run dev
 ```
+
+Everything runs against the **local** Supabase in Docker — nothing touches a
+hosted project, so a paused cloud project has no effect. Confirm with:
+
+```bash
+supabase status                     # API URL should be http://127.0.0.1:55321
+grep VITE_SUPABASE_URL .env         # must match that URL
+```
+
+> **`supabase db reset` erases everything**, including anything you typed in by
+> hand. Use `npm run demo:seed` (safe to re-run, won't duplicate) if you only
+> want to top the demo data back up without wiping your own work.
 
 `demo-seed.sql` stages an applicant at **every** stage of the pipeline, three
 employees with a month of attendance, a pending leave request, a draft payroll
@@ -142,7 +153,14 @@ Late deduction = `(late minutes ÷ 60) × hourly rate`, where hourly rate =
 
 ## If something goes wrong
 
+- **"Can't reach the server"** on login — Supabase isn't running, or `.env`
+  points at the wrong URL. `supabase start`, then check `supabase status`.
+- **"That email and password combination doesn't match"** — genuinely wrong
+  credentials. Re-check the table above; the demo passwords are case-sensitive.
+- **Login fails with everything correct** — the Kong gateway can go stale after
+  a `db reset`. `docker restart supabase_kong_harmony-suite`, wait ~10s.
+- **Data you entered has vanished** — something ran `supabase db reset`, which
+  wipes the database. Use `npm run demo:seed` instead to top up demo data
+  without wiping.
 - **Blank page / stale data** — hard refresh (Ctrl+Shift+R).
-- **Login fails** — check `supabase status`; if containers are down,
-  `supabase stop && supabase start`.
-- **Want a clean slate** — re-run the reset + demo-seed commands at the top.
+- **Want a clean slate** — `npm run demo:reset`.
