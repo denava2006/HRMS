@@ -162,7 +162,7 @@ function EditAccountDialog({
   } = useForm<EditFormValues>({ resolver: zodResolver(editSchema) })
 
   React.useEffect(() => {
-    if (open && account) reset({ full_name: account.full_name, role: account.role as 'admin' | 'hr_staff' })
+    if (open && account) reset({ full_name: account.full_name, role: account.role as 'admin' | 'hr_manager' | 'hr_staff' })
   }, [open, account, reset])
 
   if (!account) return null

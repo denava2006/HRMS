@@ -166,7 +166,12 @@ export function useHrAccountsOverview() {
   return useQuery({
     queryKey: ['dashboard-hr-accounts-overview'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('status').in('role', ['admin', 'hr_staff'])
+      // Same role set HR Accounts itself lists — employee logins are counted
+      // separately and must not inflate this.
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('status')
+        .in('role', ['admin', 'hr_manager', 'hr_staff'])
       if (error) throw error
       return {
         total: data.length,

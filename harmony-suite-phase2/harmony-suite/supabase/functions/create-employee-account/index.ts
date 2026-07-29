@@ -61,10 +61,16 @@ Deno.serve(async (req: Request) => {
       .eq('id', user.id)
       .single()
 
+    // Creating an employee's login is ordinary HR work — every HR role does it,
+    // unlike create-hr-account (creating an HR Staff/Manager login), which
+    // stays Administrator-only.
     const callerIsStaff =
-      !profileError && callerProfile && ['admin', 'hr_staff'].includes(callerProfile.role) && callerProfile.status === 'active'
+      !profileError &&
+      callerProfile &&
+      ['admin', 'hr_manager', 'hr_staff'].includes(callerProfile.role) &&
+      callerProfile.status === 'active'
     if (!callerIsStaff) {
-      return json({ error: 'Only active HR staff or administrators can create employee accounts.' }, 403)
+      return json({ error: 'Only active HR staff, HR managers, or administrators can create employee accounts.' }, 403)
     }
 
     const body = await req.json().catch(() => null)
