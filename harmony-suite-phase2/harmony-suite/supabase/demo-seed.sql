@@ -117,11 +117,13 @@ select v.id::uuid, v.fn, v.mn, v.ln, v.email, v.phone, v.addr, v.bd::date, v.gen
   v.dept::uuid, v.pos::uuid, v.grade::uuid, v.salary, 'PHP', 'full_time', v.status::employment_status,
   v.hired::date, ws.id
 from (values
-  ('c6000000-0000-0000-0000-000000000001','Liza','Domingo','Fernandez','liza.fernandez@example.com','09181000001','14 Malakas St, Quezon City','1994-03-12','Female','Single','d0000000-0000-0000-0000-000000000002','e0000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000002',24000,'regular', (current_date - interval '2 years')::text),
-  ('c6000000-0000-0000-0000-000000000002','Jerome','Sy','Castillo','jerome.castillo@example.com','09181000002','3 Sampaguita St, Pasig City','1990-11-02','Male','Married','d0000000-0000-0000-0000-000000000003','e0000000-0000-0000-0000-000000000004','f0000000-0000-0000-0000-000000000003',32000,'regular', (current_date - interval '3 years')::text),
-  ('c6000000-0000-0000-0000-000000000003','Grace','Ann','Peralta','grace.peralta@example.com','09181000003','40 Ilang-Ilang St, Makati City','1998-06-25','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000001',18000,'active', (current_date - interval '8 months')::text)
-) as v(id, fn, mn, ln, email, phone, addr, bd, gender, civil, dept, pos, grade, salary, status, hired)
-cross join lateral (select id from public.work_schedules where is_default limit 1) ws;
+  -- Each on a different shift so the roster shows real variety, including one
+  -- overnight worker.
+  ('c6000000-0000-0000-0000-000000000001','Liza','Domingo','Fernandez','liza.fernandez@example.com','09181000001','14 Malakas St, Quezon City','1994-03-12','Female','Single','d0000000-0000-0000-0000-000000000002','e0000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000002',24000,'regular', (current_date - interval '2 years')::text, 'a1000000-0000-0000-0000-000000000001'),
+  ('c6000000-0000-0000-0000-000000000002','Jerome','Sy','Castillo','jerome.castillo@example.com','09181000002','3 Sampaguita St, Pasig City','1990-11-02','Male','Married','d0000000-0000-0000-0000-000000000003','e0000000-0000-0000-0000-000000000004','f0000000-0000-0000-0000-000000000003',32000,'regular', (current_date - interval '3 years')::text, 'a1000000-0000-0000-0000-000000000002'),
+  ('c6000000-0000-0000-0000-000000000003','Grace','Ann','Peralta','grace.peralta@example.com','09181000003','40 Ilang-Ilang St, Makati City','1998-06-25','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000001',18000,'active', (current_date - interval '8 months')::text, 'a1000000-0000-0000-0000-000000000003')
+) as v(id, fn, mn, ln, email, phone, addr, bd, gender, civil, dept, pos, grade, salary, status, hired, sched)
+cross join lateral (select v.sched::uuid as id) ws;
 
 -- ---- Employee logins --------------------------------------------------------
 -- Same fixed default password the app itself assigns (Employee123), so the
@@ -161,17 +163,26 @@ with workdays as (
   from generate_series(date_trunc('month', current_date), current_date - interval '1 day', interval '1 day') gs
   where extract(dow from gs) between 1 and 5
 ),
+-- Times come from each employee's own shift, so a recorded day always lines up
+-- with the schedule it's measured against.
 staff as (
-  select * from (values
+  select e.id as employee_id, s.late_mins, ws.start_time, ws.end_time,
+         (ws.end_time <= ws.start_time) as is_overnight
+  from (values
     ('c6000000-0000-0000-0000-000000000001'::uuid, 0),   -- Liza: always on time
     ('c6000000-0000-0000-0000-000000000002'::uuid, 18),  -- Jerome: late on every 4th day
     ('c6000000-0000-0000-0000-000000000003'::uuid, 25)   -- Grace: late, plus an absence and a half day
   ) as s(employee_id, late_mins)
+  join public.employees e on e.id = s.employee_id
+  join public.work_schedules ws on ws.id = e.work_schedule_id
 ),
 plan as (
   select
     s.employee_id,
     w.day,
+    s.start_time,
+    s.end_time,
+    s.is_overnight,
     -- Grace (3rd employee) is absent on day 3 and works a half day on day 5.
     case
       when s.employee_id = 'c6000000-0000-0000-0000-000000000003'::uuid and w.n = 3 then 'absent'
@@ -187,14 +198,21 @@ insert into public.attendance_records
 select
   p.employee_id,
   p.day,
+  -- AT TIME ZONE 'Asia/Manila' reads the wall-clock time AS Manila time.
+  -- A plain ::timestamptz cast would read it as UTC, which is why an 8:00 AM
+  -- shift previously displayed as 4:00 PM in a UTC+8 browser.
   case when p.status = 'absent' then null
-       else (p.day + time '08:00' + make_interval(mins => p.late_mins))::timestamptz end,
+       else ((p.day + p.start_time + make_interval(mins => p.late_mins)) at time zone 'Asia/Manila') end,
   case when p.status = 'absent' then null
-       when p.status = 'half_day' then (p.day + time '12:00')::timestamptz
-       else (p.day + time '17:00')::timestamptz end,
+       -- Half day: out 4 hours after starting.
+       when p.status = 'half_day' then ((p.day + p.start_time + interval '4 hours') at time zone 'Asia/Manila')
+       -- A shift ending at or before it starts runs past midnight, so its end
+       -- lands on the next calendar day.
+       else ((p.day + p.end_time + case when p.is_overnight then interval '1 day' else interval '0' end)
+             at time zone 'Asia/Manila') end,
   case when p.status = 'absent' then 0 when p.status = 'half_day' then 4 else 8 end,
   p.late_mins,
-  case when p.status = 'half_day' then 300 else 0 end,
+  case when p.status = 'half_day' then 240 else 0 end,
   0,
   p.status::attendance_status
 from plan p

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { motion } from 'framer-motion'
-import { Users2, TrendingUp, TrendingDown, Wallet, FileCheck, Plus, MoreHorizontal, PlayCircle } from 'lucide-react'
+import { Users2, TrendingUp, TrendingDown, Wallet, FileCheck, Plus, MoreHorizontal, PlayCircle, ShieldCheck, ClipboardList } from 'lucide-react'
 import { DataTable } from '@/components/data-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,6 +36,7 @@ import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
 import { useAuth } from '@/contexts/AuthContext'
 import { canApproveWork } from '@/lib/roles'
+import { cn } from '@/lib/utils'
 import { PAYROLL_STATUS_LABEL, PAYROLL_STATUS_VARIANT, PAYROLL_FREQUENCY_LABEL } from '@/lib/payrollLabels'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
@@ -255,6 +256,74 @@ export default function PayrollPage() {
             <StatCard label="Payslips Released" value={String(stats?.payslipsReleased ?? 0)} icon={FileCheck} isLoading={statsLoading} index={5} />
           </div>
 
+          {/* Approval bar — the Draft -> Approved -> Released step lives here,
+            * above the entries being approved, rather than tucked into the
+            * table's filter row where it read as just another control. */}
+          {records && records.length > 0 && (
+            <Card>
+              <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                      selectedPeriod.status === 'released'
+                        ? 'bg-success/10 text-success'
+                        : selectedPeriod.status === 'reviewed'
+                          ? 'bg-warning/10 text-warning'
+                          : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {selectedPeriod.status === 'released' ? (
+                      <FileCheck className="h-4 w-4" />
+                    ) : selectedPeriod.status === 'reviewed' ? (
+                      <ShieldCheck className="h-4 w-4" />
+                    ) : (
+                      <ClipboardList className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {selectedPeriod.status === 'draft'
+                        ? 'Step 2 — Review the entries'
+                        : selectedPeriod.status === 'reviewed'
+                          ? 'Step 3 — Approved, ready to release'
+                          : 'Complete — payslips released'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedPeriod.status === 'draft'
+                        ? 'Check the employee list, deductions, and totals below before approving.'
+                        : selectedPeriod.status === 'reviewed'
+                          ? 'Releasing generates payslips and makes them visible to employees.'
+                          : 'Employees can now see their payslip and net salary in My Payroll.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {selectedPeriod.status === 'draft' &&
+                    (canApprove ? (
+                      <Button loading={reviewPayroll.isPending} onClick={() => setReviewConfirmOpen(true)}>
+                        <ShieldCheck className="h-4 w-4" />
+                        Review &amp; Approve
+                      </Button>
+                    ) : (
+                      <Badge variant="muted">Checked — waiting for HR Manager approval</Badge>
+                    ))}
+                  {selectedPeriod.status === 'reviewed' &&
+                    (canApprove ? (
+                      <Button loading={releasePayroll.isPending} onClick={() => setReleaseConfirmOpen(true)}>
+                        <FileCheck className="h-4 w-4" />
+                        Release Payslips
+                      </Button>
+                    ) : (
+                      <Badge variant="warning">Approved — waiting for HR Manager to release</Badge>
+                    ))}
+                  {selectedPeriod.status === 'released' && <Badge variant="success">Released</Badge>}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {records && records.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
               <p className="font-medium text-foreground">Payroll hasn't been generated for this period yet</p>
@@ -334,27 +403,6 @@ export default function PayrollPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {/* Draft -> Approved -> Released. Both transitions are the HR
-                    * Manager's; HR Staff prepares and checks the figures first. */}
-                  {selectedPeriod.status === 'draft' &&
-                    (canApprove ? (
-                      <Button variant="outline" size="sm" loading={reviewPayroll.isPending} onClick={() => setReviewConfirmOpen(true)}>
-                        Review &amp; Approve
-                      </Button>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Checked — waiting for HR Manager approval</p>
-                    ))}
-                  {selectedPeriod.status === 'reviewed' &&
-                    (canApprove ? (
-                      <Button size="sm" loading={releasePayroll.isPending} onClick={() => setReleaseConfirmOpen(true)}>
-                        Release Payslips
-                      </Button>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Approved — waiting for HR Manager to release</p>
-                    ))}
-                  {selectedPeriod.status === 'released' && (
-                    <p className="text-xs text-muted-foreground">Released — payslips are visible to employees</p>
-                  )}
                 </div>
               }
             />

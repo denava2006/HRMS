@@ -21,9 +21,24 @@ function scheduledDateTime(attendanceDate: string, time: string): Date {
   return new Date(`${attendanceDate}T${time}`)
 }
 
+/** True for a shift that runs past midnight (e.g. 22:00–06:00), where the end
+ * time lands on the *following* calendar day. */
+export function isOvernightSchedule(schedule: WorkSchedule): boolean {
+  return schedule.end_time <= schedule.start_time
+}
+
+/** The shift's end as an absolute moment. For an overnight schedule that's the
+ * next calendar day — without this, 22:00–06:00 measures as a negative span and
+ * collapses to zero scheduled hours. */
+function scheduledEndDateTime(attendanceDate: string, schedule: WorkSchedule): Date {
+  const end = scheduledDateTime(attendanceDate, schedule.end_time)
+  if (isOvernightSchedule(schedule)) end.setDate(end.getDate() + 1)
+  return end
+}
+
 export function getScheduledHours(schedule: WorkSchedule): number {
   const start = scheduledDateTime('2000-01-01', schedule.start_time)
-  const end = scheduledDateTime('2000-01-01', schedule.end_time)
+  const end = scheduledEndDateTime('2000-01-01', schedule)
   const minutes = Math.max(0, (end.getTime() - start.getTime()) / 60000 - schedule.break_minutes)
   return minutes / 60
 }
@@ -45,13 +60,13 @@ export function calculateWorkingHours(timeIn: Date, timeOut: Date, breakMinutes:
 }
 
 export function calculateUndertimeMinutes(attendanceDate: string, timeOut: Date, schedule: WorkSchedule): number {
-  const scheduledEnd = scheduledDateTime(attendanceDate, schedule.end_time)
+  const scheduledEnd = scheduledEndDateTime(attendanceDate, schedule)
   const diffMinutes = (scheduledEnd.getTime() - timeOut.getTime()) / 60000
   return diffMinutes > 0 ? Math.round(diffMinutes) : 0
 }
 
 export function calculateOvertimeMinutes(attendanceDate: string, timeOut: Date, schedule: WorkSchedule): number {
-  const scheduledEnd = scheduledDateTime(attendanceDate, schedule.end_time)
+  const scheduledEnd = scheduledEndDateTime(attendanceDate, schedule)
   const diffMinutes = (timeOut.getTime() - scheduledEnd.getTime()) / 60000
   return diffMinutes > 0 ? Math.round(diffMinutes) : 0
 }
