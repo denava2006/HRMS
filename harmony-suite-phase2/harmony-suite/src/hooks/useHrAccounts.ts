@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Tables, UserRole } from '@/lib/database.types'
+import { ROLE_LABEL, type CreatableHrRole } from '@/lib/roles'
 import { toast } from '@/components/ui/sonner'
 
 /**
@@ -30,7 +31,11 @@ export function useHrAccounts() {
     queryFn: async () => {
       // Employee logins (added by the Employee Management module) share this
       // same table but are managed from the Employee Details page, not here.
-      const { data, error } = await supabase.from('profiles').select('*').in('role', ['admin', 'hr_staff']).order('full_name')
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['admin', 'hr_manager', 'hr_staff'])
+        .order('full_name')
       if (error) throw error
       return data
     },
@@ -40,6 +45,7 @@ export function useHrAccounts() {
 interface CreateHrAccountInput {
   email: string
   full_name: string
+  role: CreatableHrRole
 }
 
 export function useCreateHrAccount() {
@@ -49,11 +55,11 @@ export function useCreateHrAccount() {
       const { data, error } = await supabase.functions.invoke('create-hr-account', { body: input })
       if (error) throw new Error(await describeFunctionError(error))
       if (data?.error) throw new Error(data.error)
-      return data as { id: string; email: string; password: string }
+      return data as { id: string; email: string; role: UserRole; password: string }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
-      toast.success(`Account created. They can sign in now with ${data.email} / ${data.password}.`)
+      toast.success(`${ROLE_LABEL[data.role]} account created. They can sign in now with ${data.email} / ${data.password}.`)
     },
     onError: (error) => toast.error(error.message),
   })

@@ -1563,7 +1563,7 @@ export type Database = {
       offer_status: "pending" | "accepted" | "declined"
       payroll_status: "draft" | "reviewed" | "released"
       report_format: "pdf" | "docx" | "excel"
-      user_role: "admin" | "hr_staff" | "employee"
+      user_role: "admin" | "hr_staff" | "employee" | "hr_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1740,7 +1740,7 @@ export const Constants = {
       offer_status: ["pending", "accepted", "declined"],
       payroll_status: ["draft", "reviewed", "released"],
       report_format: ["pdf", "docx", "excel"],
-      user_role: ["admin", "hr_staff", "employee"],
+      user_role: ["admin", "hr_staff", "employee", "hr_manager"],
     },
   },
 } as const

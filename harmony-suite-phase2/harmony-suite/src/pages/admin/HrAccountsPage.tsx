@@ -37,21 +37,21 @@ import {
   useUpdateHrAccount,
   useSetAccountStatus,
 } from '@/hooks/useHrAccounts'
-
-// This page only ever manages Admin/HR Staff logins — employee logins (added
-// by the Employee Management module) live in the same `profiles` table but
-// are excluded from useHrAccounts()'s query and never appear here.
-const ROLE_LABEL: Record<'admin' | 'hr_staff', string> = { admin: 'Administrator', hr_staff: 'HR Staff' }
+// This page only ever manages Admin/HR Manager/HR Staff logins — employee
+// logins (added by the Employee Management module) live in the same `profiles`
+// table but are excluded from useHrAccounts()'s query and never appear here.
+import { ROLE_LABEL, CREATABLE_HR_ROLES, DEFAULT_ROLE_PASSWORD } from '@/lib/roles'
 
 const createSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
   full_name: z.string().min(1, 'Full name is required').max(150),
+  role: z.enum(CREATABLE_HR_ROLES),
 })
 type CreateFormValues = z.infer<typeof createSchema>
 
 const editSchema = z.object({
   full_name: z.string().min(1, 'Full name is required').max(150),
-  role: z.enum(['admin', 'hr_staff']),
+  role: z.enum(['admin', 'hr_manager', 'hr_staff']),
 })
 type EditFormValues = z.infer<typeof editSchema>
 
@@ -59,13 +59,15 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const createAccount = useCreateHrAccount()
   const {
     register,
+    control,
+    watch,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateFormValues>({ resolver: zodResolver(createSchema) })
 
   React.useEffect(() => {
-    if (open) reset({ email: '', full_name: '' })
+    if (open) reset({ email: '', full_name: '', role: 'hr_staff' })
   }, [open, reset])
 
   const onSubmit = async (values: CreateFormValues) => {
@@ -73,13 +75,16 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     onOpenChange(false)
   }
 
+  const selectedRole = watch('role')
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New HR account</DialogTitle>
           <DialogDescription>
-            They can sign in immediately with the email below and the default password <strong>HrStaff123</strong>.
+            They can sign in immediately with the email below and the default password{' '}
+            <strong>{DEFAULT_ROLE_PASSWORD[selectedRole ?? 'hr_staff']}</strong>.
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -99,9 +104,29 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Role</Label>
-            <Input value="HR Staff" disabled />
+            <Controller
+              control={control}
+              name="role"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CREATABLE_HR_ROLES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {ROLE_LABEL[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             <p className="text-xs text-muted-foreground">
-              New accounts are always created as HR Staff. Administrator accounts can't be created from the UI.
+              {selectedRole === 'hr_manager'
+                ? 'HR Managers can do everything HR Staff can, plus approve payroll for release and decide leave requests.'
+                : 'HR Staff run the day-to-day workflow. Payroll release and leave decisions need an HR Manager.'}{' '}
+              Administrator accounts can't be created from the UI.
             </p>
           </div>
           <DialogFooter>
@@ -173,9 +198,13 @@ function EditAccountDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {isAdmin ? (
-                      <SelectItem value="admin">Administrator</SelectItem>
+                      <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
                     ) : (
-                      <SelectItem value="hr_staff">HR Staff</SelectItem>
+                      CREATABLE_HR_ROLES.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {ROLE_LABEL[value]}
+                        </SelectItem>
+                      ))
                     )}
                   </SelectContent>
                 </Select>
@@ -223,10 +252,9 @@ export default function HrAccountsPage() {
       accessorKey: 'role',
       header: 'Role',
       cell: ({ row }) => (
-        <Badge variant={row.original.role === 'admin' ? 'secondary' : 'outline'}>
-          {row.original.role === 'admin' && <ShieldCheck className="h-3 w-3" />}
-          {/* useHrAccounts() only ever returns admin/hr_staff rows (see below). */}
-          {ROLE_LABEL[row.original.role as 'admin' | 'hr_staff']}
+        <Badge variant={row.original.role === 'admin' ? 'secondary' : row.original.role === 'hr_manager' ? 'warning' : 'outline'}>
+          {(row.original.role === 'admin' || row.original.role === 'hr_manager') && <ShieldCheck className="h-3 w-3" />}
+          {ROLE_LABEL[row.original.role]}
         </Badge>
       ),
     },

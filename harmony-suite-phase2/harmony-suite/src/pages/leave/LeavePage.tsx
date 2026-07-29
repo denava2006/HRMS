@@ -17,6 +17,8 @@ import { LeaveDetailsSheet } from '@/components/leave/LeaveDetailsSheet'
 import { useLeaveRequests, useLeaveStats, useLeaveTypes, useLeaveRealtimeAlerts, type LeaveRequest } from '@/hooks/useLeave'
 import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
+import { useAuth } from '@/contexts/AuthContext'
+import { canApproveWork } from '@/lib/roles'
 import { LEAVE_STATUS_LABEL, LEAVE_STATUS_VARIANT } from '@/lib/leaveLabels'
 import type { LeaveRequestStatus } from '@/lib/database.types'
 
@@ -95,6 +97,8 @@ export default function LeavePage() {
   const [customTo, setCustomTo] = React.useState(endOfMonthISODate())
   const { from: rangeFrom, to: rangeTo } = quickRange === 'custom' ? { from: customFrom, to: customTo } : rangeForQuickFilter(quickRange)
 
+  const { profile } = useAuth()
+  const canApprove = canApproveWork(profile?.role)
   const { data: requests, isLoading, isError } = useLeaveRequests(rangeFrom, rangeTo)
   const { data: stats, isLoading: statsLoading } = useLeaveStats()
   const { data: departments } = useDepartments()
@@ -196,14 +200,17 @@ export default function LeavePage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setViewingRequestId(row.original.id)}>View</DropdownMenuItem>
-            {row.original.status === 'pending' && (
-              <>
-                <DropdownMenuItem onClick={() => setApprovingRequest(row.original)}>Approve</DropdownMenuItem>
-                <DropdownMenuItem destructive onClick={() => setRejectingRequest(row.original)}>
-                  Reject
-                </DropdownMenuItem>
-              </>
-            )}
+            {row.original.status === 'pending' &&
+              (canApprove ? (
+                <>
+                  <DropdownMenuItem onClick={() => setApprovingRequest(row.original)}>Approve</DropdownMenuItem>
+                  <DropdownMenuItem destructive onClick={() => setRejectingRequest(row.original)}>
+                    Reject
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem disabled>Awaiting HR Manager</DropdownMenuItem>
+              ))}
           </DropdownMenuContent>
         </DropdownMenu>
       ),

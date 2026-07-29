@@ -34,6 +34,8 @@ import {
 } from '@/hooks/usePayroll'
 import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
+import { useAuth } from '@/contexts/AuthContext'
+import { canApproveWork } from '@/lib/roles'
 import { PAYROLL_STATUS_LABEL, PAYROLL_STATUS_VARIANT, PAYROLL_FREQUENCY_LABEL } from '@/lib/payrollLabels'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
@@ -77,6 +79,8 @@ function StatCard({
 export default function PayrollPage() {
   usePayrollRealtimeAlerts()
 
+  const { profile } = useAuth()
+  const canApprove = canApproveWork(profile?.role)
   const { data: periods, isLoading: periodsLoading } = usePayrollPeriods()
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string | null>(null)
 
@@ -330,16 +334,22 @@ export default function PayrollPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {selectedPeriod.status === 'draft' && (
-                    <Button variant="outline" size="sm" loading={reviewPayroll.isPending} onClick={() => setReviewConfirmOpen(true)}>
-                      Review &amp; Approve
-                    </Button>
-                  )}
-                  {selectedPeriod.status === 'reviewed' && (
-                    <Button size="sm" loading={releasePayroll.isPending} onClick={() => setReleaseConfirmOpen(true)}>
-                      Release Payroll
-                    </Button>
-                  )}
+                  {selectedPeriod.status === 'draft' &&
+                    (canApprove ? (
+                      <Button variant="outline" size="sm" loading={reviewPayroll.isPending} onClick={() => setReviewConfirmOpen(true)}>
+                        Review &amp; Approve
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Waiting for HR Manager approval</p>
+                    ))}
+                  {selectedPeriod.status === 'reviewed' &&
+                    (canApprove ? (
+                      <Button size="sm" loading={releasePayroll.isPending} onClick={() => setReleaseConfirmOpen(true)}>
+                        Release Payroll
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Approved — waiting for HR Manager to release</p>
+                    ))}
                 </div>
               }
             />

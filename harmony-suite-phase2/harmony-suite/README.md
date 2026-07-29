@@ -47,7 +47,32 @@ supabase start                # first run pulls Docker images — a few minutes
 npm run dev
 ```
 
-Open http://localhost:5173 and sign in with **admin@suite.com / Admin123**.
+Open http://localhost:5173 and sign in with any of the seeded logins:
+
+| Login | Password | Role |
+|---|---|---|
+| `admin@suite.com` | `Admin123` | Administrator |
+| `manager@suite.com` | `HrManager123` | HR Manager |
+| `staff@suite.com` | `HrStaff123` | HR Staff |
+
+### Roles
+
+- **Administrator** — everything, plus HR account management, reference data
+  (departments, positions, salary grades, schedules, holidays, settings), and
+  audit logs.
+- **HR Manager** — everything HR Staff can do, *plus* the approval decisions HR
+  Staff can't make alone: reviewing/releasing payroll, and approving/rejecting
+  leave requests.
+- **HR Staff** — the day-to-day workflow: recruitment, interviews, deployment,
+  employee records, attendance, and generating/adjusting payroll. Payroll
+  release and leave decisions are handed off to an HR Manager.
+- **Employee** — self-service portal only (own attendance, leave, payslips).
+
+Sign in as `staff@suite.com` and `manager@suite.com` side by side to see the
+hand-off: HR Staff generates a payroll run or files a leave request, then HR
+Manager approves it. The split is enforced in the database (see
+`supabase/migrations/20260729010100_hr_manager_approval_gates.sql`), not just
+hidden in the UI.
 
 ### HR Staff and Employee logins
 

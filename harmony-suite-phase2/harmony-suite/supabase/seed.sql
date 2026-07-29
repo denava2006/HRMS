@@ -38,6 +38,52 @@ set full_name = 'Administrator', role = 'admin', status = 'active'
 where id = 'a0000000-0000-0000-0000-000000000001';
 alter table public.profiles enable trigger trg_protect_admin_accounts;
 
+-- ---- HR Manager + HR Staff logins, so the approval hand-off is demoable ----
+-- (manager@suite.com / HrManager123, staff@suite.com / HrStaff123)
+-- HR Staff generates payroll and files leave requests; only the HR Manager can
+-- review/release payroll or approve/reject leave. Unlike the admin bootstrap
+-- above, no trigger has to be stepped around -- protect_admin_accounts() only
+-- guards the 'admin' role.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, last_sign_in_at,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values
+  (
+    '00000000-0000-0000-0000-000000000000',
+    'a0000000-0000-0000-0000-000000000002',
+    'authenticated', 'authenticated',
+    'manager@suite.com',
+    crypt('HrManager123', gen_salt('bf')),
+    now(), now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Maria Manager"}',
+    now(), now(),
+    '', '', '', ''
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    'a0000000-0000-0000-0000-000000000003',
+    'authenticated', 'authenticated',
+    'staff@suite.com',
+    crypt('HrStaff123', gen_salt('bf')),
+    now(), now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Sam Staff"}',
+    now(), now(),
+    '', '', '', ''
+  );
+
+update public.profiles
+set full_name = 'Maria Manager', role = 'hr_manager', status = 'active'
+where id = 'a0000000-0000-0000-0000-000000000002';
+
+update public.profiles
+set full_name = 'Sam Staff', role = 'hr_staff', status = 'active'
+where id = 'a0000000-0000-0000-0000-000000000003';
+
 -- ---- Reference data: departments, positions, salary grades ----
 insert into public.departments (id, name, description) values
   ('d0000000-0000-0000-0000-000000000001', 'Human Resources', 'People operations, recruitment, and employee relations'),

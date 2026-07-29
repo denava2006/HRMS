@@ -80,7 +80,7 @@ export default function App() {
               <Route
                 path="job-postings"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <JobPostingsPage />
                   </ProtectedRoute>
                 }
@@ -88,7 +88,7 @@ export default function App() {
               <Route
                 path="recruitment"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <RecruitmentPage />
                   </ProtectedRoute>
                 }
@@ -96,7 +96,7 @@ export default function App() {
               <Route
                 path="interviews"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <InterviewsPage />
                   </ProtectedRoute>
                 }
@@ -104,7 +104,7 @@ export default function App() {
               <Route
                 path="deployment"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <DeploymentPage />
                   </ProtectedRoute>
                 }
@@ -112,7 +112,7 @@ export default function App() {
               <Route
                 path="deployment/:applicationId/contract"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <ContractPrintPage />
                   </ProtectedRoute>
                 }
@@ -120,7 +120,7 @@ export default function App() {
               <Route
                 path="employees"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <EmployeesPage />
                   </ProtectedRoute>
                 }
@@ -128,7 +128,7 @@ export default function App() {
               <Route
                 path="employees/new"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <CreateEmployeePage />
                   </ProtectedRoute>
                 }
@@ -136,7 +136,7 @@ export default function App() {
               <Route
                 path="employees/:employeeId"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <EmployeeDetailsPage />
                   </ProtectedRoute>
                 }
@@ -144,7 +144,7 @@ export default function App() {
               <Route
                 path="attendance"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <AttendancePage />
                   </ProtectedRoute>
                 }
@@ -152,7 +152,7 @@ export default function App() {
               <Route
                 path="leave"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <LeavePage />
                   </ProtectedRoute>
                 }
@@ -160,7 +160,7 @@ export default function App() {
               <Route
                 path="payroll"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <PayrollPage />
                   </ProtectedRoute>
                 }
@@ -172,7 +172,7 @@ export default function App() {
                   // payroll_records/payslips scopes the underlying query to
                   // "own records only" regardless of role, so widening this
                   // route can't leak another employee's payslip.
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff', 'employee']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff', 'employee']}>
                     <PayslipPrintPage />
                   </ProtectedRoute>
                 }
@@ -181,7 +181,7 @@ export default function App() {
               <Route
                 path="reports"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <ReportsPage />
                   </ProtectedRoute>
                 }
@@ -189,7 +189,7 @@ export default function App() {
               <Route
                 path="reports/new"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <GenerateReportPage />
                   </ProtectedRoute>
                 }
@@ -197,7 +197,7 @@ export default function App() {
               <Route
                 path="reports/print"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <ReportPrintPage />
                   </ProtectedRoute>
                 }

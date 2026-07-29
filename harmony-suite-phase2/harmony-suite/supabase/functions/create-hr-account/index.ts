@@ -17,7 +17,12 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const DEFAULT_HR_PASSWORD = 'HrStaff123'
+// Keyed by role. 'admin' is deliberately absent -- see the role validation below.
+const DEFAULT_PASSWORD: Record<string, string> = {
+  hr_staff: 'HrStaff123',
+  hr_manager: 'HrManager123',
+}
+const CREATABLE_ROLES = Object.keys(DEFAULT_PASSWORD)
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,27 +74,30 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null)
     const email: string | undefined = body?.email
     const fullName: string | undefined = body?.full_name
+    const role: string = body?.role ?? 'hr_staff'
 
     if (!email || !fullName) {
       return json({ error: 'email and full_name are both required.' }, 400)
     }
 
-    // New accounts are always HR Staff — the system never creates additional
-    // Administrators, from the UI or otherwise. The lone Administrator account
-    // is provisioned outside this app. Even if a caller sends role: "admin" in
-    // the request body, it's ignored here, and the database trigger
-    // (protect_admin_accounts) would reject the resulting profile update anyway.
-    const role = 'hr_staff'
+    // The system never creates additional Administrators, from the UI or
+    // otherwise — the lone Administrator account is provisioned outside this
+    // app. A caller sending role: "admin" is rejected here, and the database
+    // trigger (protect_admin_accounts) would reject the profile update anyway.
+    if (!CREATABLE_ROLES.includes(role)) {
+      return json({ error: `role must be one of: ${CREATABLE_ROLES.join(', ')}.` }, 400)
+    }
+    const password = DEFAULT_PASSWORD[role]
 
     // Elevated client — service_role key, server-side only, never sent to the browser.
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
-    // See DEFAULT_HR_PASSWORD above for why this is a fixed password rather
-    // than an emailed invite link. email_confirm: true skips Auth's own
-    // "confirm your email" gate — there's no inbox to confirm from here either.
+    // See DEFAULT_PASSWORD above for why this is a fixed password rather than
+    // an emailed invite link. email_confirm: true skips Auth's own "confirm
+    // your email" gate — there's no inbox to confirm from here either.
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
-      password: DEFAULT_HR_PASSWORD,
+      password,
       email_confirm: true,
       user_metadata: { full_name: fullName },
     })
@@ -111,7 +119,7 @@ Deno.serve(async (req: Request) => {
 
     if (updateError) return json({ error: updateError.message }, 400)
 
-    return json({ id: created.user.id, email: created.user.email, password: DEFAULT_HR_PASSWORD })
+    return json({ id: created.user.id, email: created.user.email, role, password })
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : 'Unexpected error.' }, 500)
   }
