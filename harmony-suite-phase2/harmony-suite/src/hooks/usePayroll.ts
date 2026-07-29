@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Tables, TablesInsert, EmploymentStatus } from '@/lib/database.types'
 import { toast } from '@/components/ui/sonner'
+import { invalidateEmployeePortal } from '@/lib/employeePortalQueries'
 import { fetchEffectiveSchedule } from '@/hooks/useAttendance'
 import {
   dateRangesOverlap,
@@ -120,6 +121,8 @@ function useInvalidatePayroll() {
   const queryClient = useQueryClient()
   return (periodId?: string, recordId?: string) => {
     queryClient.invalidateQueries({ queryKey: ['payroll-periods'] })
+    // A released payroll becomes visible in the Employee Portal.
+    invalidateEmployeePortal(queryClient)
     if (periodId) {
       queryClient.invalidateQueries({ queryKey: ['payroll-records', periodId] })
       queryClient.invalidateQueries({ queryKey: ['payroll-period-stats', periodId] })

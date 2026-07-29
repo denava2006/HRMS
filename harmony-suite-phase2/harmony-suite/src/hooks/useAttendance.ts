@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Tables, TablesInsert, TablesUpdate, AttendanceStatus } from '@/lib/database.types'
 import { toast } from '@/components/ui/sonner'
+import { invalidateEmployeePortal } from '@/lib/employeePortalQueries'
 import {
   calculateAttendanceMetrics,
   calculateLateMinutes,
@@ -115,6 +116,7 @@ function useInvalidateAttendance() {
   return (employeeId?: string) => {
     queryClient.invalidateQueries({ queryKey: LIST_KEY })
     queryClient.invalidateQueries({ queryKey: ['attendance-stats'] })
+    invalidateEmployeePortal(queryClient)
     if (employeeId) queryClient.invalidateQueries({ queryKey: ['employee-attendance-summary', employeeId] })
   }
 }

@@ -27,15 +27,15 @@ function initials(name: string) {
     .toUpperCase()
 }
 
-export function Navbar({ title }: { title: string }) {
+export function Navbar() {
   const { profile, signOut } = useAuth()
   const { data: myEmployee } = useMyEmployeeRecord()
   const isEmployee = profile?.role === 'employee'
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6 print:hidden">
-      <h1 className="font-display text-lg font-semibold text-foreground">{title}</h1>
-
+    // The page title used to sit here, duplicating the heading every page
+    // already renders below it. Only the account/clock cluster remains.
+    <header className="flex h-16 shrink-0 items-center justify-end border-b border-border bg-card px-6 print:hidden">
       <div className="flex items-center gap-3">
         <CalendarWidget />
         <ClockWidget />

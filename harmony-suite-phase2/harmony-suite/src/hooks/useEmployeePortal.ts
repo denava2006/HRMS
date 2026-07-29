@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Tables } from '@/lib/database.types'
+import { invalidateEmployeePortal } from '@/lib/employeePortalQueries'
 
 function todayISODate(): string {
   const d = new Date()
@@ -288,14 +289,13 @@ export function useMyPortalRealtimeAlerts() {
   React.useEffect(() => {
     if (!employeeId) return
     const refresh = () => {
-      queryClient.invalidateQueries({ queryKey: ['my-employee-record'] })
-      queryClient.invalidateQueries({ queryKey: ['my-today-attendance'] })
-      queryClient.invalidateQueries({ queryKey: ['my-attendance-month-summary'] })
+      // Every portal query — the previous list omitted my-leave-requests, so a
+      // leave submission never appeared until the page was refreshed by hand.
+      invalidateEmployeePortal(queryClient)
+      // Plus the HR-side views this employee's action feeds.
       queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] })
       queryClient.invalidateQueries({ queryKey: ['employee-leave-balances'] })
-      queryClient.invalidateQueries({ queryKey: ['my-payroll-records'] })
-      queryClient.invalidateQueries({ queryKey: ['my-activity'] })
     }
     const channel = supabase
       .channel(`my-portal-alerts-${employeeId}`)

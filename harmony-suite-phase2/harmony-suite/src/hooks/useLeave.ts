@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Tables, TablesUpdate, LeaveRequestStatus } from '@/lib/database.types'
 import { toast } from '@/components/ui/sonner'
+import { invalidateEmployeePortal } from '@/lib/employeePortalQueries'
 import { calculateLeaveDays, dateRangesOverlap, todayISODate } from '@/lib/leaveCalculations'
 
 export type LeaveType = Tables<'leave_types'>
@@ -120,6 +121,8 @@ function useInvalidateLeave() {
   return (employeeId?: string) => {
     queryClient.invalidateQueries({ queryKey: LIST_KEY })
     queryClient.invalidateQueries({ queryKey: ['leave-stats'] })
+    // The same request is visible in the Employee Portal under its own keys.
+    invalidateEmployeePortal(queryClient)
     if (employeeId) {
       queryClient.invalidateQueries({ queryKey: ['employee-leave-balances', employeeId] })
       queryClient.invalidateQueries({ queryKey: ['employee-leave-summary', employeeId] })
