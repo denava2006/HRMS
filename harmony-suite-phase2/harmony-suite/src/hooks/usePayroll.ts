@@ -232,9 +232,20 @@ export function useGeneratePayroll() {
         const daysPresent = attendanceRows.filter((r) => ['present', 'late', 'half_day', 'work_from_home'].includes(r.status)).length
         const explicitAbsentDays = attendanceRows.filter((r) => r.status === 'absent').length
         const recordedDates = new Set(attendanceRows.map((r) => r.attendance_date))
+
+        // A scheduled working day with no attendance record counts as an
+        // absence — but only once the day is actually over. Scanning to
+        // period_end would bill every remaining day of the month as an absence
+        // whenever payroll is generated mid-period, and including today would
+        // mark someone absent for a shift they may still be working. So the
+        // scan stops at yesterday (or period_end, whichever comes first).
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        const yesterdayIso = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+        const lastDayToCheck = period.period_end < yesterdayIso ? period.period_end : yesterdayIso
         let unrecordedAbsentDays = 0
         const cursor = new Date(`${period.period_start}T00:00:00`)
-        const end = new Date(`${period.period_end}T00:00:00`)
+        const end = new Date(`${lastDayToCheck}T00:00:00`)
         while (cursor.getTime() <= end.getTime()) {
           const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`
           if (!recordedDates.has(iso)) {
