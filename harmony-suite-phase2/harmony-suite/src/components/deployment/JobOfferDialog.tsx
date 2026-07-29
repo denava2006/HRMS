@@ -45,26 +45,23 @@ export function JobOfferDialog({
   const { data: workSchedules } = useWorkSchedules()
   const prepareOffer = usePrepareJobOffer()
 
-  const [employmentType, setEmploymentType] = React.useState<EmploymentType>('full_time')
+  const employmentType: EmploymentType = 'full_time'
   const [salaryGradeId, setSalaryGradeId] = React.useState('')
   const [salary, setSalary] = React.useState('')
   const [currency, setCurrency] = React.useState<CurrencyCode>('PHP')
   const [workScheduleId, setWorkScheduleId] = React.useState('')
   const [startDate, setStartDate] = React.useState('')
-  const [benefits, setBenefits] = React.useState('')
   const [additionalCompensation, setAdditionalCompensation] = React.useState('')
   const [notes, setNotes] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
     if (open) {
-      setEmploymentType('full_time')
       setSalaryGradeId('')
       setSalary('')
       setCurrency(defaultCurrency)
       setWorkScheduleId(workSchedules?.find((s) => s.is_default)?.id ?? '')
       setStartDate('')
-      setBenefits('')
       setAdditionalCompensation('')
       setNotes('')
       setErrors({})
@@ -89,7 +86,6 @@ export function JobOfferDialog({
       nextErrors.salary = `Salary must be between ${formatMoney(selectedGrade.min_salary, currency)} and ${formatMoney(selectedGrade.max_salary, currency)} for ${selectedGrade.grade_name}.`
     }
     if (!workScheduleId) nextErrors.workScheduleId = 'Work schedule is required.'
-    if (!benefits.trim()) nextErrors.benefits = 'Benefits is required.'
     if (!startDate) nextErrors.startDate = 'Start date is required.'
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
@@ -107,7 +103,6 @@ export function JobOfferDialog({
         workingHours: scheduleHoursText ?? undefined,
         workingDays: scheduleDaysText ?? undefined,
         startDate,
-        benefits: benefits.trim(),
         additionalCompensation: additionalCompensation.trim() || undefined,
         notes: notes.trim() || undefined,
       },
@@ -127,18 +122,9 @@ export function JobOfferDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Employment Type</Label>
-              <Select value={employmentType} onValueChange={(v) => setEmploymentType(v as EmploymentType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(EMPLOYMENT_TYPE_LABEL).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Part-time is parked for a future update — every offer is
+                * full-time for now, so this is shown but not editable. */}
+              <Input value={EMPLOYMENT_TYPE_LABEL.full_time} disabled />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Salary Grade (optional)</Label>
@@ -252,17 +238,6 @@ export function JobOfferDialog({
               }}
             />
             {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="benefits">
-              Benefits <span className="text-destructive">*</span>
-            </Label>
-            <Textarea id="benefits" invalid={!!errors.benefits} value={benefits} onChange={(e) => {
-              setBenefits(e.target.value)
-              if (errors.benefits) setErrors((prev) => ({ ...prev, benefits: '' }))
-            }} rows={2} />
-            {errors.benefits && <p className="text-xs text-destructive">{errors.benefits}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">

@@ -323,9 +323,6 @@ export function DeploymentDetailsSheet({
                           <Field label="Working Hours" value={offer.working_hours ?? '—'} />
                           <Field label="Working Days" value={offer.working_days ?? '—'} />
                         </div>
-                        <div className="mt-3 border-t border-border pt-3">
-                          <Field label="Benefits" value={offer.benefits ?? '—'} />
-                        </div>
                       </div>
                     </section>
                   )}

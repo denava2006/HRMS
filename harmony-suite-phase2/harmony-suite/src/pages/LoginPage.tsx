@@ -144,7 +144,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Harmony Suite HRMS — access is limited to authorized Admin and HR Staff accounts.
+          Harmony Suite HRMS — sign in with the account provided to you.
         </p>
       </motion.div>
     </div>

@@ -11,8 +11,10 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { usePrepareContract, type JobOfferRecord } from '@/hooks/useDeployment'
+import { useSystemSettings } from '@/hooks/useSystemSettings'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { formatMoney } from '@/lib/currency'
+import { generateCompanyPolicies, generateTermsAndConditions } from '@/lib/contractTemplates'
 
 function SummaryField({ label, value }: { label: string; value: string }) {
   return (
@@ -41,34 +43,39 @@ export function ContractDialog({
   offer: JobOfferRecord
 }) {
   const prepareContract = usePrepareContract()
+  const { data: settings } = useSystemSettings()
 
-  const [companyPolicies, setCompanyPolicies] = React.useState('')
-  const [terms, setTerms] = React.useState('')
   const [additionalNotes, setAdditionalNotes] = React.useState('')
-  const [errors, setErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
-    if (open) {
-      setCompanyPolicies('')
-      setTerms('')
-      setAdditionalNotes('')
-      setErrors({})
-    }
+    if (open) setAdditionalNotes('')
   }, [open])
 
-  const onSubmit = () => {
-    if (!terms.trim()) {
-      setErrors({ terms: 'Terms & conditions are required — the contract must state what the employee is agreeing to.' })
-      return
-    }
+  // Policies and terms are generated from the offer rather than retyped per
+  // contract — the standard clauses are identical every time, and hand-entering
+  // them was how a contract ended up saying "fasf".
+  const templateContext = {
+    companyName: settings?.company_name || 'Harmony Suite',
+    employeeName: applicantName,
+    positionTitle,
+    departmentName,
+    employmentType: EMPLOYMENT_TYPE_LABEL[offer.employment_type],
+    salary: formatMoney(offer.proposed_salary, offer.currency === 'USD' ? 'USD' : 'PHP'),
+    startDate: offer.start_date ?? '—',
+    workingDays: offer.working_days ?? '—',
+    workingHours: offer.working_hours ?? '—',
+  }
+  const companyPolicies = generateCompanyPolicies(templateContext)
+  const terms = generateTermsAndConditions(templateContext)
 
+  const onSubmit = () => {
     prepareContract.mutate(
       {
         applicationId,
         offerId: offer.id,
         startDate: offer.start_date,
-        companyPolicies: companyPolicies.trim() || undefined,
-        terms: terms.trim() || undefined,
+        companyPolicies,
+        terms,
         additionalNotes: additionalNotes.trim() || undefined,
       },
       { onSuccess: () => onOpenChange(false) }
@@ -95,37 +102,26 @@ export function ContractDialog({
               <SummaryField label="Working Hours" value={offer.working_hours ?? '—'} />
               <SummaryField label="Working Days" value={offer.working_days ?? '—'} />
             </div>
-            <div className="mt-3 border-t border-border pt-3">
-              <SummaryField label="Benefits" value={offer.benefits ?? '—'} />
-            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="company_policies">Company Policies</Label>
-            <Textarea
-              id="company_policies"
-              value={companyPolicies}
-              onChange={(e) => setCompanyPolicies(e.target.value)}
-              rows={3}
-              placeholder="Optional"
-            />
+          <div className="rounded-lg border border-border p-3">
+            <p className="text-sm font-medium text-foreground">Standard clauses included</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Company Policies (7 sections) and Terms &amp; Conditions (10 sections) are generated from this offer and
+              appear in full on the printed contract.
+            </p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs font-medium text-secondary">Preview clauses</summary>
+              <div className="mt-2 max-h-48 overflow-y-auto rounded-md bg-muted/40 p-2">
+                <pre className="whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-muted-foreground">
+                  {terms}
+                  {'\n\n'}
+                  {companyPolicies}
+                </pre>
+              </div>
+            </details>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="terms">
-              Terms &amp; Conditions <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="terms"
-              invalid={!!errors.terms}
-              value={terms}
-              onChange={(e) => {
-                setTerms(e.target.value)
-                if (errors.terms) setErrors({})
-              }}
-              rows={3}
-            />
-            {errors.terms && <p className="text-xs text-destructive">{errors.terms}</p>}
-          </div>
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contract_additional_notes">Additional Notes</Label>
             <Textarea

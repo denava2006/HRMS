@@ -98,6 +98,26 @@ export type Database = {
           },
         ]
       }
+      branches: {
+        Row: { address: string | null; created_at: string; id: string; is_active: boolean; name: string; updated_at: string }
+        Insert: { address?: string | null; created_at?: string; id?: string; is_active?: boolean; name: string; updated_at?: string }
+        Update: { address?: string | null; created_at?: string; id?: string; is_active?: boolean; name?: string; updated_at?: string }
+        Relationships: []
+      }
+      work_locations: {
+        Row: { branch_id: string | null; created_at: string; description: string | null; id: string; is_active: boolean; name: string; updated_at: string }
+        Insert: { branch_id?: string | null; created_at?: string; description?: string | null; id?: string; is_active?: boolean; name: string; updated_at?: string }
+        Update: { branch_id?: string | null; created_at?: string; description?: string | null; id?: string; is_active?: boolean; name?: string; updated_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "work_locations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           applicant_id: string
@@ -106,6 +126,7 @@ export type Database = {
           id: string
           job_posting_id: string
           notes: string | null
+          reference_code: string
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -119,6 +140,7 @@ export type Database = {
           id?: string
           job_posting_id: string
           notes?: string | null
+          reference_code?: string
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -132,6 +154,7 @@ export type Database = {
           id?: string
           job_posting_id?: string
           notes?: string | null
+          reference_code?: string
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -292,6 +315,8 @@ export type Database = {
       }
       deployment_records: {
         Row: {
+          branch_id: string | null
+          work_location_id: string | null
           application_id: string
           assigned_branch: string | null
           created_at: string
@@ -305,6 +330,8 @@ export type Database = {
           work_location: string | null
         }
         Insert: {
+          branch_id?: string | null
+          work_location_id?: string | null
           application_id: string
           assigned_branch?: string | null
           created_at?: string
@@ -318,6 +345,8 @@ export type Database = {
           work_location?: string | null
         }
         Update: {
+          branch_id?: string | null
+          work_location_id?: string | null
           application_id?: string
           assigned_branch?: string | null
           created_at?: string

@@ -15,6 +15,7 @@ import {
   CalendarCheck,
   Wallet,
   FileBarChart,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -56,6 +57,7 @@ const adminNav: NavItem[] = [
   { label: 'Salary Grades', to: '/dashboard/admin/salary-grades', icon: DollarSign },
   { label: 'Work Schedules', to: '/dashboard/admin/work-schedules', icon: CalendarClock },
   { label: 'Holidays', to: '/dashboard/admin/holidays', icon: CalendarCheck },
+  { label: 'Branches', to: '/dashboard/admin/branches', icon: MapPin },
   { label: 'Settings', to: '/dashboard/admin/settings', icon: Settings },
 ]
 

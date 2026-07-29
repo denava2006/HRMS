@@ -215,12 +215,6 @@ function OfferCard({
             <Field label="Working Hours" value={record.offer_working_hours ?? '—'} />
           </div>
 
-          {record.offer_benefits && (
-            <div className="border-t border-border pt-3">
-              <p className="text-xs text-muted-foreground">Benefits</p>
-              <p className="whitespace-pre-line text-sm text-foreground">{record.offer_benefits}</p>
-            </div>
-          )}
           {record.offer_additional_compensation && (
             <div>
               <p className="text-xs text-muted-foreground">Additional Compensation</p>

@@ -24,6 +24,7 @@ import EmployeeDetailsPage from '@/pages/employees/EmployeeDetailsPage'
 import AttendancePage from '@/pages/attendance/AttendancePage'
 import WorkSchedulesPage from '@/pages/admin/WorkSchedulesPage'
 import HolidaysPage from '@/pages/admin/HolidaysPage'
+import BranchesPage from '@/pages/admin/BranchesPage'
 import LeavePage from '@/pages/leave/LeavePage'
 import PayrollPage from '@/pages/payroll/PayrollPage'
 import PayslipPrintPage from '@/pages/payroll/PayslipPrintPage'
@@ -283,6 +284,14 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <HolidaysPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/branches"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <BranchesPage />
                   </ProtectedRoute>
                 }
               />

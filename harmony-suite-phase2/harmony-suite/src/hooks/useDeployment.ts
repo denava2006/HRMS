@@ -167,7 +167,6 @@ export interface PrepareJobOfferInput {
   workingHours?: string
   workingDays?: string
   startDate: string
-  benefits: string
   additionalCompensation?: string
   notes?: string
 }
@@ -187,7 +186,6 @@ export function usePrepareJobOffer() {
         working_hours: input.workingHours || null,
         working_days: input.workingDays || null,
         start_date: input.startDate,
-        benefits: input.benefits,
         additional_compensation: input.additionalCompensation || null,
         notes: input.notes || null,
         prepared_by: profile?.id,
@@ -389,6 +387,8 @@ export function useRecordContractSigning() {
 export interface CompleteDeploymentInput {
   applicationId: string
   deploymentDate: string
+  branchId: string
+  workLocationId: string
   assignedBranch?: string
   workLocation?: string
   remarks?: string
@@ -402,6 +402,8 @@ export function useCompleteDeployment() {
       const { error: deploymentError } = await supabase.from('deployment_records').insert({
         application_id: input.applicationId,
         deployment_date: input.deploymentDate,
+        branch_id: input.branchId,
+        work_location_id: input.workLocationId,
         assigned_branch: input.assignedBranch || null,
         work_location: input.workLocation || null,
         remarks: input.remarks || null,

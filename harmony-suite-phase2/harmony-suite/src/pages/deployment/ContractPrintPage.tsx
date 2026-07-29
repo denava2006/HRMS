@@ -66,8 +66,29 @@ export default function ContractPrintPage() {
       <article className="flex flex-col gap-8 rounded-xl border border-border bg-card p-10 shadow-sm print:rounded-none print:border-0 print:shadow-none">
         <header className="flex flex-col items-center gap-1 border-b border-border pb-6 text-center">
           <h1 className="font-display text-2xl font-bold text-foreground">{companyName}</h1>
-          <p className="text-sm text-muted-foreground">Employment Contract</p>
+          <p className="text-sm font-medium uppercase tracking-widest text-foreground">Contract of Employment</p>
+          <p className="text-xs text-muted-foreground">
+            Reference: {application.reference_code} · Issued {formatDate(new Date().toISOString().slice(0, 10))}
+          </p>
         </header>
+
+        <section className="text-sm leading-relaxed text-foreground">
+          <p>
+            This Contract of Employment is entered into on{' '}
+            <strong>{formatDate(contract.start_date ?? offer.start_date)}</strong> by and between{' '}
+            <strong>{companyName}</strong>, a company duly organized and existing under the laws of the Republic of the
+            Philippines (hereinafter referred to as the &ldquo;Company&rdquo;), and{' '}
+            <strong>
+              {applicant?.first_name} {applicant?.last_name}
+            </strong>
+            , of legal age, with address at {applicant?.address ?? '—'} (hereinafter referred to as the
+            &ldquo;Employee&rdquo;).
+          </p>
+          <p className="mt-3">
+            <strong>WITNESSETH:</strong> That the parties, intending to be legally bound, hereby agree to the following
+            terms and conditions of employment.
+          </p>
+        </section>
 
         <section className="grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -121,11 +142,6 @@ export default function ContractPrintPage() {
           </div>
         </section>
 
-        <section className="flex flex-col gap-2 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Benefits</p>
-          <p className="whitespace-pre-line text-foreground">{offer.benefits ?? '—'}</p>
-        </section>
-
         {offer.additional_compensation && (
           <section className="flex flex-col gap-2 text-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Additional Compensation</p>
@@ -133,26 +149,42 @@ export default function ContractPrintPage() {
           </section>
         )}
 
-        {contract.company_policies && (
-          <section className="flex flex-col gap-2 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Company Policies</p>
-            <p className="whitespace-pre-line text-foreground">{contract.company_policies}</p>
+        {/* Page 2 — terms. break-before-page keeps each part on its own sheet
+          * when printed, so the contract reads as a real multi-page document. */}
+        {contract.terms && (
+          <section className="flex flex-col gap-3 text-sm print:break-before-page">
+            <h2 className="font-display text-lg font-bold text-foreground">Terms &amp; Conditions of Employment</h2>
+            <p className="whitespace-pre-line leading-relaxed text-foreground">{contract.terms}</p>
           </section>
         )}
 
-        {contract.terms && (
-          <section className="flex flex-col gap-2 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Terms &amp; Conditions</p>
-            <p className="whitespace-pre-line text-foreground">{contract.terms}</p>
+        {/* Page 3 — annexed company policies. */}
+        {contract.company_policies && (
+          <section className="flex flex-col gap-3 text-sm print:break-before-page">
+            <h2 className="font-display text-lg font-bold text-foreground">Annex A — Company Policies</h2>
+            <p className="whitespace-pre-line leading-relaxed text-foreground">{contract.company_policies}</p>
           </section>
         )}
 
         {contract.additional_notes && (
           <section className="flex flex-col gap-2 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Additional Notes</p>
-            <p className="whitespace-pre-line text-foreground">{contract.additional_notes}</p>
+            <h2 className="font-display text-base font-bold text-foreground">Additional Provisions</h2>
+            <p className="whitespace-pre-line leading-relaxed text-foreground">{contract.additional_notes}</p>
           </section>
         )}
+
+        <section className="flex flex-col gap-3 border-t border-border pt-6 text-sm">
+          <h2 className="font-display text-base font-bold text-foreground">Acknowledgement</h2>
+          <p className="leading-relaxed text-foreground">
+            The Employee acknowledges having read and understood this Contract in its entirety, including the Company
+            Policies annexed hereto, and voluntarily accepts employment under the terms stated. The Employee further
+            confirms that all information provided during the application process is true and correct, and understands
+            that any misrepresentation may be a ground for termination.
+          </p>
+          <p className="leading-relaxed text-foreground">
+            <strong>IN WITNESS WHEREOF,</strong> the parties have signed this Contract on the dates indicated below.
+          </p>
+        </section>
 
         <section className="mt-8 grid grid-cols-2 gap-10 text-sm">
           <div className="flex flex-col gap-8">
@@ -176,6 +208,13 @@ export default function ContractPrintPage() {
             </div>
           </div>
         </section>
+
+        <footer className="border-t border-border pt-4 text-center text-[10px] text-muted-foreground">
+          <p>
+            {companyName} · Contract Reference {application.reference_code} · This document is system-generated by
+            Harmony Suite HRMS.
+          </p>
+        </footer>
       </article>
     </div>
   )

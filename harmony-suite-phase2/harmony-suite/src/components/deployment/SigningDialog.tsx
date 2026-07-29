@@ -97,10 +97,11 @@ export function SigningDialog({
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="signed_at">
-              Signing Date <span className="text-destructive">*</span>
-            </Label>
-            <Input id="signed_at" type="date" max={todayISODate()} value={signedAt} onChange={(e) => setSignedAt(e.target.value)} />
+            <Label htmlFor="signed_at">Signing Date</Label>
+            {/* Signing is recorded as it happens — a contract generated today
+              * is signed today, so this is fixed rather than back-datable. */}
+            <Input id="signed_at" type="date" value={signedAt} disabled />
+            <p className="text-xs text-muted-foreground">The signing is recorded as of today.</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
