@@ -17,6 +17,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import { JobOfferDialog } from '@/components/deployment/JobOfferDialog'
 import { ContractDialog } from '@/components/deployment/ContractDialog'
@@ -26,6 +36,7 @@ import { useApplicationHistory } from '@/hooks/useRecruitment'
 import {
   useDeploymentApplicationDetail,
   useGenerateContract,
+  useCloseUnresponsiveOffer,
   getLatestOffer,
   getLatestContract,
   getFinalInterview,
@@ -43,6 +54,7 @@ import {
   CONTRACT_STATUS_VARIANT,
   deriveDeploymentStage,
 } from '@/lib/deploymentLabels'
+import { RESPONSE_WINDOW_DAYS, daysSince, isAwaitingResponseTooLong } from '@/lib/applicationSla'
 
 const HISTORY_EVENT_LABEL: Record<string, string> = {
   submitted: 'Application Submitted',
@@ -161,6 +173,8 @@ export function DeploymentDetailsSheet({
   const [contractDialogOpen, setContractDialogOpen] = React.useState(false)
   const [signingDialogOpen, setSigningDialogOpen] = React.useState(false)
   const [deploymentDialogOpen, setDeploymentDialogOpen] = React.useState(false)
+  const [closeConfirmOpen, setCloseConfirmOpen] = React.useState(false)
+  const closeUnresponsive = useCloseUnresponsiveOffer()
 
   if (!application && !isLoading) return null
 
@@ -187,6 +201,10 @@ export function DeploymentDetailsSheet({
     deploymentMinDate = contractSignedDate
     deploymentMinDateReason = 'the contract signing date'
   }
+
+  // How long the applicant has had the offer, measured from when it was sent.
+  const offerDaysWaited = offer ? daysSince(offer.created_at) : 0
+  const offerIsOverdue = !!offer && offer.status === 'pending' && isAwaitingResponseTooLong(offer.created_at)
 
   const stage = application
     ? deriveDeploymentStage({
@@ -417,12 +435,31 @@ export function DeploymentDetailsSheet({
                 )}
 
                 {/* Accepting or declining is the applicant's decision, made from
-                  * the tracking portal (/track) — HR only watches for it here. */}
+                  * the tracking portal (/track) — HR only watches for it here.
+                  * Once the response window lapses HR can close it out, so an
+                  * unanswered offer can't hold a requisition open forever. */}
                 {stage === 'awaiting_offer_response' && offer && (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Lock className="h-3.5 w-3.5" />
-                    Waiting for the applicant to respond in the tracking portal.
-                  </p>
+                  offerIsOverdue ? (
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="text-xs text-warning">
+                        No response for {offerDaysWaited} days — past the {RESPONSE_WINDOW_DAYS}-day window.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        loading={closeUnresponsive.isPending}
+                        onClick={() => setCloseConfirmOpen(true)}
+                      >
+                        Close — No Response
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Lock className="h-3.5 w-3.5" />
+                      Waiting for the applicant to respond ({offerDaysWaited} of {RESPONSE_WINDOW_DAYS} days).
+                    </p>
+                  )
                 )}
 
                 {stage === 'offer_accepted' && (
@@ -502,6 +539,31 @@ export function DeploymentDetailsSheet({
         />
       )}
 
+      <AlertDialog open={closeConfirmOpen} onOpenChange={setCloseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Close this offer for no response?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {applicant?.first_name} {applicant?.last_name} hasn't responded in {offerDaysWaited} days. This closes the
+              application so the role can be filled by someone else. It can't be undone — if they get in touch
+              afterwards, they'd need to be re-offered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (applicationId && offer) {
+                  closeUnresponsive.mutate({ applicationId, offerId: offer.id, daysWaited: offerDaysWaited })
+                }
+                setCloseConfirmOpen(false)
+              }}
+            >
+              Close Application
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

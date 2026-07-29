@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { AlertCircle, ArrowLeft, FileText, Upload, X, Briefcase } from 'lucide-react'
+import { AlertCircle, ArrowLeft, FileText, Upload, X, Briefcase, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
+import { RESPONSE_WINDOW_DAYS } from '@/lib/applicationSla'
 import {
   usePublicJobPosting,
   useSubmitApplication,
@@ -417,7 +418,16 @@ export default function ApplyPage() {
           {errors.coverLetter && <p className="text-xs text-destructive">{errors.coverLetter.message}</p>}
         </div>
 
-        <Button type="submit" size="lg" className="mt-2" loading={isSubmitting || submitApplication.isPending}>
+        <div className="mt-2 flex items-start gap-2.5 rounded-md border border-secondary/30 bg-secondary/5 px-3 py-2.5 text-sm">
+          <Clock className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
+          <p className="text-muted-foreground">
+            Our HR team reviews every application within{' '}
+            <span className="font-medium text-foreground">{RESPONSE_WINDOW_DAYS} days</span>. You'll get a reference
+            number after submitting so you can check your status any time.
+          </p>
+        </div>
+
+        <Button type="submit" size="lg" loading={isSubmitting || submitApplication.isPending}>
           {isSubmitting || submitApplication.isPending ? 'Submitting application…' : 'Submit Application'}
         </Button>
       </form>

@@ -98,7 +98,25 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" -X POST \
 # -> HTTP 403
 ```
 
-### 5. Employee portal (1 min)
+### 5. Response times (good answer to "why did this sit for a month?")
+Both sides of the conversation have a stated **7-day window**:
+
+- The **apply form** and confirmation screen tell the applicant HR reviews
+  every application within 7 days.
+- The **tracking portal** counts down while an application is being screened,
+  and a pending job offer says *"Please respond within 7 days."*
+- In **Deployment**, HR sees how long an applicant has had their offer
+  (*"Waiting for the applicant to respond (2 of 7 days)"*). Once it lapses that
+  becomes a warning plus a **Close — No Response** action, which closes the
+  application and records *why* in the history.
+
+To show the overdue state during the demo, backdate the pending offer:
+
+```sql
+update job_offers set created_at = now() - interval '9 days' where status = 'pending';
+```
+
+### 6. Employee portal (1 min)
 Sign in as **liza.fernandez@example.com**.
 - **Attendance** — a month of records, Time In / Time Out.
 - **Leave** — her pending request and remaining balance.

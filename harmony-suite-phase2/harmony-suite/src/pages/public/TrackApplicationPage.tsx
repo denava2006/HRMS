@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarClock,
   CheckCircle2,
+  Clock,
   ExternalLink,
   LogOut,
   MapPin,
@@ -39,6 +40,7 @@ import {
 } from '@/hooks/useApplicantPortal'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
+import { RESPONSE_WINDOW_DAYS, daysRemaining } from '@/lib/applicationSla'
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('en-PH', {
@@ -223,7 +225,13 @@ function OfferCard({
           )}
 
           {isPending ? (
-            <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Please respond within {RESPONSE_WINDOW_DAYS} days. If we don't hear back, HR may close this offer and
+                move on to other candidates.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
@@ -237,11 +245,11 @@ function OfferCard({
                 <CheckCircle2 className="h-4 w-4" />
                 Accept Offer
               </Button>
+              </div>
             </div>
           ) : (
             <p className="border-t border-border pt-4 text-xs text-muted-foreground">
-              You responded to this offer on {formatDate(record.offer_start_date)}. Contact HR if you need to change
-              anything.
+              You've already responded to this offer. Contact HR if you need to change anything.
             </p>
           )}
         </CardContent>
@@ -332,6 +340,17 @@ function StatusResult({
           <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-4">
             <p className="font-display text-base font-semibold text-foreground">{copy.label}</p>
             <p className="mt-1 text-sm text-muted-foreground">{copy.detail}</p>
+
+            {/* Set expectations while it's still being screened, so a quiet
+              * week doesn't read as being ignored. */}
+            {record.status === 'submitted' && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                {daysRemaining(record.submitted_at) > 0
+                  ? `We aim to respond within ${RESPONSE_WINDOW_DAYS} days of applying — about ${daysRemaining(record.submitted_at)} day${daysRemaining(record.submitted_at) === 1 ? '' : 's'} left.`
+                  : `We aim to respond within ${RESPONSE_WINDOW_DAYS} days. Yours is taking a little longer — thank you for your patience.`}
+              </p>
+            )}
           </div>
 
           <p className="text-xs text-muted-foreground">Submitted {formatDateTime(record.submitted_at)}</p>

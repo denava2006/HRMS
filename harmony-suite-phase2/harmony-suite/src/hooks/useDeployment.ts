@@ -259,6 +259,54 @@ export function useRespondToOffer() {
   })
 }
 
+/** Closes out an offer the applicant never answered. Since responding is now
+ * the applicant's own action (via the tracking portal), without this an
+ * unanswered offer would keep a requisition open forever. Only offered after
+ * RESPONSE_WINDOW_DAYS — see DeploymentDetailsSheet. */
+export function useCloseUnresponsiveOffer() {
+  const { profile } = useAuth()
+  const invalidate = useInvalidateDeployment()
+  return useMutation({
+    mutationFn: async ({
+      applicationId,
+      offerId,
+      daysWaited,
+    }: {
+      applicationId: string
+      offerId: string
+      daysWaited: number
+    }) => {
+      const { error: offerError } = await supabase
+        .from('job_offers')
+        .update({ status: 'declined', responded_at: new Date().toISOString() })
+        .eq('id', offerId)
+        .eq('status', 'pending') // never overwrite a response that just landed
+      if (offerError) throw offerError
+
+      const { error: appError } = await supabase
+        .from('applications')
+        .update({ status: 'closed' })
+        .eq('id', applicationId)
+      if (appError) throw appError
+
+      await supabase.from('application_history').insert([
+        {
+          application_id: applicationId,
+          event: 'offer_declined',
+          notes: `Closed by HR — no response after ${daysWaited} days.`,
+          actor_id: profile?.id,
+        },
+        { application_id: applicationId, event: 'application_closed', actor_id: profile?.id },
+      ])
+    },
+    onSuccess: (_data, { applicationId }) => {
+      invalidate(applicationId)
+      toast.success('Offer closed — the applicant did not respond in time.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
 export interface PrepareContractInput {
   applicationId: string
   offerId: string

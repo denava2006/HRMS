@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Home, Briefcase, Copy, Check, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { RESPONSE_WINDOW_DAYS } from '@/lib/applicationSla'
 
 export default function ApplicationSuccessPage() {
   const location = useLocation()
@@ -52,7 +53,9 @@ export default function ApplicationSuccessPage() {
           ) : (
             'Thank you for applying.'
           )}{' '}
-          Our HR team will review your application and reach out if you're a match for the role.
+          Our HR team reviews every application within{' '}
+          <span className="font-medium text-foreground">{RESPONSE_WINDOW_DAYS} days</span> and will reach out if you're
+          a match for the role.
         </p>
 
         {referenceCode && (
