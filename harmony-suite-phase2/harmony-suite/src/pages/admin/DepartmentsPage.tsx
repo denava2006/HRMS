@@ -35,6 +35,10 @@ import {
   useUpdateDepartment,
   useDeleteDepartment,
 } from '@/hooks/useDepartments'
+import { useAuth } from '@/contexts/AuthContext'
+import { canApproveWork } from '@/lib/roles'
+import { useSubmitChangeRequest } from '@/hooks/useChangeRequests'
+import { Badge } from '@/components/ui/badge'
 
 const departmentSchema = z.object({
   name: z.string().min(1, 'Department name is required').max(100),
@@ -52,8 +56,13 @@ function DepartmentFormDialog({
   department?: Department | null
 }) {
   const isEdit = !!department
+  const { profile } = useAuth()
+  // HR Staff prepares; HR Manager approves. Manager/Admin write directly
+  // because they are the approving authority.
+  const canWriteDirect = canApproveWork(profile?.role)
   const createDept = useCreateDepartment()
   const updateDept = useUpdateDepartment()
+  const submitRequest = useSubmitChangeRequest()
   const {
     register,
     handleSubmit,
@@ -66,10 +75,20 @@ function DepartmentFormDialog({
   }, [open, department, reset])
 
   const onSubmit = async (values: DepartmentFormValues) => {
-    if (isEdit) {
-      await updateDept.mutateAsync({ id: department.id, values })
+    if (canWriteDirect) {
+      if (isEdit) {
+        await updateDept.mutateAsync({ id: department.id, values })
+      } else {
+        await createDept.mutateAsync(values)
+      }
     } else {
-      await createDept.mutateAsync(values)
+      await submitRequest.mutateAsync({
+        targetTable: 'departments',
+        operation: isEdit ? 'update' : 'create',
+        targetId: department?.id,
+        payload: { name: values.name, description: values.description || null },
+        summary: `${isEdit ? 'Update' : 'Create'} department: ${values.name}`,
+      })
     }
     onOpenChange(false)
   }
@@ -80,7 +99,11 @@ function DepartmentFormDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit department' : 'New department'}</DialogTitle>
           <DialogDescription>
-            {isEdit ? 'Update this department\u2019s details.' : 'Departments group positions and employees for reporting and access.'}
+            {canWriteDirect
+              ? isEdit
+                ? 'Update this department\u2019s details.'
+                : 'Departments group positions and employees for reporting and access.'
+              : 'Your change goes to an HR Manager for approval before it takes effect.'}
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -100,7 +123,7 @@ function DepartmentFormDialog({
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting}>
-              {isEdit ? 'Save changes' : 'Create department'}
+              {canWriteDirect ? (isEdit ? 'Save changes' : 'Create department') : 'Submit for approval'}
             </Button>
           </DialogFooter>
         </form>
@@ -110,8 +133,11 @@ function DepartmentFormDialog({
 }
 
 export default function DepartmentsPage() {
+  const { profile } = useAuth()
+  const canWriteDirect = canApproveWork(profile?.role)
   const { data, isLoading } = useDepartments()
   const deleteDept = useDeleteDepartment()
+  const submitRequest = useSubmitChangeRequest()
   const [formOpen, setFormOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Department | null>(null)
   const [deleting, setDeleting] = React.useState<Department | null>(null)
@@ -165,6 +191,7 @@ export default function DepartmentsPage() {
           <h2 className="font-display text-xl font-semibold text-foreground">Departments</h2>
           <p className="text-sm text-muted-foreground">Organizational units used across recruitment and employee records.</p>
         </div>
+        {!canWriteDirect && <Badge variant="warning">Changes need HR Manager approval</Badge>}
       </div>
 
       <DataTable
@@ -195,18 +222,31 @@ export default function DepartmentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{deleting?.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              This can't be undone. Departments with existing positions can't be deleted until those are reassigned.
+              {canWriteDirect
+                ? "This can't be undone. Departments with existing positions can't be deleted until those are reassigned."
+                : 'Deletions are reviewed by an HR Manager. Nothing is removed until they approve it.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (deleting) await deleteDept.mutateAsync(deleting.id)
+                if (deleting) {
+                  if (canWriteDirect) {
+                    await deleteDept.mutateAsync(deleting.id)
+                  } else {
+                    await submitRequest.mutateAsync({
+                      targetTable: 'departments',
+                      operation: 'delete',
+                      targetId: deleting.id,
+                      summary: `Delete department: ${deleting.name}`,
+                    })
+                  }
+                }
                 setDeleting(null)
               }}
             >
-              Delete
+              {canWriteDirect ? 'Delete' : 'Submit for approval'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

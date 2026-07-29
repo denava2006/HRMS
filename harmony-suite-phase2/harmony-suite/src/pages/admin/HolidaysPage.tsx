@@ -26,6 +26,8 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useAuth } from '@/contexts/AuthContext'
+import { canApproveWork } from '@/lib/roles'
 import { type Holiday, useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from '@/hooks/useHolidays'
 import { HOLIDAY_TYPE_LABEL } from '@/lib/attendanceLabels'
 
@@ -132,6 +134,10 @@ function HolidayFormDialog({
 }
 
 export default function HolidaysPage() {
+  const { profile } = useAuth()
+  // Holidays are HR Manager territory — HR Staff is read-only, matching the
+  // holidays_manager_manage policy in the database.
+  const canManage = canApproveWork(profile?.role)
   const { data, isLoading } = useHolidays()
   const deleteHoliday = useDeleteHoliday()
   const [formOpen, setFormOpen] = React.useState(false)
@@ -153,7 +159,8 @@ export default function HolidaysPage() {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
+      cell: ({ row }) =>
+        !canManage ? null : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -193,6 +200,9 @@ export default function HolidaysPage() {
         searchColumn="name"
         emptyTitle="No holidays added yet"
         toolbarAction={
+          !canManage ? (
+            <Badge variant="muted">View only — holidays are managed by HR Managers</Badge>
+          ) : (
           <Button
             onClick={() => {
               setEditing(null)
@@ -202,6 +212,7 @@ export default function HolidaysPage() {
             <Plus className="h-4 w-4" />
             New holiday
           </Button>
+          )
         }
       />
 

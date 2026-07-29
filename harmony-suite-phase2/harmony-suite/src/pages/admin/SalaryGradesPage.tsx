@@ -28,6 +28,9 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/contexts/AuthContext'
+import { canApproveWork } from '@/lib/roles'
 import {
   type SalaryGrade,
   useSalaryGrades,
@@ -185,6 +188,8 @@ function GradeFormDialog({
 }
 
 export default function SalaryGradesPage() {
+  const { profile } = useAuth()
+  const canManage = canApproveWork(profile?.role)
   const { data, isLoading } = useSalaryGrades()
   const currency = useCurrency()
   const deleteGrade = useDeleteSalaryGrade()
@@ -207,7 +212,10 @@ export default function SalaryGradesPage() {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
+      // Salary grades are HR Manager territory — HR Staff has read-only access,
+      // matching the salary_grades_manager_manage policy in the database.
+      cell: ({ row }) =>
+        !canManage ? null : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -247,6 +255,9 @@ export default function SalaryGradesPage() {
         searchColumn="grade_name"
         emptyTitle="No salary grades yet"
         toolbarAction={
+          !canManage ? (
+            <Badge variant="muted">View only — salary grades are managed by HR Managers</Badge>
+          ) : (
           <Button
             onClick={() => {
               setEditing(null)
@@ -256,6 +267,7 @@ export default function SalaryGradesPage() {
             <Plus className="h-4 w-4" />
             New grade
           </Button>
+          )
         }
       />
 

@@ -16,6 +16,7 @@ import {
   Wallet,
   FileBarChart,
   MapPin,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -50,13 +51,22 @@ const employeeNav: NavItem[] = [
   { label: 'Payroll', to: '/dashboard/my-payroll', icon: Wallet },
 ]
 
-const adminNav: NavItem[] = [
-  { label: 'HR Accounts', to: '/dashboard/admin/accounts', icon: ShieldCheck },
+// Reference data every HR role can reach. What each may actually *do* there
+// differs by role (staff prepares change requests, manager approves, salary
+// grades/holidays are manager-only) and is enforced in RLS — see
+// 20260729070000_reference_data_approval_workflow.sql.
+const referenceNav: NavItem[] = [
   { label: 'Departments', to: '/dashboard/admin/departments', icon: Building2 },
   { label: 'Positions', to: '/dashboard/admin/positions', icon: Layers },
   { label: 'Salary Grades', to: '/dashboard/admin/salary-grades', icon: DollarSign },
   { label: 'Work Schedules', to: '/dashboard/admin/work-schedules', icon: CalendarClock },
   { label: 'Holidays', to: '/dashboard/admin/holidays', icon: CalendarCheck },
+  { label: 'Approvals', to: '/dashboard/admin/approvals', icon: ClipboardCheck },
+]
+
+// Genuinely Administrator-only.
+const adminNav: NavItem[] = [
+  { label: 'HR Accounts', to: '/dashboard/admin/accounts', icon: ShieldCheck },
   { label: 'Branches', to: '/dashboard/admin/branches', icon: MapPin },
   { label: 'Settings', to: '/dashboard/admin/settings', icon: Settings },
 ]
@@ -106,6 +116,17 @@ export function Sidebar() {
         {visibleMainNav.map((item) => (
           <NavRow key={item.to} item={item} />
         ))}
+
+        {profile?.role !== 'employee' && (
+          <>
+            <p className="mb-1 mt-5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Reference Data
+            </p>
+            {referenceNav.map((item) => (
+              <NavRow key={item.to} item={item} />
+            ))}
+          </>
+        )}
 
         {profile?.role === 'admin' && (
           <>

@@ -31,6 +31,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { type Position, usePositions, useCreatePosition, useUpdatePosition, useDeletePosition } from '@/hooks/usePositions'
+import { useAuth } from '@/contexts/AuthContext'
+import { canApproveWork } from '@/lib/roles'
+import { useSubmitChangeRequest } from '@/hooks/useChangeRequests'
 import { useDepartments } from '@/hooks/useDepartments'
 
 const positionSchema = z.object({
@@ -50,9 +53,12 @@ function PositionFormDialog({
   position?: Position | null
 }) {
   const isEdit = !!position
+  const { profile } = useAuth()
+  const canWriteDirect = canApproveWork(profile?.role)
   const { data: departments } = useDepartments()
   const createPos = useCreatePosition()
   const updatePos = useUpdatePosition()
+  const submitRequest = useSubmitChangeRequest()
   const {
     register,
     control,
@@ -72,10 +78,24 @@ function PositionFormDialog({
   }, [open, position, reset])
 
   const onSubmit = async (values: PositionFormValues) => {
-    if (isEdit) {
-      await updatePos.mutateAsync({ id: position.id, values })
+    if (canWriteDirect) {
+      if (isEdit) {
+        await updatePos.mutateAsync({ id: position.id, values })
+      } else {
+        await createPos.mutateAsync(values)
+      }
     } else {
-      await createPos.mutateAsync(values)
+      await submitRequest.mutateAsync({
+        targetTable: 'positions',
+        operation: isEdit ? 'update' : 'create',
+        targetId: position?.id,
+        payload: {
+          title: values.title,
+          department_id: values.department_id,
+          description: values.description || null,
+        },
+        summary: `${isEdit ? 'Update' : 'Create'} position: ${values.title}`,
+      })
     }
     onOpenChange(false)
   }
@@ -85,7 +105,11 @@ function PositionFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit position' : 'New position'}</DialogTitle>
-          <DialogDescription>Positions belong to a department and are assigned to employees and job postings.</DialogDescription>
+          <DialogDescription>
+            {canWriteDirect
+              ? 'Positions belong to a department and are assigned to employees and job postings.'
+              : 'Your change goes to an HR Manager for approval before it takes effect.'}
+          </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="flex flex-col gap-1.5">
@@ -131,7 +155,7 @@ function PositionFormDialog({
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting}>
-              {isEdit ? 'Save changes' : 'Create position'}
+              {canWriteDirect ? (isEdit ? 'Save changes' : 'Create position') : 'Submit for approval'}
             </Button>
           </DialogFooter>
         </form>
@@ -141,8 +165,11 @@ function PositionFormDialog({
 }
 
 export default function PositionsPage() {
+  const { profile } = useAuth()
+  const canWriteDirect = canApproveWork(profile?.role)
   const { data, isLoading } = usePositions()
   const deletePos = useDeletePosition()
+  const submitRequest = useSubmitChangeRequest()
   const [formOpen, setFormOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Position | null>(null)
   const [deleting, setDeleting] = React.useState<Position | null>(null)
@@ -224,18 +251,31 @@ export default function PositionsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{deleting?.title}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              This can't be undone. Positions assigned to employees or job postings can't be deleted until those are reassigned.
+              {canWriteDirect
+                ? "This can't be undone. Positions assigned to employees or job postings can't be deleted until those are reassigned."
+                : 'Deletions are reviewed by an HR Manager. Nothing is removed until they approve it.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (deleting) await deletePos.mutateAsync(deleting.id)
+                if (deleting) {
+                  if (canWriteDirect) {
+                    await deletePos.mutateAsync(deleting.id)
+                  } else {
+                    await submitRequest.mutateAsync({
+                      targetTable: 'positions',
+                      operation: 'delete',
+                      targetId: deleting.id,
+                      summary: `Delete position: ${deleting.title}`,
+                    })
+                  }
+                }
                 setDeleting(null)
               }}
             >
-              Delete
+              {canWriteDirect ? 'Delete' : 'Submit for approval'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

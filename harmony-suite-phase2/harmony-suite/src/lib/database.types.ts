@@ -98,6 +98,15 @@ export type Database = {
           },
         ]
       }
+      change_requests: {
+        Row: { created_at: string; id: string; operation: Database["public"]["Enums"]["change_request_operation"]; payload: Json; rejection_reason: string | null; requested_at: string; requested_by: string; reviewed_at: string | null; reviewed_by: string | null; status: Database["public"]["Enums"]["change_request_status"]; summary: string; target_id: string | null; target_table: string; updated_at: string }
+        Insert: { created_at?: string; id?: string; operation: Database["public"]["Enums"]["change_request_operation"]; payload?: Json; rejection_reason?: string | null; requested_at?: string; requested_by: string; reviewed_at?: string | null; reviewed_by?: string | null; status?: Database["public"]["Enums"]["change_request_status"]; summary: string; target_id?: string | null; target_table: string; updated_at?: string }
+        Update: { created_at?: string; id?: string; operation?: Database["public"]["Enums"]["change_request_operation"]; payload?: Json; rejection_reason?: string | null; requested_at?: string; requested_by?: string; reviewed_at?: string | null; reviewed_by?: string | null; status?: Database["public"]["Enums"]["change_request_status"]; summary?: string; target_id?: string | null; target_table?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "change_requests_requested_by_fkey"; columns: ["requested_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "change_requests_reviewed_by_fkey"; columns: ["reviewed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
+      }
       branches: {
         Row: { address: string | null; created_at: string; id: string; is_active: boolean; name: string; updated_at: string }
         Insert: { address?: string | null; created_at?: string; id?: string; is_active?: boolean; name: string; updated_at?: string }
@@ -1566,6 +1575,8 @@ export type Database = {
           reference_code: string
         }[]
       }
+      approve_change_request: { Args: { p_request_id: string }; Returns: undefined }
+      reject_change_request: { Args: { p_reason: string; p_request_id: string }; Returns: undefined }
       lookup_application: {
         Args: {
           p_email: string
@@ -1627,6 +1638,8 @@ export type Database = {
         | "rest_day"
         | "official_business"
         | "work_from_home"
+      change_request_operation: "create" | "update" | "delete"
+      change_request_status: "pending" | "approved" | "rejected"
       contract_status: "draft" | "printed" | "signed"
       employment_status:
         | "active"
@@ -1801,6 +1814,8 @@ export const Constants = {
         "official_business",
         "work_from_home",
       ],
+      change_request_operation: ["create", "update", "delete"],
+      change_request_status: ["pending", "approved", "rejected"],
       contract_status: ["draft", "printed", "signed"],
       employment_status: [
         "active",

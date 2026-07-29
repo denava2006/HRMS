@@ -24,6 +24,7 @@ import EmployeeDetailsPage from '@/pages/employees/EmployeeDetailsPage'
 import AttendancePage from '@/pages/attendance/AttendancePage'
 import WorkSchedulesPage from '@/pages/admin/WorkSchedulesPage'
 import HolidaysPage from '@/pages/admin/HolidaysPage'
+import ApprovalsPage from '@/pages/admin/ApprovalsPage'
 import BranchesPage from '@/pages/admin/BranchesPage'
 import LeavePage from '@/pages/leave/LeavePage'
 import PayrollPage from '@/pages/payroll/PayrollPage'
@@ -239,10 +240,14 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Reference-data modules are shared: HR Staff prepares changes
+                  (which become change requests), HR Manager reviews and applies
+                  them, and salary grades / holidays are manager-controlled
+                  outright. Per-action authority is enforced in RLS, not here. */}
               <Route
                 path="admin/departments"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <DepartmentsPage />
                   </ProtectedRoute>
                 }
@@ -250,7 +255,7 @@ export default function App() {
               <Route
                 path="admin/positions"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <PositionsPage />
                   </ProtectedRoute>
                 }
@@ -258,7 +263,7 @@ export default function App() {
               <Route
                 path="admin/salary-grades"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <SalaryGradesPage />
                   </ProtectedRoute>
                 }
@@ -274,7 +279,7 @@ export default function App() {
               <Route
                 path="admin/work-schedules"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <WorkSchedulesPage />
                   </ProtectedRoute>
                 }
@@ -282,8 +287,16 @@ export default function App() {
               <Route
                 path="admin/holidays"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
                     <HolidaysPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="admin/approvals"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
+                    <ApprovalsPage />
                   </ProtectedRoute>
                 }
               />
