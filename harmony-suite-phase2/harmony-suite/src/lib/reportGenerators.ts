@@ -103,7 +103,7 @@ async function generateEmployeeReport(filters: ReportFilters): Promise<ReportRes
   })
 
   const active = rows.filter((r) => r.employment_status === 'active' || r.employment_status === 'regular').length
-  const probationary = rows.filter((r) => r.employment_status === 'probationary').length
+  const onLeave = rows.filter((r) => r.employment_status === 'on_leave').length
   const separated = rows.filter((r) => ['resigned', 'terminated', 'retired'].includes(r.employment_status)).length
 
   const byDepartment = countBy(rows, (r) => r.departments?.name)
@@ -117,7 +117,7 @@ async function generateEmployeeReport(filters: ReportFilters): Promise<ReportRes
     summary: [
       { label: 'Total Employees', value: String(rows.length) },
       { label: 'Active / Regular', value: String(active) },
-      { label: 'Probationary', value: String(probationary) },
+      { label: 'On Leave', value: String(onLeave) },
       { label: 'Separated', value: String(separated) },
     ],
     charts: [

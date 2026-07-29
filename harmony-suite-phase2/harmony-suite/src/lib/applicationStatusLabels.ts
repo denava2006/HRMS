@@ -3,10 +3,15 @@ import type { BadgeProps } from '@/components/ui/badge'
 
 export type ApplicationStatus = Enums<'application_status'>
 
-/** The Recruitment (screening) module only ever sets these four — later
+/** The Recruitment (screening) module only ever sets these three — later
  * statuses (interview_scheduled, offered, hired, closed) belong to
- * downstream modules and are never written from here. */
-export const RECRUITMENT_STATUSES = ['submitted', 'under_review', 'qualified', 'rejected'] as const
+ * downstream modules and are never written from here.
+ *
+ * 'under_review' is deliberately absent: screening is now a single decision
+ * (qualify or reject) with no intermediate step. The enum value still exists
+ * in the database so any historical row keeps rendering — see the label map
+ * below — it's just never set or filtered on anymore. */
+export const RECRUITMENT_STATUSES = ['submitted', 'qualified', 'rejected'] as const
 export type RecruitmentStatus = (typeof RECRUITMENT_STATUSES)[number]
 
 export const APPLICATION_STATUS_LABEL: Record<ApplicationStatus, string> = {

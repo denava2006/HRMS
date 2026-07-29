@@ -13,6 +13,7 @@ const INTERVIEW_QUEUE_SELECT = `
   applicants (id, first_name, last_name, email, phone, address, resume_url, cover_letter),
   job_postings (id, department_id, position_id, departments (name), positions (title)),
   reviewer:profiles!applications_reviewed_by_fkey (full_name),
+  final_interviewer:profiles!applications_final_interviewer_id_fkey (id, full_name),
   interviews (*, interviewer:profiles!interviews_interviewer_id_fkey (full_name))
 `
 
@@ -30,6 +31,7 @@ export type InterviewApplication = Tables<'applications'> & {
       })
     | null
   reviewer: { full_name: string } | null
+  final_interviewer: { id: string; full_name: string } | null
   interviews: InterviewRecord[]
 }
 
@@ -39,6 +41,25 @@ export function getInterviewByStage(interviews: InterviewRecord[], stage: Interv
 
 const LIST_KEY = ['interview-applications']
 const STATS_KEY = ['interview-stats']
+
+/** HR Managers available to take a final interview. HR Staff picks one of these
+ * when passing an applicant out of the initial round — the final interview is
+ * theirs to run, so there is nobody else to assign it to. */
+export function useAvailableFinalInterviewers() {
+  return useQuery({
+    queryKey: ['available-final-interviewers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('role', 'hr_manager')
+        .eq('status', 'active')
+        .order('full_name')
+      if (error) throw error
+      return data
+    },
+  })
+}
 
 // Applicants rejected during Recruitment screening (status='rejected', no interview
 // ever scheduled) never entered this module's pipeline and must not show up here.
@@ -239,6 +260,8 @@ export interface InitialEvaluationInput {
   overallImpression?: string
   interviewNotes?: string
   rejectionReason?: string
+  /** Required when passing: the HR Manager who will run the final interview. */
+  finalInterviewerId?: string
 }
 
 export function useSubmitInitialEvaluation() {
@@ -284,11 +307,27 @@ export function useSubmitInitialEvaluation() {
           },
         ])
       } else {
-        await supabase.from('application_history').insert({
-          application_id: input.applicationId,
-          event: 'initial_interview_passed',
-          actor_id: profile?.id,
-        })
+        // Hand the applicant off: from here the final round belongs to the
+        // nominated HR Manager, and the interviews_insert_owner policy will
+        // only let that person schedule it.
+        const { error: assignError } = await supabase
+          .from('applications')
+          .update({ final_interviewer_id: input.finalInterviewerId })
+          .eq('id', input.applicationId)
+        if (assignError) throw assignError
+
+        await supabase.from('application_history').insert([
+          {
+            application_id: input.applicationId,
+            event: 'initial_interview_passed',
+            actor_id: profile?.id,
+          },
+          {
+            application_id: input.applicationId,
+            event: 'final_interview_assigned',
+            actor_id: profile?.id,
+          },
+        ])
       }
     },
     onSuccess: (_data, { applicationId, decision }) => {
@@ -309,7 +348,6 @@ export interface FinalEvaluationInput {
     leadership?: number
   }
   finalRemarks?: string
-  recommendedSalary?: number
   rejectionReason?: string
 }
 
@@ -326,7 +364,6 @@ export function useSubmitFinalEvaluation() {
           rating_culture_fit: input.ratings.cultureFit ?? null,
           rating_leadership: input.ratings.leadership ?? null,
           final_remarks: input.finalRemarks || null,
-          recommended_salary: input.recommendedSalary ?? null,
           rejection_reason: input.decision === 'failed' ? input.rejectionReason : null,
         })
         .eq('id', input.interviewId)

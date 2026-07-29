@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { motion } from 'framer-motion'
-import { Inbox, ClipboardList, CheckCircle2, XCircle, CalendarClock, Eye } from 'lucide-react'
+import { Inbox, CheckCircle2, XCircle, CalendarClock, Eye } from 'lucide-react'
 import { DataTable } from '@/components/data-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -197,12 +197,11 @@ export default function RecruitmentPage() {
         <p className="text-sm text-muted-foreground">Review, screen, and decide on every application received.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="New Applications" value={stats?.newCount ?? 0} icon={Inbox} isLoading={statsLoading} index={0} />
-        <StatCard label="Under Review" value={stats?.underReviewCount ?? 0} icon={ClipboardList} isLoading={statsLoading} index={1} />
-        <StatCard label="Qualified" value={stats?.qualifiedCount ?? 0} icon={CheckCircle2} isLoading={statsLoading} index={2} />
-        <StatCard label="Rejected" value={stats?.rejectedCount ?? 0} icon={XCircle} isLoading={statsLoading} index={3} />
-        <StatCard label="Received Today" value={stats?.todayCount ?? 0} icon={CalendarClock} isLoading={statsLoading} index={4} />
+        <StatCard label="Qualified" value={stats?.qualifiedCount ?? 0} icon={CheckCircle2} isLoading={statsLoading} index={1} />
+        <StatCard label="Rejected" value={stats?.rejectedCount ?? 0} icon={XCircle} isLoading={statsLoading} index={2} />
+        <StatCard label="Received Today" value={stats?.todayCount ?? 0} icon={CalendarClock} isLoading={statsLoading} index={3} />
       </div>
 
       {isError ? (

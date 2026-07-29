@@ -34,14 +34,13 @@ export function useRecruitmentOverview() {
   return useQuery({
     queryKey: ['dashboard-recruitment-overview'],
     queryFn: async () => {
-      const [newApplications, underReview, qualified, interviewsScheduled, pendingDeployment] = await Promise.all([
+      const [newApplications, qualified, interviewsScheduled, pendingDeployment] = await Promise.all([
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'submitted')),
-        count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'under_review')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'qualified')),
         count(supabase.from('interviews').select('*', { count: 'exact', head: true }).eq('status', 'scheduled')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'hired')),
       ])
-      return { newApplications, underReview, qualified, interviewsScheduled, pendingDeployment }
+      return { newApplications, qualified, interviewsScheduled, pendingDeployment }
     },
   })
 }
@@ -276,9 +275,8 @@ export function useRecruitmentStatusChart() {
   return useQuery({
     queryKey: ['dashboard-chart-recruitment-status'],
     queryFn: async (): Promise<DashboardChartDatum[]> => {
-      const [newCount, reviewCount, qualifiedCount, interviewCount, hiredCount, rejectedCount] = await Promise.all([
+      const [newCount, qualifiedCount, interviewCount, hiredCount, rejectedCount] = await Promise.all([
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'submitted')),
-        count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'under_review')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'qualified')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'interview_scheduled')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['hired', 'offered', 'deployed'])),
@@ -286,7 +284,6 @@ export function useRecruitmentStatusChart() {
       ])
       return [
         { name: 'New', value: newCount },
-        { name: 'Review', value: reviewCount },
         { name: 'Qualified', value: qualifiedCount },
         { name: 'Interview', value: interviewCount },
         { name: 'Hired', value: hiredCount },

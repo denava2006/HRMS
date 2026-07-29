@@ -14,8 +14,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { MoneyInput } from '@/components/MoneyInput'
 import { useSalaryGrades } from '@/hooks/useSalaryGrades'
+import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import { usePrepareJobOffer } from '@/hooks/useDeployment'
 import { useCurrency } from '@/hooks/useSystemSettings'
+import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 import { EMPLOYMENT_TYPE_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
 import { CURRENCY_LABEL, formatMoney, type CurrencyCode } from '@/lib/currency'
 
@@ -40,14 +42,14 @@ export function JobOfferDialog({
 }) {
   const defaultCurrency = useCurrency()
   const { data: salaryGrades } = useSalaryGrades()
+  const { data: workSchedules } = useWorkSchedules()
   const prepareOffer = usePrepareJobOffer()
 
   const [employmentType, setEmploymentType] = React.useState<EmploymentType>('full_time')
   const [salaryGradeId, setSalaryGradeId] = React.useState('')
   const [salary, setSalary] = React.useState('')
   const [currency, setCurrency] = React.useState<CurrencyCode>('PHP')
-  const [workingHours, setWorkingHours] = React.useState('')
-  const [workingDays, setWorkingDays] = React.useState('')
+  const [workScheduleId, setWorkScheduleId] = React.useState('')
   const [startDate, setStartDate] = React.useState('')
   const [benefits, setBenefits] = React.useState('')
   const [additionalCompensation, setAdditionalCompensation] = React.useState('')
@@ -60,17 +62,24 @@ export function JobOfferDialog({
       setSalaryGradeId('')
       setSalary('')
       setCurrency(defaultCurrency)
-      setWorkingHours('')
-      setWorkingDays('')
+      setWorkScheduleId(workSchedules?.find((s) => s.is_default)?.id ?? '')
       setStartDate('')
       setBenefits('')
       setAdditionalCompensation('')
       setNotes('')
       setErrors({})
     }
-  }, [open, defaultCurrency])
+  }, [open, defaultCurrency, workSchedules])
 
   const selectedGrade = salaryGrades?.find((g) => g.id === salaryGradeId) ?? null
+  const selectedSchedule = workSchedules?.find((s) => s.id === workScheduleId) ?? null
+
+  // Captured as text on the offer so the contract preserves the terms as
+  // offered, even if Admin later edits the schedule itself.
+  const scheduleHoursText = selectedSchedule
+    ? `${formatScheduleTime(selectedSchedule.start_time)} - ${formatScheduleTime(selectedSchedule.end_time)}`
+    : null
+  const scheduleDaysText = selectedSchedule ? formatWorkingDays(selectedSchedule.working_days) : null
 
   const onSubmit = () => {
     const nextErrors: Record<string, string> = {}
@@ -79,6 +88,7 @@ export function JobOfferDialog({
     } else if (selectedGrade && (Number(salary) < selectedGrade.min_salary || Number(salary) > selectedGrade.max_salary)) {
       nextErrors.salary = `Salary must be between ${formatMoney(selectedGrade.min_salary, currency)} and ${formatMoney(selectedGrade.max_salary, currency)} for ${selectedGrade.grade_name}.`
     }
+    if (!workScheduleId) nextErrors.workScheduleId = 'Work schedule is required.'
     if (!benefits.trim()) nextErrors.benefits = 'Benefits is required.'
     if (!startDate) nextErrors.startDate = 'Start date is required.'
     if (Object.keys(nextErrors).length > 0) {
@@ -93,8 +103,9 @@ export function JobOfferDialog({
         salaryGradeId: salaryGradeId || undefined,
         proposedSalary: Number(salary),
         currency,
-        workingHours: workingHours.trim() || undefined,
-        workingDays: workingDays.trim() || undefined,
+        workScheduleId,
+        workingHours: scheduleHoursText ?? undefined,
+        workingDays: scheduleDaysText ?? undefined,
         startDate,
         benefits: benefits.trim(),
         additionalCompensation: additionalCompensation.trim() || undefined,
@@ -191,27 +202,38 @@ export function JobOfferDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="working_hours">Working Hours</Label>
-              <Input
-                id="working_hours"
-                autoComplete="off"
-                value={workingHours}
-                onChange={(e) => setWorkingHours(e.target.value)}
-                placeholder="e.g. 8:00 AM - 5:00 PM"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="working_days">Working Days</Label>
-              <Input
-                id="working_days"
-                autoComplete="off"
-                value={workingDays}
-                onChange={(e) => setWorkingDays(e.target.value)}
-                placeholder="e.g. Monday to Friday"
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="work_schedule">
+              Work Schedule <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={workScheduleId}
+              onValueChange={(v) => {
+                setWorkScheduleId(v)
+                if (errors.workScheduleId) setErrors((prev) => ({ ...prev, workScheduleId: '' }))
+              }}
+            >
+              <SelectTrigger id="work_schedule" invalid={!!errors.workScheduleId}>
+                <SelectValue placeholder={workSchedules?.length ? 'Select a work schedule' : 'No work schedules configured'} />
+              </SelectTrigger>
+              <SelectContent>
+                {workSchedules?.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                    {s.is_default ? ' (default)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.workScheduleId ? (
+              <p className="text-xs text-destructive">{errors.workScheduleId}</p>
+            ) : selectedSchedule ? (
+              <p className="text-xs text-muted-foreground">
+                {scheduleDaysText} · {scheduleHoursText}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Working hours and days come from the schedules Admin configures.</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">

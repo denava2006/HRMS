@@ -68,13 +68,20 @@ export function SigningDialog({
   }
 
   const onSubmit = () => {
+    // A signing record with no signed copy attached is just an assertion —
+    // the uploaded file is the actual evidence, so it's required.
+    if (!contractFile) {
+      setFileError('Upload the signed contract to record the signing.')
+      return
+    }
+
     recordSigning.mutate(
       {
         applicationId,
         contractId,
         signedAt: new Date(signedAt).toISOString(),
         signingNotes: signingNotes.trim() || undefined,
-        contractFile: contractFile ?? undefined,
+        contractFile,
       },
       { onSuccess: () => onOpenChange(false) }
     )
@@ -102,7 +109,9 @@ export function SigningDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Contract File (optional)</Label>
+            <Label>
+              Contract File <span className="text-destructive">*</span>
+            </Label>
             {contractFile ? (
               <div className="flex items-center justify-between gap-3 rounded-md border border-input bg-card px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2">

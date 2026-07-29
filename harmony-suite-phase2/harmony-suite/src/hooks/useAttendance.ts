@@ -78,7 +78,7 @@ export function useAttendanceStats(dateISO: string = todayISODate()) {
         supabase
           .from('employees')
           .select('id, work_schedule_id, employment_status, work_schedules(working_days)')
-          .in('employment_status', ['active', 'probationary', 'regular', 'contractual', 'temporary']),
+          .in('employment_status', ['active', 'regular', 'contractual', 'temporary']),
         supabase.from('attendance_records').select('employee_id, status, overtime_minutes').eq('attendance_date', dateISO),
         supabase.from('holidays').select('id').eq('holiday_date', dateISO).limit(1),
       ])

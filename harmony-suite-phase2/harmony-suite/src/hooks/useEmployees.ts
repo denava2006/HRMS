@@ -161,17 +161,15 @@ export function useEmployeeStats() {
   return useQuery({
     queryKey: STATS_KEY,
     queryFn: async () => {
-      const [total, active, probationary, regular, inactive] = await Promise.all([
+      const [total, active, regular, inactive] = await Promise.all([
         supabase.from('employees').select('*', { count: 'exact', head: true }),
         supabase.from('employees').select('*', { count: 'exact', head: true }).eq('employment_status', 'active'),
-        supabase.from('employees').select('*', { count: 'exact', head: true }).eq('employment_status', 'probationary'),
         supabase.from('employees').select('*', { count: 'exact', head: true }).eq('employment_status', 'regular'),
         supabase.from('employees').select('*', { count: 'exact', head: true }).in('employment_status', INACTIVE_STATUSES),
       ])
       return {
         total: total.count ?? 0,
         active: active.count ?? 0,
-        probationary: probationary.count ?? 0,
         regular: regular.count ?? 0,
         inactive: inactive.count ?? 0,
       }

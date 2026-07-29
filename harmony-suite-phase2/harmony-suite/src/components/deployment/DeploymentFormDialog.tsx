@@ -37,10 +37,8 @@ export function DeploymentFormDialog({
   const completeDeployment = useCompleteDeployment()
 
   const [deploymentDate, setDeploymentDate] = React.useState('')
-  const [reportingManager, setReportingManager] = React.useState('')
   const [assignedBranch, setAssignedBranch] = React.useState('')
   const [workLocation, setWorkLocation] = React.useState('')
-  const [reportingTime, setReportingTime] = React.useState('')
   const [remarks, setRemarks] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
@@ -48,10 +46,8 @@ export function DeploymentFormDialog({
     if (open) {
       const today = todayISODate()
       setDeploymentDate(minDate && minDate > today ? minDate : today)
-      setReportingManager('')
       setAssignedBranch('')
       setWorkLocation('')
-      setReportingTime('')
       setRemarks('')
       setErrors({})
     }
@@ -73,10 +69,8 @@ export function DeploymentFormDialog({
       {
         applicationId,
         deploymentDate,
-        reportingManager: reportingManager.trim() || undefined,
         assignedBranch: assignedBranch.trim() || undefined,
         workLocation: workLocation.trim() || undefined,
-        reportingTime: reportingTime.trim() || undefined,
         remarks: remarks.trim() || undefined,
       },
       { onSuccess: () => onOpenChange(false) }
@@ -92,33 +86,22 @@ export function DeploymentFormDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="deployment_date">
-                Deployment Date <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="deployment_date"
-                type="date"
-                min={minDate ?? undefined}
-                invalid={!!errors.deploymentDate}
-                value={deploymentDate}
-                onChange={(e) => {
-                  setDeploymentDate(e.target.value)
-                  if (errors.deploymentDate) setErrors({})
-                }}
-              />
-              {errors.deploymentDate && <p className="text-xs text-destructive">{errors.deploymentDate}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="reporting_manager">Reporting Manager</Label>
-              <Input
-                id="reporting_manager"
-                autoComplete="off"
-                value={reportingManager}
-                onChange={(e) => setReportingManager(e.target.value)}
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="deployment_date">
+              Deployment Date <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="deployment_date"
+              type="date"
+              min={minDate ?? undefined}
+              invalid={!!errors.deploymentDate}
+              value={deploymentDate}
+              onChange={(e) => {
+                setDeploymentDate(e.target.value)
+                if (errors.deploymentDate) setErrors({})
+              }}
+            />
+            {errors.deploymentDate && <p className="text-xs text-destructive">{errors.deploymentDate}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -140,17 +123,6 @@ export function DeploymentFormDialog({
                 onChange={(e) => setWorkLocation(e.target.value)}
               />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reporting_time">Reporting Time</Label>
-            <Input
-              id="reporting_time"
-              autoComplete="off"
-              value={reportingTime}
-              onChange={(e) => setReportingTime(e.target.value)}
-              placeholder="e.g. 8:00 AM"
-            />
           </div>
 
           <div className="flex flex-col gap-1.5">

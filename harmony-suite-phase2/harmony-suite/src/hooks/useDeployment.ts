@@ -163,6 +163,7 @@ export interface PrepareJobOfferInput {
   salaryGradeId?: string
   proposedSalary: number
   currency: 'PHP' | 'USD'
+  workScheduleId: string
   workingHours?: string
   workingDays?: string
   startDate: string
@@ -182,6 +183,7 @@ export function usePrepareJobOffer() {
         salary_grade_id: input.salaryGradeId || null,
         proposed_salary: input.proposedSalary,
         currency: input.currency,
+        work_schedule_id: input.workScheduleId,
         working_hours: input.workingHours || null,
         working_days: input.workingDays || null,
         start_date: input.startDate,
@@ -387,10 +389,8 @@ export function useRecordContractSigning() {
 export interface CompleteDeploymentInput {
   applicationId: string
   deploymentDate: string
-  reportingManager?: string
   assignedBranch?: string
   workLocation?: string
-  reportingTime?: string
   remarks?: string
 }
 
@@ -402,10 +402,8 @@ export function useCompleteDeployment() {
       const { error: deploymentError } = await supabase.from('deployment_records').insert({
         application_id: input.applicationId,
         deployment_date: input.deploymentDate,
-        reporting_manager: input.reportingManager || null,
         assigned_branch: input.assignedBranch || null,
         work_location: input.workLocation || null,
-        reporting_time: input.reportingTime || null,
         remarks: input.remarks || null,
         deployed_by: profile?.id,
       })

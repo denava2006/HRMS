@@ -1,25 +1,29 @@
 import * as React from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Home, Briefcase } from 'lucide-react'
+import { CheckCircle2, Home, Briefcase, Copy, Check, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-const REDIRECT_SECONDS = 8
 
 export default function ApplicationSuccessPage() {
   const location = useLocation()
-  const navigate = useNavigate()
-  const jobTitle = (location.state as { jobTitle?: string } | null)?.jobTitle
-  const [secondsLeft, setSecondsLeft] = React.useState(REDIRECT_SECONDS)
+  const state = location.state as { jobTitle?: string; referenceCode?: string; email?: string } | null
+  const jobTitle = state?.jobTitle
+  const referenceCode = state?.referenceCode
+  const [copied, setCopied] = React.useState(false)
 
-  React.useEffect(() => {
-    if (secondsLeft <= 0) {
-      navigate('/', { replace: true })
-      return
+  // No auto-redirect here any more: the reference number is the only copy the
+  // applicant will ever get, so the page has to wait for them rather than
+  // bouncing to the homepage on a timer.
+  const copyReference = async () => {
+    if (!referenceCode) return
+    try {
+      await navigator.clipboard.writeText(referenceCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard permission denied — the code is on screen to copy manually.
     }
-    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [secondsLeft, navigate])
+  }
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
@@ -51,8 +55,33 @@ export default function ApplicationSuccessPage() {
           Our HR team will review your application and reach out if you're a match for the role.
         </p>
 
+        {referenceCode && (
+          <div className="mt-8 rounded-xl border border-secondary/30 bg-secondary/5 p-5 text-left">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Your reference number
+            </p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="font-mono text-xl font-bold text-foreground">{referenceCode}</p>
+              <Button type="button" variant="outline" size="sm" onClick={copyReference}>
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? 'Copied' : 'Copy'}
+              </Button>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Save this. Together with the email you applied with, it lets you track your application, see your
+              interview schedule, and respond to a job offer.
+            </p>
+            <Button asChild className="mt-4 w-full sm:w-auto">
+              <Link to={`/track?ref=${encodeURIComponent(referenceCode)}`}>
+                <Search className="h-4 w-4" />
+                Track My Application
+              </Link>
+            </Button>
+          </div>
+        )}
+
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button asChild size="lg">
+          <Button asChild size="lg" variant="outline">
             <Link to="/careers">
               <Briefcase className="h-4 w-4" />
               Browse More Jobs
@@ -65,10 +94,6 @@ export default function ApplicationSuccessPage() {
             </Link>
           </Button>
         </div>
-
-        <p className="mt-6 text-xs text-muted-foreground">
-          Redirecting to the homepage in {secondsLeft} second{secondsLeft === 1 ? '' : 's'}…
-        </p>
       </motion.div>
     </div>
   )

@@ -22,8 +22,6 @@ import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import { ScheduleInterviewDialog } from '@/components/interviews/ScheduleInterviewDialog'
 import { EvaluateInterviewDialog } from '@/components/interviews/EvaluateInterviewDialog'
 import { useAuth } from '@/contexts/AuthContext'
-import { useCurrency } from '@/hooks/useSystemSettings'
-import { formatMoney, type CurrencyCode } from '@/lib/currency'
 import {
   useInterviewApplicationDetail,
   useConductInterview,
@@ -132,11 +130,9 @@ function ScheduledInterviewCard({ interview }: { interview: InterviewRecord }) {
 function EvaluationSummary({
   interview,
   stage,
-  currency,
 }: {
   interview: InterviewRecord
   stage: 'initial' | 'final'
-  currency: CurrencyCode
 }) {
   const isRejected = interview.status === 'failed'
   return (
@@ -173,12 +169,6 @@ function EvaluationSummary({
         <div>
           <p className="text-xs text-muted-foreground">Final Remarks</p>
           <p className="text-sm text-foreground">{interview.final_remarks}</p>
-        </div>
-      )}
-      {stage === 'final' && interview.recommended_salary != null && (
-        <div>
-          <p className="text-xs text-muted-foreground">Recommended Salary</p>
-          <p className="text-sm text-foreground">{formatMoney(interview.recommended_salary, currency)}</p>
         </div>
       )}
       {isRejected && interview.rejection_reason && (
@@ -223,7 +213,6 @@ export function InterviewDetailsSheet({
   onOpenChange: (open: boolean) => void
 }) {
   const { profile } = useAuth()
-  const currency = useCurrency()
   const { data: application, isLoading } = useInterviewApplicationDetail(applicationId ?? undefined)
   const conductInterview = useConductInterview()
 
@@ -238,11 +227,14 @@ export function InterviewDetailsSheet({
   const final = application ? getInterviewByStage(application.interviews, 'final') : null
   const stage = application ? deriveStage(application.status as ApplicationStatus, initial, final) : null
 
-  // Only the person who scheduled the initial interview may schedule/conduct/evaluate
-  // the rest of this applicant's interview process — everyone else is read-only.
-  // The backend (interviews_update_owner RLS + protect_interview_ownership trigger)
-  // enforces this regardless of what the UI shows.
+  // The initial round belongs to whoever scheduled it; the final round belongs
+  // to the HR Manager they handed it off to at initial-evaluation time. Everyone
+  // else is read-only. The backend (interviews_insert_owner /
+  // interviews_update_owner RLS + protect_interview_ownership trigger) enforces
+  // both regardless of what the UI shows.
   const isOwner = initial ? initial.interviewer_id === profile?.id : true
+  const isFinalOwner = application?.final_interviewer_id === profile?.id
+  const finalInterviewerName = application?.final_interviewer?.full_name ?? null
 
   const onConduct = (interview: InterviewRecord, interviewStage: 'initial' | 'final') => {
     if (!applicationId) return
@@ -399,7 +391,7 @@ export function InterviewDetailsSheet({
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Initial Interview Evaluation
                       </h3>
-                      <EvaluationSummary interview={initial} stage="initial" currency={currency} />
+                      <EvaluationSummary interview={initial} stage="initial" />
                     </section>
                   )}
 
@@ -408,7 +400,7 @@ export function InterviewDetailsSheet({
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Final Interview Evaluation
                       </h3>
-                      <EvaluationSummary interview={final} stage="final" currency={currency} />
+                      <EvaluationSummary interview={final} stage="final" />
                     </section>
                   )}
                 </div>
@@ -443,32 +435,33 @@ export function InterviewDetailsSheet({
                   <ReadOnlyNotice interviewerName={initial?.interviewer?.full_name} />
                 )}
 
-                {stage === 'passed_initial_interview' && isOwner && (
-                  <Button type="button" onClick={() => setScheduleDialogStage('final')}>
-                    Schedule Final Interview
-                  </Button>
-                )}
-                {stage === 'passed_initial_interview' && !isOwner && (
-                  <ReadOnlyNotice interviewerName={initial?.interviewer?.full_name} />
-                )}
+                {stage === 'passed_initial_interview' &&
+                  (isFinalOwner ? (
+                    <Button type="button" onClick={() => setScheduleDialogStage('final')}>
+                      Schedule Final Interview
+                    </Button>
+                  ) : (
+                    <ReadOnlyNotice interviewerName={finalInterviewerName} />
+                  ))}
 
-                {stage === 'final_interview_scheduled' && final && isOwner && (
-                  <Button type="button" loading={conductInterview.isPending} onClick={() => onConduct(final, 'final')}>
-                    Conduct Interview
-                  </Button>
-                )}
-                {stage === 'final_interview_scheduled' && final && !isOwner && (
-                  <ReadOnlyNotice interviewerName={final.interviewer?.full_name} />
-                )}
+                {stage === 'final_interview_scheduled' &&
+                  final &&
+                  (isFinalOwner ? (
+                    <Button type="button" loading={conductInterview.isPending} onClick={() => onConduct(final, 'final')}>
+                      Conduct Interview
+                    </Button>
+                  ) : (
+                    <ReadOnlyNotice interviewerName={final.interviewer?.full_name ?? finalInterviewerName} />
+                  ))}
 
-                {stage === 'under_final_interview' && isOwner && (
-                  <Button type="button" onClick={() => setEvaluateDialogStage('final')}>
-                    Continue Evaluation
-                  </Button>
-                )}
-                {stage === 'under_final_interview' && !isOwner && (
-                  <ReadOnlyNotice interviewerName={final?.interviewer?.full_name} />
-                )}
+                {stage === 'under_final_interview' &&
+                  (isFinalOwner ? (
+                    <Button type="button" onClick={() => setEvaluateDialogStage('final')}>
+                      Continue Evaluation
+                    </Button>
+                  ) : (
+                    <ReadOnlyNotice interviewerName={final?.interviewer?.full_name ?? finalInterviewerName} />
+                  ))}
               </SheetFooter>
             </>
           )}

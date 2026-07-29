@@ -17,16 +17,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
 import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import { JobOfferDialog } from '@/components/deployment/JobOfferDialog'
 import { ContractDialog } from '@/components/deployment/ContractDialog'
@@ -35,7 +25,6 @@ import { DeploymentFormDialog } from '@/components/deployment/DeploymentFormDial
 import { useApplicationHistory } from '@/hooks/useRecruitment'
 import {
   useDeploymentApplicationDetail,
-  useRespondToOffer,
   useGenerateContract,
   getLatestOffer,
   getLatestContract,
@@ -166,14 +155,12 @@ export function DeploymentDetailsSheet({
   const navigate = useNavigate()
   const { data: application, isLoading } = useDeploymentApplicationDetail(applicationId ?? undefined)
   const { data: history } = useApplicationHistory(applicationId ?? undefined)
-  const respondToOffer = useRespondToOffer()
   const generateContract = useGenerateContract()
 
   const [offerDialogOpen, setOfferDialogOpen] = React.useState(false)
   const [contractDialogOpen, setContractDialogOpen] = React.useState(false)
   const [signingDialogOpen, setSigningDialogOpen] = React.useState(false)
   const [deploymentDialogOpen, setDeploymentDialogOpen] = React.useState(false)
-  const [declineConfirmOpen, setDeclineConfirmOpen] = React.useState(false)
 
   if (!application && !isLoading) return null
 
@@ -270,14 +257,6 @@ export function DeploymentDetailsSheet({
                           <Rating label="Culture Fit" value={finalInterview.rating_culture_fit} />
                           <Rating label="Leadership" value={finalInterview.rating_leadership} />
                         </div>
-                        {finalInterview.recommended_salary != null && (
-                          <div className="mt-3 border-t border-border pt-3">
-                            <Field
-                              label="Recommended Salary"
-                              value={formatMoney(finalInterview.recommended_salary, 'PHP')}
-                            />
-                          </div>
-                        )}
                         {finalInterview.final_remarks && (
                           <div className="mt-3">
                             <Field label="Final Remarks" value={finalInterview.final_remarks} />
@@ -395,10 +374,8 @@ export function DeploymentDetailsSheet({
                       </h3>
                       <div className="grid grid-cols-2 gap-3 rounded-lg border border-border p-3">
                         <Field label="Deployment Date" value={formatDate(deploymentRecord.deployment_date)} />
-                        <Field label="Reporting Manager" value={deploymentRecord.reporting_manager ?? '—'} />
                         <Field label="Assigned Branch" value={deploymentRecord.assigned_branch ?? '—'} />
                         <Field label="Work Location" value={deploymentRecord.work_location ?? '—'} />
-                        <Field label="Reporting Time" value={deploymentRecord.reporting_time ?? '—'} />
                         <Field label="Deployed By" value={deploymentRecord.deployer?.full_name ?? '—'} />
                       </div>
                     </section>
@@ -442,23 +419,13 @@ export function DeploymentDetailsSheet({
                   </Button>
                 )}
 
+                {/* Accepting or declining is the applicant's decision, made from
+                  * the tracking portal (/track) — HR only watches for it here. */}
                 {stage === 'awaiting_offer_response' && offer && (
-                  <>
-                    <Button type="button" variant="destructive" onClick={() => setDeclineConfirmOpen(true)}>
-                      Decline Offer
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="accent"
-                      loading={respondToOffer.isPending}
-                      onClick={() =>
-                        applicationId &&
-                        respondToOffer.mutate({ applicationId, offerId: offer.id, decision: 'accepted' })
-                      }
-                    >
-                      Accept Offer
-                    </Button>
-                  </>
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Lock className="h-3.5 w-3.5" />
+                    Waiting for the applicant to respond in the tracking portal.
+                  </p>
                 )}
 
                 {stage === 'offer_accepted' && (
@@ -538,29 +505,6 @@ export function DeploymentDetailsSheet({
         />
       )}
 
-      <AlertDialog open={declineConfirmOpen} onOpenChange={setDeclineConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Decline this job offer?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This closes the application and ends recruitment for this applicant. This can't be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (applicationId && offer) {
-                  respondToOffer.mutate({ applicationId, offerId: offer.id, decision: 'declined' })
-                }
-                setDeclineConfirmOpen(false)
-              }}
-            >
-              Confirm Decline
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }

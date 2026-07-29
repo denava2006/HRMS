@@ -11,9 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { MoneyInput } from '@/components/MoneyInput'
-import { useSubmitInitialEvaluation, useSubmitFinalEvaluation } from '@/hooks/useInterviews'
-import { useCurrency } from '@/hooks/useSystemSettings'
+import { useSubmitInitialEvaluation, useSubmitFinalEvaluation, useAvailableFinalInterviewers } from '@/hooks/useInterviews'
 import type { InterviewType } from '@/lib/database.types'
 import { RATING_OPTIONS } from '@/lib/interviewLabels'
 
@@ -65,10 +63,11 @@ export function EvaluateInterviewDialog({
   interviewId: string
   stage: InterviewType
 }) {
-  const currency = useCurrency()
   const submitInitial = useSubmitInitialEvaluation()
   const submitFinal = useSubmitFinalEvaluation()
   const isPending = submitInitial.isPending || submitFinal.isPending
+  const { data: finalInterviewers } = useAvailableFinalInterviewers()
+  const [finalInterviewerId, setFinalInterviewerId] = React.useState('')
 
   // Initial-stage fields
   const [communication, setCommunication] = React.useState('')
@@ -84,7 +83,6 @@ export function EvaluateInterviewDialog({
   const [cultureFit, setCultureFit] = React.useState('')
   const [leadership, setLeadership] = React.useState('')
   const [finalRemarks, setFinalRemarks] = React.useState('')
-  const [recommendedSalary, setRecommendedSalary] = React.useState('')
 
   const [showRejectionReason, setShowRejectionReason] = React.useState(false)
   const [rejectionReason, setRejectionReason] = React.useState('')
@@ -104,7 +102,7 @@ export function EvaluateInterviewDialog({
       setCultureFit('')
       setLeadership('')
       setFinalRemarks('')
-      setRecommendedSalary('')
+      setFinalInterviewerId('')
       setShowRejectionReason(false)
       setRejectionReason('')
       setReasonError(null)
@@ -116,7 +114,7 @@ export function EvaluateInterviewDialog({
 
   /** No evaluation should be saved without its ratings and a comment on file —
    * required regardless of whether the applicant passes or is rejected. */
-  const validateEvaluationFields = (): boolean => {
+  const validateEvaluationFields = (decision: 'passed' | 'failed'): boolean => {
     const nextErrors: Record<string, string> = {}
     if (stage === 'initial') {
       if (!communication) nextErrors.communication = 'Required'
@@ -125,6 +123,11 @@ export function EvaluateInterviewDialog({
       if (!experience) nextErrors.experience = 'Required'
       if (!problemSolving) nextErrors.problemSolving = 'Required'
       if (!overallImpression.trim()) nextErrors.overallImpression = 'Overall impression is required.'
+      // Passing hands the applicant to an HR Manager for the final round —
+      // without one nominated there is nobody permitted to schedule it.
+      if (decision === 'passed' && !finalInterviewerId) {
+        nextErrors.finalInterviewerId = 'Assign an HR Manager to run the final interview.'
+      }
     } else {
       if (!technicalEvaluation) nextErrors.technicalEvaluation = 'Required'
       if (!cultureFit) nextErrors.cultureFit = 'Required'
@@ -140,7 +143,7 @@ export function EvaluateInterviewDialog({
       setShowRejectionReason(true)
       return
     }
-    if (!validateEvaluationFields()) return
+    if (!validateEvaluationFields('failed')) return
     if (!rejectionReason.trim()) {
       setReasonError('A rejection reason is required.')
       return
@@ -149,7 +152,7 @@ export function EvaluateInterviewDialog({
   }
 
   const onPassClick = () => {
-    if (!validateEvaluationFields()) return
+    if (!validateEvaluationFields('passed')) return
     submitDecision('passed')
   }
 
@@ -170,6 +173,7 @@ export function EvaluateInterviewDialog({
           overallImpression: overallImpression.trim() || undefined,
           interviewNotes: interviewNotes.trim() || undefined,
           rejectionReason: decision === 'failed' ? rejectionReason.trim() : undefined,
+          finalInterviewerId: decision === 'passed' ? finalInterviewerId : undefined,
         },
         { onSuccess: () => onOpenChange(false) }
       )
@@ -185,7 +189,6 @@ export function EvaluateInterviewDialog({
             leadership: toNumber(leadership),
           },
           finalRemarks: finalRemarks.trim() || undefined,
-          recommendedSalary: toNumber(recommendedSalary),
           rejectionReason: decision === 'failed' ? rejectionReason.trim() : undefined,
         },
         { onSuccess: () => onOpenChange(false) }
@@ -235,6 +238,36 @@ export function EvaluateInterviewDialog({
                 <Label htmlFor="interview_notes">Interview Notes</Label>
                 <Textarea id="interview_notes" value={interviewNotes} onChange={(e) => setInterviewNotes(e.target.value)} rows={3} />
               </div>
+              <div className="flex flex-col gap-1.5 border-t border-border pt-4">
+                <Label htmlFor="final_interviewer">
+                  Assign Final Interviewer <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={finalInterviewerId}
+                  onValueChange={(v) => {
+                    setFinalInterviewerId(v)
+                    if (fieldErrors.finalInterviewerId) setFieldErrors((prev) => ({ ...prev, finalInterviewerId: '' }))
+                  }}
+                >
+                  <SelectTrigger id="final_interviewer" invalid={!!fieldErrors.finalInterviewerId}>
+                    <SelectValue placeholder={finalInterviewers?.length ? 'Select an HR Manager' : 'No HR Manager available'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {finalInterviewers?.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldErrors.finalInterviewerId ? (
+                  <p className="text-xs text-destructive">{fieldErrors.finalInterviewerId}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Only required when passing — the final interview is run by an HR Manager, not HR Staff.
+                  </p>
+                )}
+              </div>
             </>
           ) : (
             <>
@@ -258,15 +291,6 @@ export function EvaluateInterviewDialog({
                   rows={3}
                 />
                 {fieldErrors.finalRemarks && <p className="text-xs text-destructive">{fieldErrors.finalRemarks}</p>}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="recommended_salary">Recommended Salary (optional)</Label>
-                <MoneyInput
-                  id="recommended_salary"
-                  currency={currency}
-                  value={recommendedSalary}
-                  onValueChange={setRecommendedSalary}
-                />
               </div>
             </>
           )}

@@ -38,6 +38,7 @@ import CareersPage from '@/pages/public/CareersPage'
 import CareerDetailsPage from '@/pages/public/CareerDetailsPage'
 import ApplyPage from '@/pages/public/ApplyPage'
 import ApplicationSuccessPage from '@/pages/public/ApplicationSuccessPage'
+import TrackApplicationPage from '@/pages/public/TrackApplicationPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +59,7 @@ export default function App() {
               <Route index element={<HomePage />} />
               <Route path="careers" element={<CareersPage />} />
               <Route path="careers/application-success" element={<ApplicationSuccessPage />} />
+              <Route path="track" element={<TrackApplicationPage />} />
               <Route path="careers/:jobId" element={<CareerDetailsPage />} />
               <Route path="careers/:jobId/apply" element={<ApplyPage />} />
             </Route>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Careers', to: '/careers' },
+  { label: 'Track Application', to: '/track' },
 ]
 
 function Logo() {

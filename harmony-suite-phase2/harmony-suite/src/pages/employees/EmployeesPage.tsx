@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { motion } from 'framer-motion'
-import { Users, UserCheck, GraduationCap, BadgeCheck, UserX, Clock, Eye, ArrowRight, Plus } from 'lucide-react'
+import { Users, UserCheck, BadgeCheck, UserX, Clock, Eye, ArrowRight, Plus } from 'lucide-react'
 import { DataTable } from '@/components/data-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -263,13 +263,12 @@ export default function EmployeesPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Total Employees" value={stats?.total ?? 0} icon={Users} isLoading={statsLoading} index={0} />
         <StatCard label="Pending Employee Creation" value={pendingEmployees?.length ?? 0} icon={Clock} isLoading={pendingLoading} index={1} />
         <StatCard label="Active Employees" value={stats?.active ?? 0} icon={UserCheck} isLoading={statsLoading} index={2} />
-        <StatCard label="Probationary Employees" value={stats?.probationary ?? 0} icon={GraduationCap} isLoading={statsLoading} index={3} />
-        <StatCard label="Regular Employees" value={stats?.regular ?? 0} icon={BadgeCheck} isLoading={statsLoading} index={4} />
-        <StatCard label="Inactive Employees" value={stats?.inactive ?? 0} icon={UserX} isLoading={statsLoading} index={5} />
+        <StatCard label="Regular Employees" value={stats?.regular ?? 0} icon={BadgeCheck} isLoading={statsLoading} index={3} />
+        <StatCard label="Inactive Employees" value={stats?.inactive ?? 0} icon={UserX} isLoading={statsLoading} index={4} />
       </div>
 
       {isError ? (

@@ -23,9 +23,8 @@ export function RecruitmentOverviewSection() {
   const { data, isLoading } = useRecruitmentOverview()
   return (
     <DashboardSectionCard title="Recruitment Overview" icon={Briefcase} onClick={() => navigate('/dashboard/recruitment')}>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <MiniStat label="New Applications" value={data?.newApplications ?? 0} isLoading={isLoading} />
-        <MiniStat label="Under Review" value={data?.underReview ?? 0} isLoading={isLoading} />
         <MiniStat label="Qualified" value={data?.qualified ?? 0} isLoading={isLoading} />
         <MiniStat label="Interviews Scheduled" value={data?.interviewsScheduled ?? 0} isLoading={isLoading} />
         <MiniStat label="Pending Deployment" value={data?.pendingDeployment ?? 0} isLoading={isLoading} />
@@ -44,7 +43,6 @@ export function EmployeeOverviewSection() {
         <MiniStat label="Total Employees" value={data?.total ?? 0} isLoading={isLoading} />
         <MiniStat label="Pending Creation" value={pending?.length ?? 0} isLoading={pendingLoading} />
         <MiniStat label="Active" value={data?.active ?? 0} isLoading={isLoading} />
-        <MiniStat label="Probationary" value={data?.probationary ?? 0} isLoading={isLoading} />
         <MiniStat label="Regular" value={data?.regular ?? 0} isLoading={isLoading} />
         <MiniStat label="Inactive" value={data?.inactive ?? 0} isLoading={isLoading} />
       </div>

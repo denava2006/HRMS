@@ -30,8 +30,7 @@ import {
 import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import {
   useApplicationDetail,
-  useApplicationHistory,
-  useStartReview,
+  useApplicationHistory,
   useMarkQualified,
   useRejectApplicant,
 } from '@/hooks/useRecruitment'
@@ -166,22 +165,20 @@ export function ApplicantDetailsSheet({
 }) {
   const { data: application, isLoading } = useApplicationDetail(applicationId ?? undefined)
   const { data: history } = useApplicationHistory(applicationId ?? undefined)
-  const startReview = useStartReview()
   const markQualified = useMarkQualified()
   const rejectApplicant = useRejectApplicant()
   const [rejectOpen, setRejectOpen] = React.useState(false)
 
   if (!application && !isLoading) return null
 
-  const isDecided = application?.status === 'qualified' || application?.status === 'rejected'
-  const wasNew = application?.status === 'submitted'
+  // Recruitment only ever screens a brand-new application. Once it's been
+  // qualified or rejected here — or has moved on to Interview/Deployment
+  // (interview_scheduled, offered, hired, deployed, closed) — this module is
+  // read-only, so the screening actions must disappear rather than let HR
+  // re-decide an applicant who is already halfway through onboarding.
+  const canScreen = application?.status === 'submitted'
   const applicant = application?.applicants
   const jobPosting = application?.job_postings
-
-  const onStartReview = () => {
-    if (!applicationId) return
-    startReview.mutate({ applicationId })
-  }
 
   const onMarkQualified = () => {
     if (!applicationId) return
@@ -317,24 +314,19 @@ export function ApplicantDetailsSheet({
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Back
                 </Button>
-                {!isDecided && (
+                {canScreen && (
                   <>
                     <Button
                       type="button"
                       variant="destructive"
                       onClick={() => setRejectOpen(true)}
-                      disabled={startReview.isPending || markQualified.isPending}
+                      disabled={markQualified.isPending}
                     >
                       Reject Applicant
                     </Button>
                     <Button type="button" variant="accent" loading={markQualified.isPending} onClick={onMarkQualified}>
                       Mark as Qualified
                     </Button>
-                    {wasNew && (
-                      <Button type="button" loading={startReview.isPending} onClick={onStartReview}>
-                        Start Review
-                      </Button>
-                    )}
                   </>
                 )}
               </SheetFooter>

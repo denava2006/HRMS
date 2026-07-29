@@ -3,7 +3,6 @@ import type { BadgeProps } from '@/components/ui/badge'
 
 export const EMPLOYMENT_STATUS_LABEL: Record<EmploymentStatus, string> = {
   active: 'Active',
-  probationary: 'Probationary',
   regular: 'Regular',
   contractual: 'Contractual',
   temporary: 'Temporary',
@@ -15,7 +14,6 @@ export const EMPLOYMENT_STATUS_LABEL: Record<EmploymentStatus, string> = {
 
 export const EMPLOYMENT_STATUS_VARIANT: Record<EmploymentStatus, BadgeProps['variant']> = {
   active: 'success',
-  probationary: 'outline',
   regular: 'success',
   contractual: 'secondary',
   temporary: 'secondary',
@@ -32,9 +30,11 @@ export const PENDING_EMPLOYEE_STATUS_LABEL = 'Pending Employee Creation'
 
 export const CIVIL_STATUS_OPTIONS = ['Single', 'Married', 'Widowed', 'Separated', 'Divorced'] as const
 
+/** Resume is deliberately absent — it's collected once on the public
+ * application form and carried through, so re-uploading it here would just
+ * create a second, divergent copy. These are the supporting documents HR
+ * collects on top of it. */
 export const DOCUMENT_TYPE_OPTIONS = [
-  'Resume',
-  'Employment Contract',
   'Government ID',
   'Birth Certificate',
   'Medical Certificate',
@@ -42,6 +42,7 @@ export const DOCUMENT_TYPE_OPTIONS = [
   'Diploma',
   'Transcript',
   'Certificate',
+  'Employment Contract',
   'Other',
 ] as const
 

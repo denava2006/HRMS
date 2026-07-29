@@ -91,14 +91,13 @@ export function useRecruitmentStats() {
     queryKey: STATS_KEY,
     queryFn: async () => {
       const count = (query: PromiseLike<{ count: number | null }>) => query.then((r) => r.count ?? 0)
-      const [newCount, underReviewCount, qualifiedCount, rejectedCount, todayCount] = await Promise.all([
+      const [newCount, qualifiedCount, rejectedCount, todayCount] = await Promise.all([
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'submitted')),
-        count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'under_review')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'qualified')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected')),
         count(supabase.from('applications').select('*', { count: 'exact', head: true }).gte('created_at', startOfToday())),
       ])
-      return { newCount, underReviewCount, qualifiedCount, rejectedCount, todayCount }
+      return { newCount, qualifiedCount, rejectedCount, todayCount }
     },
   })
 }
@@ -110,38 +109,6 @@ function useInvalidateRecruitment() {
     queryClient.invalidateQueries({ queryKey: STATS_KEY })
     queryClient.invalidateQueries({ queryKey: ['application-history', applicationId] })
   }
-}
-
-/** Moves a brand-new application to Under Review and logs the "reviewed"
- * history event. There are no screening fields to fill in anymore — the
- * resume itself is the record — so this is a pure status transition. */
-export function useStartReview() {
-  const { profile } = useAuth()
-  const invalidate = useInvalidateRecruitment()
-  return useMutation({
-    mutationFn: async ({ applicationId }: { applicationId: string }) => {
-      const { error } = await supabase
-        .from('applications')
-        .update({
-          status: 'under_review',
-          reviewed_by: profile?.id,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', applicationId)
-      if (error) throw error
-
-      await supabase.from('application_history').insert({
-        application_id: applicationId,
-        event: 'reviewed',
-        actor_id: profile?.id,
-      })
-    },
-    onSuccess: (_data, { applicationId }) => {
-      invalidate(applicationId)
-      toast.success('Review started')
-    },
-    onError: (error) => toast.error(error.message),
-  })
 }
 
 export function useMarkQualified() {

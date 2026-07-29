@@ -51,8 +51,24 @@ function sanitizePhoneInput(raw: string): string {
   return raw.replace(/\D/g, '').slice(0, 11)
 }
 
+/** Digits and symbols can never be typed into a name field at all, rather than
+ * only being caught by the schema on submit. */
+function sanitizeNameInput(raw: string): string {
+  return raw.replace(/[^A-Za-z '-]/g, '').slice(0, 100)
+}
+
 function todayISODate(): string {
   const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const MINIMUM_HIRING_AGE = 18
+
+/** Latest birth date that still makes someone MINIMUM_HIRING_AGE today — used
+ * as the date input's `max` so the picker can't even offer a younger date. */
+function latestEligibleBirthDate(): string {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() - MINIMUM_HIRING_AGE)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
@@ -61,7 +77,10 @@ const employeeSchema = z.object({
   middleName: optionalNameField('Middle name'),
   lastName: nameField('Last name'),
   gender: z.string().min(1, 'Gender is required'),
-  birthDate: z.string().min(1, 'Birth date is required'),
+  birthDate: z
+    .string()
+    .min(1, 'Birth date is required')
+    .refine((v) => v <= latestEligibleBirthDate(), `Employee must be at least ${MINIMUM_HIRING_AGE} years old`),
   civilStatus: z.string().min(1, 'Civil status is required'),
   nationality: z.string().trim().min(1, 'Nationality is required').max(100),
   phone: z.string().min(1, 'Phone number is required').regex(phoneRegex, 'Enter a valid mobile number (11 digits, starting with 09)'),
@@ -192,7 +211,7 @@ export default function CreateEmployeePage() {
       employmentType: 'full_time',
       currency: defaultCurrency,
       hireDate: todayISODate(),
-      employmentStatus: 'probationary',
+      employmentStatus: 'active',
     },
   })
 
@@ -382,13 +401,21 @@ export default function CreateEmployeePage() {
                       First Name <span className="text-destructive">*</span>
                       {autoFilledFields.has('firstName') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                     </Label>
-                    <Input
-                      id="firstName"
-                      autoComplete="off"
-                      invalid={!!errors.firstName}
-                      className={autoFillClass('firstName')}
-                      {...register('firstName')}
-                      onFocus={() => clearAutoFilled('firstName')}
+                    <Controller
+                      control={control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <Input
+                          id="firstName"
+                          autoComplete="off"
+                          invalid={!!errors.firstName}
+                          className={autoFillClass('firstName')}
+                          value={field.value ?? ''}
+                          onBlur={field.onBlur}
+                          onChange={(e) => field.onChange(sanitizeNameInput(e.target.value))}
+                          onFocus={() => clearAutoFilled('firstName')}
+                        />
+                      )}
                     />
                     {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
                   </div>
@@ -397,13 +424,21 @@ export default function CreateEmployeePage() {
                       Middle Name
                       {autoFilledFields.has('middleName') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                     </Label>
-                    <Input
-                      id="middleName"
-                      autoComplete="off"
-                      invalid={!!errors.middleName}
-                      className={autoFillClass('middleName')}
-                      {...register('middleName')}
-                      onFocus={() => clearAutoFilled('middleName')}
+                    <Controller
+                      control={control}
+                      name="middleName"
+                      render={({ field }) => (
+                        <Input
+                          id="middleName"
+                          autoComplete="off"
+                          invalid={!!errors.middleName}
+                          className={autoFillClass('middleName')}
+                          value={field.value ?? ''}
+                          onBlur={field.onBlur}
+                          onChange={(e) => field.onChange(sanitizeNameInput(e.target.value))}
+                          onFocus={() => clearAutoFilled('middleName')}
+                        />
+                      )}
                     />
                     {errors.middleName && <p className="text-xs text-destructive">{errors.middleName.message}</p>}
                   </div>
@@ -412,13 +447,21 @@ export default function CreateEmployeePage() {
                       Last Name <span className="text-destructive">*</span>
                       {autoFilledFields.has('lastName') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
                     </Label>
-                    <Input
-                      id="lastName"
-                      autoComplete="off"
-                      invalid={!!errors.lastName}
-                      className={autoFillClass('lastName')}
-                      {...register('lastName')}
-                      onFocus={() => clearAutoFilled('lastName')}
+                    <Controller
+                      control={control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <Input
+                          id="lastName"
+                          autoComplete="off"
+                          invalid={!!errors.lastName}
+                          className={autoFillClass('lastName')}
+                          value={field.value ?? ''}
+                          onBlur={field.onBlur}
+                          onChange={(e) => field.onChange(sanitizeNameInput(e.target.value))}
+                          onFocus={() => clearAutoFilled('lastName')}
+                        />
+                      )}
                     />
                     {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
                   </div>
@@ -451,7 +494,7 @@ export default function CreateEmployeePage() {
                     <Label htmlFor="birthDate">
                       Birth Date <span className="text-destructive">*</span>
                     </Label>
-                    <Input id="birthDate" type="date" max={todayISODate()} invalid={!!errors.birthDate} {...register('birthDate')} />
+                    <Input id="birthDate" type="date" max={latestEligibleBirthDate()} invalid={!!errors.birthDate} {...register('birthDate')} />
                     {errors.birthDate && <p className="text-xs text-destructive">{errors.birthDate.message}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">

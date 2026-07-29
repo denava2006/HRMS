@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -53,6 +53,12 @@ type ApplicationFormValues = z.infer<typeof applicationSchema>
  * so letters, +, -, /, *, ., (), and spaces can never even be entered. */
 function sanitizePhoneInput(raw: string): string {
   return raw.replace(/\D/g, '').slice(0, 11)
+}
+
+/** Same idea as sanitizePhoneInput, for names: digits and symbols can never be
+ * typed in at all, rather than only being caught by the schema on submit. */
+function sanitizeNameInput(raw: string): string {
+  return raw.replace(/[^A-Za-z '-]/g, '').slice(0, 100)
 }
 
 function formatFileSize(bytes: number) {
@@ -165,6 +171,7 @@ export default function ApplyPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues>({ resolver: zodResolver(applicationSchema) })
@@ -212,7 +219,7 @@ export default function ApplyPage() {
     }
 
     try {
-      await submitApplication.mutateAsync({
+      const submitted = await submitApplication.mutateAsync({
         jobPostingId: posting.id,
         firstName: values.firstName,
         middleName: values.middleName,
@@ -225,7 +232,11 @@ export default function ApplyPage() {
       })
       navigate('/careers/application-success', {
         replace: true,
-        state: { jobTitle: posting.positions?.title },
+        state: {
+          jobTitle: posting.positions?.title,
+          referenceCode: submitted?.reference_code,
+          email: values.email,
+        },
       })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -278,21 +289,60 @@ export default function ApplyPage() {
             <Label htmlFor="firstName">
               First name <span className="text-destructive">*</span>
             </Label>
-            <Input id="firstName" invalid={!!errors.firstName} {...register('firstName')} placeholder="Juan" />
+            <Controller
+              control={control}
+              name="firstName"
+              render={({ field }) => (
+                <Input
+                  id="firstName"
+                  invalid={!!errors.firstName}
+                  placeholder="Juan"
+                  value={field.value ?? ''}
+                  onBlur={field.onBlur}
+                  onChange={(e) => field.onChange(sanitizeNameInput(e.target.value))}
+                />
+              )}
+            />
             {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="middleName">
               Middle name <span className="text-destructive">*</span>
             </Label>
-            <Input id="middleName" invalid={!!errors.middleName} {...register('middleName')} placeholder="Santos" />
+            <Controller
+              control={control}
+              name="middleName"
+              render={({ field }) => (
+                <Input
+                  id="middleName"
+                  invalid={!!errors.middleName}
+                  placeholder="Santos"
+                  value={field.value ?? ''}
+                  onBlur={field.onBlur}
+                  onChange={(e) => field.onChange(sanitizeNameInput(e.target.value))}
+                />
+              )}
+            />
             {errors.middleName && <p className="text-xs text-destructive">{errors.middleName.message}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="lastName">
               Last name <span className="text-destructive">*</span>
             </Label>
-            <Input id="lastName" invalid={!!errors.lastName} {...register('lastName')} placeholder="Dela Cruz" />
+            <Controller
+              control={control}
+              name="lastName"
+              render={({ field }) => (
+                <Input
+                  id="lastName"
+                  invalid={!!errors.lastName}
+                  placeholder="Dela Cruz"
+                  value={field.value ?? ''}
+                  onBlur={field.onBlur}
+                  onChange={(e) => field.onChange(sanitizeNameInput(e.target.value))}
+                />
+              )}
+            />
             {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
           </div>
         </div>

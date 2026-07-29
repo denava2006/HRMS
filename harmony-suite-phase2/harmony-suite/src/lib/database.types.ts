@@ -102,6 +102,7 @@ export type Database = {
         Row: {
           applicant_id: string
           created_at: string
+          final_interviewer_id: string | null
           id: string
           job_posting_id: string
           notes: string | null
@@ -114,6 +115,7 @@ export type Database = {
         Insert: {
           applicant_id: string
           created_at?: string
+          final_interviewer_id?: string | null
           id?: string
           job_posting_id: string
           notes?: string | null
@@ -126,6 +128,7 @@ export type Database = {
         Update: {
           applicant_id?: string
           created_at?: string
+          final_interviewer_id?: string | null
           id?: string
           job_posting_id?: string
           notes?: string | null
@@ -141,6 +144,13 @@ export type Database = {
             columns: ["applicant_id"]
             isOneToOne: false
             referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_final_interviewer_id_fkey"
+            columns: ["final_interviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -789,6 +799,7 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["offer_status"]
           updated_at: string
+          work_schedule_id: string | null
           working_days: string | null
           working_hours: string | null
         }
@@ -809,6 +820,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["offer_status"]
           updated_at?: string
+          work_schedule_id?: string | null
           working_days?: string | null
           working_hours?: string | null
         }
@@ -829,10 +841,18 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["offer_status"]
           updated_at?: string
+          work_schedule_id?: string | null
           working_days?: string | null
           working_hours?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "job_offers_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_offers_application_id_fkey"
             columns: ["application_id"]
@@ -1514,7 +1534,46 @@ export type Database = {
         Returns: {
           applicant_id: string
           application_id: string
+          reference_code: string
         }[]
+      }
+      lookup_application: {
+        Args: {
+          p_email: string
+          p_reference_code: string
+        }
+        Returns: {
+          applicant_name: string
+          department_name: string | null
+          interview_location: string | null
+          interview_meeting_link: string | null
+          interview_mode: string | null
+          interview_scheduled_at: string | null
+          interview_status: Database["public"]["Enums"]["interview_status"] | null
+          interview_type: Database["public"]["Enums"]["interview_type"] | null
+          offer_additional_compensation: string | null
+          offer_benefits: string | null
+          offer_currency: string | null
+          offer_employment_type: Database["public"]["Enums"]["employment_type"] | null
+          offer_id: string | null
+          offer_salary: number | null
+          offer_start_date: string | null
+          offer_status: Database["public"]["Enums"]["offer_status"] | null
+          offer_working_days: string | null
+          offer_working_hours: string | null
+          position_title: string | null
+          reference_code: string
+          status: Database["public"]["Enums"]["application_status"]
+          submitted_at: string
+        }[]
+      }
+      respond_to_job_offer: {
+        Args: {
+          p_decision: string
+          p_email: string
+          p_reference_code: string
+        }
+        Returns: string
       }
     }
     Enums: {
@@ -1542,7 +1601,6 @@ export type Database = {
       contract_status: "draft" | "printed" | "signed"
       employment_status:
         | "active"
-        | "probationary"
         | "regular"
         | "contractual"
         | "temporary"
@@ -1717,7 +1775,6 @@ export const Constants = {
       contract_status: ["draft", "printed", "signed"],
       employment_status: [
         "active",
-        "probationary",
         "regular",
         "contractual",
         "temporary",
