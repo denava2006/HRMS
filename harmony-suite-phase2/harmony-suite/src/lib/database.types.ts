@@ -446,7 +446,6 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           position_id: string | null
-          probation_period: string | null
           salary_grade_id: string | null
           updated_at: string
           work_schedule_id: string | null
@@ -475,7 +474,6 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           position_id?: string | null
-          probation_period?: string | null
           salary_grade_id?: string | null
           updated_at?: string
           work_schedule_id?: string | null
@@ -504,7 +502,6 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           position_id?: string | null
-          probation_period?: string | null
           salary_grade_id?: string | null
           updated_at?: string
           work_schedule_id?: string | null
@@ -786,7 +783,6 @@ export type Database = {
           notes: string | null
           offer_date: string
           prepared_by: string | null
-          probation_period: string | null
           proposed_salary: number
           responded_at: string | null
           salary_grade_id: string | null
@@ -807,7 +803,6 @@ export type Database = {
           notes?: string | null
           offer_date?: string
           prepared_by?: string | null
-          probation_period?: string | null
           proposed_salary: number
           responded_at?: string | null
           salary_grade_id?: string | null
@@ -828,7 +823,6 @@ export type Database = {
           notes?: string | null
           offer_date?: string
           prepared_by?: string | null
-          probation_period?: string | null
           proposed_salary?: number
           responded_at?: string | null
           salary_grade_id?: string | null

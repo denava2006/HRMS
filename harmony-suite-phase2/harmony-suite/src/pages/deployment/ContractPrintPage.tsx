@@ -112,10 +112,6 @@ export default function ContractPrintPage() {
             <p className="text-foreground">{formatDate(contract.start_date ?? offer.start_date)}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Probation Period</p>
-            <p className="text-foreground">{offer.probation_period ?? '—'}</p>
-          </div>
-          <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Working Hours</p>
             <p className="text-foreground">{offer.working_hours ?? '—'}</p>
           </div>

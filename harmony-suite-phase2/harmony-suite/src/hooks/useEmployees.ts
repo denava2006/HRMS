@@ -140,7 +140,7 @@ export function useApplicationForEmployeeCreation(applicationId: string | undefi
           `id,
           applicants (first_name, middle_name, last_name, email, phone, address),
           job_postings (department_id, position_id),
-          job_offers (employment_type, salary_grade_id, proposed_salary, currency, probation_period, created_at)`
+          job_offers (employment_type, salary_grade_id, proposed_salary, currency, created_at)`
         )
         .eq('id', applicationId as string)
         .single()
@@ -211,7 +211,6 @@ export interface CreateEmployeeInput {
   basicSalary: number
   currency: CurrencyCode
   hireDate: string
-  probationPeriod?: string
   employmentStatus: EmploymentStatus
 }
 
@@ -241,7 +240,6 @@ export function useCreateEmployee() {
           basic_salary: input.basicSalary,
           currency: input.currency,
           hire_date: input.hireDate,
-          probation_period: input.probationPeriod || null,
           employment_status: input.employmentStatus,
         })
         .select('id, employee_number')

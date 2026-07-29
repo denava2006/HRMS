@@ -343,7 +343,6 @@ export function DeploymentDetailsSheet({
                           <Field label="Start Date" value={formatDate(offer.start_date)} />
                           <Field label="Working Hours" value={offer.working_hours ?? '—'} />
                           <Field label="Working Days" value={offer.working_days ?? '—'} />
-                          <Field label="Probation Period" value={offer.probation_period ?? '—'} />
                         </div>
                         <div className="mt-3 border-t border-border pt-3">
                           <Field label="Benefits" value={offer.benefits ?? '—'} />

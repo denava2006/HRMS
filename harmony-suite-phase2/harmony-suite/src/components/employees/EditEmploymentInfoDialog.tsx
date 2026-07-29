@@ -43,7 +43,6 @@ export function EditEmploymentInfoDialog({
   const [basicSalary, setBasicSalary] = React.useState('')
   const [currency, setCurrency] = React.useState<CurrencyCode>('PHP')
   const [hireDate, setHireDate] = React.useState('')
-  const [probationPeriod, setProbationPeriod] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
@@ -56,7 +55,6 @@ export function EditEmploymentInfoDialog({
       setBasicSalary(String(employee.basic_salary))
       setCurrency((employee.currency as CurrencyCode) ?? 'PHP')
       setHireDate(employee.hire_date)
-      setProbationPeriod(employee.probation_period ?? '')
       setErrors({})
     }
   }, [open, employee])
@@ -89,7 +87,6 @@ export function EditEmploymentInfoDialog({
           basic_salary: Number(basicSalary),
           currency,
           hire_date: hireDate,
-          probation_period: probationPeriod.trim() || null,
         },
       },
       { onSuccess: () => onOpenChange(false) }
@@ -222,10 +219,6 @@ export function EditEmploymentInfoDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit_probation">Probation Period</Label>
-              <Input id="edit_probation" autoComplete="off" placeholder="e.g. 6 months" value={probationPeriod} onChange={(e) => setProbationPeriod(e.target.value)} />
             </div>
           </div>
         </div>

@@ -94,7 +94,6 @@ export function ContractDialog({
               <SummaryField label="Start Date" value={offer.start_date ?? '—'} />
               <SummaryField label="Working Hours" value={offer.working_hours ?? '—'} />
               <SummaryField label="Working Days" value={offer.working_days ?? '—'} />
-              <SummaryField label="Probation Period" value={offer.probation_period ?? '—'} />
             </div>
             <div className="mt-3 border-t border-border pt-3">
               <SummaryField label="Benefits" value={offer.benefits ?? '—'} />

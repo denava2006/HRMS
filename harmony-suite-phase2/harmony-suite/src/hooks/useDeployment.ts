@@ -166,7 +166,6 @@ export interface PrepareJobOfferInput {
   workingHours?: string
   workingDays?: string
   startDate: string
-  probationPeriod?: string
   benefits: string
   additionalCompensation?: string
   notes?: string
@@ -186,7 +185,6 @@ export function usePrepareJobOffer() {
         working_hours: input.workingHours || null,
         working_days: input.workingDays || null,
         start_date: input.startDate,
-        probation_period: input.probationPeriod || null,
         benefits: input.benefits,
         additional_compensation: input.additionalCompensation || null,
         notes: input.notes || null,

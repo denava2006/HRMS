@@ -75,14 +75,13 @@ const employeeSchema = z.object({
   basicSalary: z.string().min(1, 'Basic salary is required'),
   currency: z.enum(['PHP', 'USD']),
   hireDate: z.string().min(1, 'Date hired is required'),
-  probationPeriod: z.string().optional(),
   employmentStatus: z.string().min(1, 'Employment status is required'),
 })
 type EmployeeFormValues = z.infer<typeof employeeSchema>
 
 const STEP_FIELDS: (keyof EmployeeFormValues)[][] = [
   ['firstName', 'middleName', 'lastName', 'gender', 'birthDate', 'civilStatus', 'nationality', 'phone', 'email', 'address'],
-  ['departmentId', 'positionId', 'employmentType', 'salaryGradeId', 'basicSalary', 'currency', 'hireDate', 'probationPeriod', 'employmentStatus'],
+  ['departmentId', 'positionId', 'employmentType', 'salaryGradeId', 'basicSalary', 'currency', 'hireDate', 'employmentStatus'],
   [],
   [],
 ]
@@ -227,7 +226,6 @@ export default function CreateEmployeePage() {
             salaryGradeId: offer.salary_grade_id ?? undefined,
             basicSalary: String(offer.proposed_salary),
             currency: offer.currency as CurrencyCode,
-            probationPeriod: offer.probation_period ?? undefined,
           }
         : {}),
     })
@@ -236,7 +234,7 @@ export default function CreateEmployeePage() {
         ...AUTO_FILLABLE_FIELDS,
         ...(jobPosting?.department_id ? (['departmentId'] as const) : []),
         ...(jobPosting?.position_id ? (['positionId'] as const) : []),
-        ...(offer ? (['employmentType', 'salaryGradeId', 'basicSalary', 'currency', 'probationPeriod'] as const) : []),
+        ...(offer ? (['employmentType', 'salaryGradeId', 'basicSalary', 'currency'] as const) : []),
       ])
     )
     toast.success(
@@ -319,7 +317,6 @@ export default function CreateEmployeePage() {
       basicSalary: Number(values.basicSalary),
       currency: values.currency,
       hireDate: values.hireDate,
-      probationPeriod: values.probationPeriod || undefined,
       employmentStatus: values.employmentStatus as EmploymentStatus,
     })
 
@@ -737,10 +734,6 @@ export default function CreateEmployeePage() {
                       )}
                     />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="probationPeriod">Probation Period</Label>
-                    <Input id="probationPeriod" autoComplete="off" placeholder="e.g. 6 months" {...register('probationPeriod')} />
-                  </div>
                 </div>
               </div>
             )}
@@ -868,7 +861,6 @@ export default function CreateEmployeePage() {
                     <ReviewField label="Salary Grade" value={selectedGrade?.grade_name ?? 'None'} />
                     <ReviewField label="Basic Salary" value={watch('basicSalary') ? `${watch('currency')} ${watch('basicSalary')}` : undefined} />
                     <ReviewField label="Date Hired" value={watch('hireDate')} />
-                    <ReviewField label="Probation Period" value={watch('probationPeriod') || 'N/A'} />
                   </div>
                 </div>
                 {staged.length > 0 && (

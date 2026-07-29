@@ -189,7 +189,6 @@ export default function EmployeeDetailsPage() {
                 <Field icon={Briefcase} label="Position" value={employee.positions?.title ?? ''} />
                 <Field icon={Briefcase} label="Employment Type" value={EMPLOYMENT_TYPE_LABEL[employee.employment_type]} />
                 <Field icon={Calendar} label="Date Hired" value={formatDate(employee.hire_date)} />
-                <Field icon={Calendar} label="Probation Period" value={employee.probation_period ?? 'N/A'} />
                 <Field icon={Wallet} label="Salary Grade" value={employee.salary_grades?.grade_name ?? 'None'} />
                 <Field icon={Wallet} label="Basic Salary" value={formatMoney(employee.basic_salary, currency)} />
               </div>

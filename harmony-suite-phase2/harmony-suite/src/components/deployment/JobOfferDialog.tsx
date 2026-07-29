@@ -49,7 +49,6 @@ export function JobOfferDialog({
   const [workingHours, setWorkingHours] = React.useState('')
   const [workingDays, setWorkingDays] = React.useState('')
   const [startDate, setStartDate] = React.useState('')
-  const [probationPeriod, setProbationPeriod] = React.useState('')
   const [benefits, setBenefits] = React.useState('')
   const [additionalCompensation, setAdditionalCompensation] = React.useState('')
   const [notes, setNotes] = React.useState('')
@@ -64,7 +63,6 @@ export function JobOfferDialog({
       setWorkingHours('')
       setWorkingDays('')
       setStartDate('')
-      setProbationPeriod('')
       setBenefits('')
       setAdditionalCompensation('')
       setNotes('')
@@ -98,7 +96,6 @@ export function JobOfferDialog({
         workingHours: workingHours.trim() || undefined,
         workingDays: workingDays.trim() || undefined,
         startDate,
-        probationPeriod: probationPeriod.trim() || undefined,
         benefits: benefits.trim(),
         additionalCompensation: additionalCompensation.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -217,34 +214,22 @@ export function JobOfferDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="start_date">
-                Start Date <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="start_date"
-                type="date"
-                min={todayISODate()}
-                invalid={!!errors.startDate}
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value)
-                  if (errors.startDate) setErrors((prev) => ({ ...prev, startDate: '' }))
-                }}
-              />
-              {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="probation_period">Probation Period</Label>
-              <Input
-                id="probation_period"
-                autoComplete="off"
-                value={probationPeriod}
-                onChange={(e) => setProbationPeriod(e.target.value)}
-                placeholder="e.g. 6 months"
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="start_date">
+              Start Date <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="start_date"
+              type="date"
+              min={todayISODate()}
+              invalid={!!errors.startDate}
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value)
+                if (errors.startDate) setErrors((prev) => ({ ...prev, startDate: '' }))
+              }}
+            />
+            {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
