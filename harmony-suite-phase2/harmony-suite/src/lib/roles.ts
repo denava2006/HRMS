@@ -24,3 +24,10 @@ export const DEFAULT_ROLE_PASSWORD: Record<CreatableHrRole, string> = {
 export function canApproveWork(role: UserRole | undefined): boolean {
   return role === 'admin' || role === 'hr_manager'
 }
+
+/** Creating, editing, publishing, and closing job postings is HR Staff's own
+ * process — HR Manager gets read access for context but doesn't run the job
+ * board. Mirrors the database's is_hr_staff_or_admin(). */
+export function canPostJobs(role: UserRole | undefined): boolean {
+  return role === 'admin' || role === 'hr_staff'
+}

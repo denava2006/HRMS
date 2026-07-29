@@ -30,6 +30,8 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useAuth } from '@/contexts/AuthContext'
+import { canPostJobs } from '@/lib/roles'
 import {
   type JobPosting,
   useJobPostings,
@@ -317,6 +319,11 @@ function JobPostingFormDialog({
 }
 
 export default function JobPostingsPage() {
+  const { profile } = useAuth()
+  // Creating and posting jobs belongs to HR Staff. HR Manager can see the
+  // board (they interview and make offers against it) but not change it —
+  // enforced by job_postings_write_staff in the database.
+  const canPost = canPostJobs(profile?.role)
   const { data, isLoading, isError, error } = useJobPostings()
   const updatePosting = useUpdateJobPosting()
   const deletePosting = useDeleteJobPosting()
@@ -386,7 +393,8 @@ export default function JobPostingsPage() {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
+      cell: ({ row }) =>
+        !canPost ? null : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -439,15 +447,19 @@ export default function JobPostingsPage() {
           emptyTitle="No job postings yet"
           emptyDescription="Create a posting once you have at least one department and position set up."
           toolbarAction={
-            <Button
-              onClick={() => {
-                setEditing(null)
-                setFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              New posting
-            </Button>
+            !canPost ? (
+              <Badge variant="muted">View only — job postings are managed by HR Staff</Badge>
+            ) : (
+              <Button
+                onClick={() => {
+                  setEditing(null)
+                  setFormOpen(true)
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                New posting
+              </Button>
+            )
           }
         />
       )}
