@@ -51,6 +51,12 @@ export function useEmployees() {
   return useQuery({
     queryKey: LIST_KEY,
     queryFn: async () => {
+      // "On Leave" is derived from whether an approved leave covers today.
+      // Approving a request flips it via trigger, but a leave *ending* is the
+      // passing of a date, which nothing fires on — so the list reconciles
+      // before it reads. The update matches zero rows on almost every call.
+      await supabase.rpc('sync_employment_statuses')
+
       const { data, error } = await supabase.from('employees').select(EMPLOYEE_SELECT).order('created_at', { ascending: false })
       if (error) throw error
       return data as unknown as Employee[]
@@ -169,7 +175,9 @@ export function useEmployeeStats() {
       const [total, active, regular, inactive] = await Promise.all([
         supabase.from('employees').select('*', { count: 'exact', head: true }),
         supabase.from('employees').select('*', { count: 'exact', head: true }).eq('employment_status', 'active'),
-        supabase.from('employees').select('*', { count: 'exact', head: true }).eq('employment_status', 'regular'),
+        // 'Regular' is an employment TYPE now, not a status — the card still means
+        // "how many regular (non part-time) staff", it just reads the right column.
+        supabase.from('employees').select('*', { count: 'exact', head: true }).eq('employment_type', 'regular'),
         supabase.from('employees').select('*', { count: 'exact', head: true }).in('employment_status', INACTIVE_STATUSES),
       ])
       return {
@@ -209,7 +217,7 @@ export interface CreateEmployeeInput {
   address: string
   departmentId: string
   positionId: string
-  employmentType: 'full_time' | 'part_time'
+  employmentType: 'regular' | 'part_time'
   salaryGradeId?: string
   basicSalary: number
   currency: CurrencyCode

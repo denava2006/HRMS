@@ -71,6 +71,47 @@ export function calculateOvertimeMinutes(attendanceDate: string, timeOut: Date, 
   return diffMinutes > 0 ? Math.round(diffMinutes) : 0
 }
 
+/** How early an employee may time in, relative to their shift start. Timing in
+ * at 3 AM for an 8 AM shift isn't an early start, it's a mistake or a way to
+ * inflate hours. */
+export const EARLY_TIME_IN_WINDOW_HOURS = 2
+
+/** How long past the shift end an employee may still time out. Anything beyond
+ * this needs HR to record it as a correction, so unapproved overtime can't
+ * accumulate silently. */
+export const MAX_OVERTIME_HOURS = 2
+
+/** Returns a message explaining why this time-in is outside the allowed window,
+ * or null when it's fine. Late time-ins are always allowed — they're recorded
+ * as late, not refused. */
+export function validateTimeIn(attendanceDate: string, timeIn: Date, schedule: WorkSchedule): string | null {
+  const earliest = scheduledDateTime(attendanceDate, schedule.start_time)
+  earliest.setMinutes(earliest.getMinutes() - EARLY_TIME_IN_WINDOW_HOURS * 60)
+  if (timeIn.getTime() < earliest.getTime()) {
+    return `You may only time in within two (2) hours before your scheduled shift. The earliest you can time in today is ${formatClock(earliest)}.`
+  }
+  return null
+}
+
+/** Returns a message explaining why this time-out is outside the allowed
+ * window, or null when it's fine. */
+export function validateTimeOut(attendanceDate: string, timeOut: Date, schedule: WorkSchedule): string | null {
+  const scheduledEnd = scheduledEndDateTime(attendanceDate, schedule)
+  if (timeOut.getTime() < scheduledEnd.getTime()) {
+    return `Your shift ends at ${formatClock(scheduledEnd)}. Ask HR to record an early time out for you.`
+  }
+  const latest = new Date(scheduledEnd)
+  latest.setMinutes(latest.getMinutes() + MAX_OVERTIME_HOURS * 60)
+  if (timeOut.getTime() > latest.getTime()) {
+    return `Maximum overtime exceeded. The latest you can time out today is ${formatClock(latest)}.`
+  }
+  return null
+}
+
+function formatClock(d: Date): string {
+  return d.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })
+}
+
 /** Present/Late/Half Day are the only statuses derived from time entries —
  * everything else (Absent, On Leave, Holiday, Rest Day, Official Business,
  * Work From Home) is an explicit HR choice, never inferred. */

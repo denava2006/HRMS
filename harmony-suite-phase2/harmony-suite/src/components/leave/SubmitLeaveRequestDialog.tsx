@@ -16,7 +16,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { cn } from '@/lib/utils'
 import { useEmployees } from '@/hooks/useEmployees'
 import { useLeaveTypes, useCreateLeaveRequest, validateLeaveDocumentFile } from '@/hooks/useLeave'
-import { calculateLeaveDays, todayISODate } from '@/lib/leaveCalculations'
+import { calculateLeaveDays } from '@/lib/leaveCalculations'
+import { todayISODate, tomorrowISODate } from '@/lib/dates'
 
 function formatFileSize(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
@@ -72,7 +73,13 @@ export function SubmitLeaveRequestDialog({
     const nextErrors: Record<string, string> = {}
     if (!employeeId) nextErrors.employeeId = 'Select an employee.'
     if (!leaveTypeId) nextErrors.leaveTypeId = 'Select a leave type.'
-    if (!startDate) nextErrors.startDate = 'Start date is required.'
+    if (!startDate) {
+      nextErrors.startDate = 'Start date is required.'
+    } else if (startDate <= todayISODate()) {
+      // Leave is filed in advance so it can be approved before it starts;
+      // same-day and backdated leave go through HR, not this form.
+      nextErrors.startDate = 'Leave must start tomorrow or later.'
+    }
     if (!endDate) nextErrors.endDate = 'End date is required.'
     if (startDate && endDate && startDate > endDate) nextErrors.endDate = 'End date cannot be before start date.'
     if (!reason.trim()) nextErrors.reason = 'Reason is required.'
@@ -147,14 +154,14 @@ export function SubmitLeaveRequestDialog({
               <Label htmlFor="start_date">
                 Start Date <span className="text-destructive">*</span>
               </Label>
-              <Input id="start_date" type="date" min={todayISODate()} invalid={!!errors.startDate} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input id="start_date" type="date" min={tomorrowISODate()} invalid={!!errors.startDate} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               {errors.startDate && <p className="text-xs text-destructive">{errors.startDate}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="end_date">
                 End Date <span className="text-destructive">*</span>
               </Label>
-              <Input id="end_date" type="date" min={startDate || todayISODate()} invalid={!!errors.endDate} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <Input id="end_date" type="date" min={startDate || tomorrowISODate()} invalid={!!errors.endDate} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               {errors.endDate && <p className="text-xs text-destructive">{errors.endDate}</p>}
             </div>
           </div>

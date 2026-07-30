@@ -69,7 +69,7 @@ const jobPostingSchema = z.object({
   position_id: z.string().min(1, 'Select a position'),
   description: z.string().min(1, 'Description is required').max(5000),
   requirements: z.string().max(5000).optional(),
-  employment_type: z.enum(['full_time', 'part_time']),
+  employment_type: z.enum(['regular', 'part_time']),
   vacancies: z
     .string()
     .min(1, 'Vacancies is required')
@@ -119,7 +119,7 @@ function JobPostingFormDialog({
         position_id: posting?.position_id ?? '',
         description: posting?.description ?? '',
         requirements: posting?.requirements ?? '',
-        employment_type: posting?.employment_type ?? 'full_time',
+        employment_type: posting?.employment_type ?? 'regular',
         vacancies: posting ? String(posting.vacancies) : '1',
         status: posting?.status ?? 'draft',
         closing_date: posting?.closing_date ?? '',

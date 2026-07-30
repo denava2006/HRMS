@@ -102,7 +102,7 @@ async function generateEmployeeReport(filters: ReportFilters): Promise<ReportRes
     return true
   })
 
-  const active = rows.filter((r) => r.employment_status === 'active' || r.employment_status === 'regular').length
+  const active = rows.filter((r) => r.employment_status === 'active').length
   const onLeave = rows.filter((r) => r.employment_status === 'on_leave').length
   const separated = rows.filter((r) => ['resigned', 'terminated', 'retired'].includes(r.employment_status)).length
 

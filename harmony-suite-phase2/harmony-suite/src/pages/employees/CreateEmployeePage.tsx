@@ -30,7 +30,7 @@ import {
 import { useCurrency } from '@/hooks/useSystemSettings'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { CURRENCY_LABEL, type CurrencyCode } from '@/lib/currency'
-import { CIVIL_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, EMPLOYMENT_STATUS_LABEL } from '@/lib/employeeLabels'
+import { CIVIL_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, EMPLOYMENT_STATUS_LABEL, SELECTABLE_EMPLOYMENT_STATUSES } from '@/lib/employeeLabels'
 import type { EmploymentStatus } from '@/lib/database.types'
 
 // Letters with single spaces, hyphens, or apostrophes between them — no digits,
@@ -91,7 +91,7 @@ const employeeSchema = z.object({
 
   departmentId: z.string().min(1, 'Department is required'),
   positionId: z.string().min(1, 'Position is required'),
-  employmentType: z.enum(['full_time', 'part_time']),
+  employmentType: z.enum(['regular', 'part_time']),
   salaryGradeId: z.string().optional(),
   basicSalary: z.string().min(1, 'Basic salary is required'),
   currency: z.enum(['PHP', 'USD']),
@@ -212,7 +212,7 @@ export default function CreateEmployeePage() {
   } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      employmentType: 'full_time',
+      employmentType: 'regular',
       currency: defaultCurrency,
       hireDate: todayISODate(),
       employmentStatus: 'active',
@@ -701,9 +701,9 @@ export default function CreateEmployeePage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {(Object.entries(EMPLOYMENT_STATUS_LABEL) as [EmploymentStatus, string][]).map(([value, label]) => (
+                            {SELECTABLE_EMPLOYMENT_STATUSES.map((value) => (
                               <SelectItem key={value} value={value}>
-                                {label}
+                                {EMPLOYMENT_STATUS_LABEL[value]}
                               </SelectItem>
                             ))}
                           </SelectContent>

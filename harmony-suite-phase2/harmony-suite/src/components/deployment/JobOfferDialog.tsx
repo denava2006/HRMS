@@ -54,7 +54,7 @@ export function JobOfferDialog({
   const { data: workSchedules } = useWorkSchedules()
   const prepareOffer = usePrepareJobOffer()
 
-  const employmentType: EmploymentType = 'full_time'
+  const employmentType: EmploymentType = 'regular'
   const [salaryGradeId, setSalaryGradeId] = React.useState('')
   const [salary, setSalary] = React.useState('')
   const [currency, setCurrency] = React.useState<CurrencyCode>('PHP')
@@ -138,7 +138,7 @@ export function JobOfferDialog({
               <Label>Employment Type</Label>
               {/* Part-time is parked for a future update — every offer is
                 * full-time for now, so this is shown but not editable. */}
-              <Input value={EMPLOYMENT_TYPE_LABEL.full_time} disabled />
+              <Input value={EMPLOYMENT_TYPE_LABEL.regular} disabled />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Salary Grade (optional)</Label>

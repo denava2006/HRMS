@@ -3,9 +3,6 @@ import type { BadgeProps } from '@/components/ui/badge'
 
 export const EMPLOYMENT_STATUS_LABEL: Record<EmploymentStatus, string> = {
   active: 'Active',
-  regular: 'Regular',
-  contractual: 'Contractual',
-  temporary: 'Temporary',
   on_leave: 'On Leave',
   resigned: 'Resigned',
   terminated: 'Terminated',
@@ -14,14 +11,17 @@ export const EMPLOYMENT_STATUS_LABEL: Record<EmploymentStatus, string> = {
 
 export const EMPLOYMENT_STATUS_VARIANT: Record<EmploymentStatus, BadgeProps['variant']> = {
   active: 'success',
-  regular: 'success',
-  contractual: 'secondary',
-  temporary: 'secondary',
   on_leave: 'warning',
   resigned: 'muted',
   terminated: 'destructive',
   retired: 'muted',
 }
+
+/** The statuses HR may set by hand. 'on_leave' is deliberately absent: it's
+ * derived from whether an approved leave request covers today, and clears
+ * itself when the leave ends (see sync_employment_statuses()). Letting someone
+ * pick it manually would create a state the system then silently overwrites. */
+export const SELECTABLE_EMPLOYMENT_STATUSES: EmploymentStatus[] = ['active', 'resigned', 'terminated', 'retired']
 
 /** Not a stored employment_status value — a deployed applicant with no employees
  * row yet renders with this client-side-only pseudo-status. See usePendingEmployees. */

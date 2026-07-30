@@ -49,6 +49,7 @@ import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { EMPLOYMENT_STATUS_LABEL } from '@/lib/employeeLabels'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 import { RESPONSE_WINDOW_DAYS, daysRemaining } from '@/lib/applicationSla'
+import { loadApplicantSession, saveApplicantSession, clearApplicantSession } from '@/lib/applicantSession'
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('en-PH', {
@@ -585,10 +586,16 @@ function StatusResult({
 }
 
 export default function TrackApplicationPage() {
-  // Deliberately not persisted: the reference code plus email are enough to
-  // read personal details and respond to an offer, so they live only for this
-  // tab's session rather than in localStorage.
-  const [credentials, setCredentials] = React.useState<ApplicantCredentials | null>(null)
+  // Held in sessionStorage rather than component state so browsing to Careers
+  // or Home and coming back doesn't sign the applicant out. Still tab-scoped
+  // and expiring — see lib/applicantSession.ts for why not localStorage.
+  const [credentials, setCredentialsState] = React.useState<ApplicantCredentials | null>(loadApplicantSession)
+
+  const setCredentials = React.useCallback((next: ApplicantCredentials | null) => {
+    if (next) saveApplicantSession(next)
+    else clearApplicantSession()
+    setCredentialsState(next)
+  }, [])
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-12 sm:px-6">

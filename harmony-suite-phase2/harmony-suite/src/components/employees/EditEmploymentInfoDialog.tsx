@@ -19,7 +19,7 @@ import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import { useUpdateEmployee, type Employee } from '@/hooks/useEmployees'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { CURRENCY_LABEL, type CurrencyCode } from '@/lib/currency'
-import { EMPLOYMENT_STATUS_LABEL } from '@/lib/employeeLabels'
+import { EMPLOYMENT_STATUS_LABEL, SELECTABLE_EMPLOYMENT_STATUSES } from '@/lib/employeeLabels'
 import type { EmploymentStatus } from '@/lib/database.types'
 
 export function EditEmploymentInfoDialog({
@@ -39,7 +39,7 @@ export function EditEmploymentInfoDialog({
 
   const [departmentId, setDepartmentId] = React.useState('')
   const [positionId, setPositionId] = React.useState('')
-  const [employmentType, setEmploymentType] = React.useState<'full_time' | 'part_time'>('full_time')
+  const [employmentType, setEmploymentType] = React.useState<'regular' | 'part_time'>('regular')
   const [employmentStatus, setEmploymentStatus] = React.useState<EmploymentStatus>('active')
   const [salaryGradeId, setSalaryGradeId] = React.useState('')
   const [basicSalary, setBasicSalary] = React.useState('')
@@ -152,7 +152,7 @@ export function EditEmploymentInfoDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Employment Type</Label>
-              <Select value={employmentType} onValueChange={(v) => setEmploymentType(v as 'full_time' | 'part_time')}>
+              <Select value={employmentType} onValueChange={(v) => setEmploymentType(v as 'regular' | 'part_time')}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -172,9 +172,9 @@ export function EditEmploymentInfoDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.entries(EMPLOYMENT_STATUS_LABEL) as [EmploymentStatus, string][]).map(([value, label]) => (
+                  {SELECTABLE_EMPLOYMENT_STATUSES.map((value) => (
                     <SelectItem key={value} value={value}>
-                      {label}
+                      {EMPLOYMENT_STATUS_LABEL[value]}
                     </SelectItem>
                   ))}
                 </SelectContent>

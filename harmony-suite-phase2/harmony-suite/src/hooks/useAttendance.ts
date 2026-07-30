@@ -9,6 +9,8 @@ import {
   calculateAttendanceMetrics,
   calculateLateMinutes,
   isScheduledWorkingDay,
+  validateTimeIn,
+  validateTimeOut,
   EXPLICIT_ATTENDANCE_STATUSES,
   type WorkSchedule,
 } from '@/lib/attendanceCalculations'
@@ -79,7 +81,7 @@ export function useAttendanceStats(dateISO: string = todayISODate()) {
         supabase
           .from('employees')
           .select('id, work_schedule_id, employment_status, work_schedules(working_days)')
-          .in('employment_status', ['active', 'regular', 'contractual', 'temporary']),
+          .in('employment_status', ['active', 'on_leave']),
         supabase.from('attendance_records').select('employee_id, status, overtime_minutes').eq('attendance_date', dateISO),
         supabase.from('holidays').select('id').eq('holiday_date', dateISO).limit(1),
       ])
@@ -177,6 +179,24 @@ export function useRecordAttendance() {
       const timeOut = input.timeOut ? new Date(input.timeOut) : null
       if (timeIn && timeOut && timeOut.getTime() <= timeIn.getTime()) {
         throw new Error('Time Out must be later than Time In.')
+      }
+
+      // A plain clock in/out has to land inside the employee's shift window.
+      // An explicit status is HR classifying the day (absent, on leave, rest
+      // day…), which is a different action and isn't bound by the window —
+      // neither is Correct Attendance, HR's escape hatch for the cases these
+      // rules deliberately refuse.
+      const isExplicitStatusEntry = !!input.status && EXPLICIT_ATTENDANCE_STATUSES.includes(input.status)
+      if (!isExplicitStatusEntry && (input.timeIn || input.timeOut)) {
+        const schedule = await fetchEffectiveSchedule(input.employeeId)
+        if (input.timeIn) {
+          const problem = validateTimeIn(input.attendanceDate, new Date(input.timeIn), schedule)
+          if (problem) throw new Error(problem)
+        }
+        if (input.timeOut) {
+          const problem = validateTimeOut(input.attendanceDate, new Date(input.timeOut), schedule)
+          if (problem) throw new Error(problem)
+        }
       }
 
       const payload: TablesInsert<'attendance_records'> = {

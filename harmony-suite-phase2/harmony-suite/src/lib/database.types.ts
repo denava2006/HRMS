@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -94,35 +114,6 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      change_requests: {
-        Row: { created_at: string; id: string; operation: Database["public"]["Enums"]["change_request_operation"]; payload: Json; rejection_reason: string | null; requested_at: string; requested_by: string; reviewed_at: string | null; reviewed_by: string | null; status: Database["public"]["Enums"]["change_request_status"]; summary: string; target_id: string | null; target_table: string; updated_at: string }
-        Insert: { created_at?: string; id?: string; operation: Database["public"]["Enums"]["change_request_operation"]; payload?: Json; rejection_reason?: string | null; requested_at?: string; requested_by: string; reviewed_at?: string | null; reviewed_by?: string | null; status?: Database["public"]["Enums"]["change_request_status"]; summary: string; target_id?: string | null; target_table: string; updated_at?: string }
-        Update: { created_at?: string; id?: string; operation?: Database["public"]["Enums"]["change_request_operation"]; payload?: Json; rejection_reason?: string | null; requested_at?: string; requested_by?: string; reviewed_at?: string | null; reviewed_by?: string | null; status?: Database["public"]["Enums"]["change_request_status"]; summary?: string; target_id?: string | null; target_table?: string; updated_at?: string }
-        Relationships: [
-          { foreignKeyName: "change_requests_requested_by_fkey"; columns: ["requested_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
-          { foreignKeyName: "change_requests_reviewed_by_fkey"; columns: ["reviewed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
-        ]
-      }
-      branches: {
-        Row: { address: string | null; created_at: string; id: string; is_active: boolean; name: string; updated_at: string }
-        Insert: { address?: string | null; created_at?: string; id?: string; is_active?: boolean; name: string; updated_at?: string }
-        Update: { address?: string | null; created_at?: string; id?: string; is_active?: boolean; name?: string; updated_at?: string }
-        Relationships: []
-      }
-      work_locations: {
-        Row: { branch_id: string | null; created_at: string; description: string | null; id: string; is_active: boolean; name: string; updated_at: string }
-        Insert: { branch_id?: string | null; created_at?: string; description?: string | null; id?: string; is_active?: boolean; name: string; updated_at?: string }
-        Update: { branch_id?: string | null; created_at?: string; description?: string | null; id?: string; is_active?: boolean; name?: string; updated_at?: string }
-        Relationships: [
-          {
-            foreignKeyName: "work_locations_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
             referencedColumns: ["id"]
           },
         ]
@@ -298,6 +289,99 @@ export type Database = {
           },
         ]
       }
+      branches: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      change_requests: {
+        Row: {
+          created_at: string
+          id: string
+          operation: Database["public"]["Enums"]["change_request_operation"]
+          payload: Json
+          rejection_reason: string | null
+          requested_at: string
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["change_request_status"]
+          summary: string
+          target_id: string | null
+          target_table: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operation: Database["public"]["Enums"]["change_request_operation"]
+          payload?: Json
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["change_request_status"]
+          summary: string
+          target_id?: string | null
+          target_table: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operation?: Database["public"]["Enums"]["change_request_operation"]
+          payload?: Json
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["change_request_status"]
+          summary?: string
+          target_id?: string | null
+          target_table?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -324,11 +408,9 @@ export type Database = {
       }
       deployment_records: {
         Row: {
-          branch_id: string | null
-          work_location_id: string | null
-          work_schedule_id: string | null
           application_id: string
           assigned_branch: string | null
+          branch_id: string | null
           created_at: string
           deployed_by: string | null
           deployment_date: string
@@ -338,13 +420,13 @@ export type Database = {
           reporting_time: string | null
           updated_at: string
           work_location: string | null
+          work_location_id: string | null
+          work_schedule_id: string | null
         }
         Insert: {
-          branch_id?: string | null
-          work_location_id?: string | null
-          work_schedule_id?: string | null
           application_id: string
           assigned_branch?: string | null
+          branch_id?: string | null
           created_at?: string
           deployed_by?: string | null
           deployment_date: string
@@ -354,13 +436,13 @@ export type Database = {
           reporting_time?: string | null
           updated_at?: string
           work_location?: string | null
-        }
-        Update: {
-          branch_id?: string | null
           work_location_id?: string | null
           work_schedule_id?: string | null
+        }
+        Update: {
           application_id?: string
           assigned_branch?: string | null
+          branch_id?: string | null
           created_at?: string
           deployed_by?: string | null
           deployment_date?: string
@@ -370,6 +452,8 @@ export type Database = {
           reporting_time?: string | null
           updated_at?: string
           work_location?: string | null
+          work_location_id?: string | null
+          work_schedule_id?: string | null
         }
         Relationships: [
           {
@@ -380,10 +464,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deployment_records_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deployment_records_deployed_by_fkey"
             columns: ["deployed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_records_work_location_id_fkey"
+            columns: ["work_location_id"]
+            isOneToOne: false
+            referencedRelation: "work_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_records_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
             referencedColumns: ["id"]
           },
         ]
@@ -888,13 +993,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "job_offers_work_schedule_id_fkey"
-            columns: ["work_schedule_id"]
-            isOneToOne: false
-            referencedRelation: "work_schedules"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "job_offers_application_id_fkey"
             columns: ["application_id"]
             isOneToOne: false
@@ -913,6 +1011,13 @@ export type Database = {
             columns: ["salary_grade_id"]
             isOneToOne: false
             referencedRelation: "salary_grades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_offers_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
             referencedColumns: ["id"]
           },
         ]
@@ -1210,9 +1315,6 @@ export type Database = {
       }
       payroll_records: {
         Row: {
-          pagibig_contribution: number
-          philhealth_contribution: number
-          sss_contribution: number
           absent_days: number
           basic_salary: number
           created_at: string
@@ -1230,10 +1332,13 @@ export type Database = {
           other_deductions: number
           overtime_hours: number
           overtime_pay: number
+          pagibig_contribution: number
           paid_leave_days: number
           payroll_period_id: string
+          philhealth_contribution: number
           released_at: string | null
           reviewed_by: string | null
+          sss_contribution: number
           status: Database["public"]["Enums"]["payroll_status"]
           total_allowances: number
           total_deductions: number
@@ -1244,9 +1349,6 @@ export type Database = {
           working_days: number
         }
         Insert: {
-          pagibig_contribution?: number
-          philhealth_contribution?: number
-          sss_contribution?: number
           absent_days?: number
           basic_salary?: number
           created_at?: string
@@ -1264,10 +1366,13 @@ export type Database = {
           other_deductions?: number
           overtime_hours?: number
           overtime_pay?: number
+          pagibig_contribution?: number
           paid_leave_days?: number
           payroll_period_id: string
+          philhealth_contribution?: number
           released_at?: string | null
           reviewed_by?: string | null
+          sss_contribution?: number
           status?: Database["public"]["Enums"]["payroll_status"]
           total_allowances?: number
           total_deductions?: number
@@ -1278,9 +1383,6 @@ export type Database = {
           working_days?: number
         }
         Update: {
-          pagibig_contribution?: number
-          philhealth_contribution?: number
-          sss_contribution?: number
           absent_days?: number
           basic_salary?: number
           created_at?: string
@@ -1298,10 +1400,13 @@ export type Database = {
           other_deductions?: number
           overtime_hours?: number
           overtime_pay?: number
+          pagibig_contribution?: number
           paid_leave_days?: number
           payroll_period_id?: string
+          philhealth_contribution?: number
           released_at?: string | null
           reviewed_by?: string | null
+          sss_contribution?: number
           status?: Database["public"]["Enums"]["payroll_status"]
           total_allowances?: number
           total_deductions?: number
@@ -1524,6 +1629,44 @@ export type Database = {
           },
         ]
       }
+      work_locations: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_locations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_schedules: {
         Row: {
           break_minutes: number
@@ -1565,68 +1708,128 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_employee_number: { Args: never; Returns: string }
-      generate_payslip_number: { Args: never; Returns: string }
-      is_active_staff: { Args: never; Returns: boolean }
-      is_admin: { Args: never; Returns: boolean }
-      submit_job_application: {
+      applicant_owns_file: {
         Args: {
-          p_address: string
-          p_cover_letter?: string
+          p_bucket: string
           p_email: string
-          p_first_name: string
-          p_job_posting_id: string
-          p_last_name: string
-          p_middle_name?: string
-          p_phone: string
-          p_resume_path: string
-        }
-        Returns: {
-          applicant_id: string
-          application_id: string
-          reference_code: string
-        }[]
-      }
-      approve_change_request: { Args: { p_request_id: string }; Returns: undefined }
-      reject_change_request: { Args: { p_reason: string; p_request_id: string }; Returns: undefined }
-      lookup_application: {
-        Args: {
-          p_email: string
+          p_path: string
           p_reference_code: string
         }
+        Returns: boolean
+      }
+      approve_change_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
+      generate_application_reference: { Args: never; Returns: string }
+      generate_employee_number: { Args: never; Returns: string }
+      generate_payslip_number: { Args: never; Returns: string }
+      is_active_employee: { Args: never; Returns: boolean }
+      is_active_staff: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
+      is_hr_manager_or_admin: { Args: never; Returns: boolean }
+      is_hr_staff_or_admin: { Args: never; Returns: boolean }
+      lookup_application: {
+        Args: { p_email: string; p_reference_code: string }
         Returns: {
+          account_activated_at: string
+          account_email: string
           applicant_name: string
-          department_name: string | null
-          interview_location: string | null
-          interview_meeting_link: string | null
-          interview_mode: string | null
-          interview_scheduled_at: string | null
-          interview_status: Database["public"]["Enums"]["interview_status"] | null
-          interview_type: Database["public"]["Enums"]["interview_type"] | null
-          offer_additional_compensation: string | null
-          offer_benefits: string | null
-          offer_currency: string | null
-          offer_employment_type: Database["public"]["Enums"]["employment_type"] | null
-          offer_id: string | null
-          offer_salary: number | null
-          offer_start_date: string | null
-          offer_status: Database["public"]["Enums"]["offer_status"] | null
-          offer_working_days: string | null
-          offer_working_hours: string | null
-          position_title: string | null
+          contract_additional_notes: string
+          contract_company_policies: string
+          contract_file_path: string
+          contract_id: string
+          contract_signed_at: string
+          contract_start_date: string
+          contract_status: Database["public"]["Enums"]["contract_status"]
+          contract_terms: string
+          department_name: string
+          deployment_branch: string
+          deployment_date: string
+          deployment_remarks: string
+          deployment_schedule_days: number[]
+          deployment_schedule_end: string
+          deployment_schedule_name: string
+          deployment_schedule_start: string
+          deployment_work_location: string
+          documents: Json
+          employee_basic_salary: number
+          employee_benefits: string
+          employee_currency: string
+          employee_department: string
+          employee_email: string
+          employee_employment_status: Database["public"]["Enums"]["employment_status"]
+          employee_employment_type: Database["public"]["Enums"]["employment_type"]
+          employee_hire_date: string
+          employee_number: string
+          employee_position: string
+          interview_location: string
+          interview_meeting_link: string
+          interview_mode: string
+          interview_scheduled_at: string
+          interview_status: Database["public"]["Enums"]["interview_status"]
+          interview_type: Database["public"]["Enums"]["interview_type"]
+          offer_additional_compensation: string
+          offer_benefits: string
+          offer_currency: string
+          offer_employment_type: Database["public"]["Enums"]["employment_type"]
+          offer_id: string
+          offer_salary: number
+          offer_start_date: string
+          offer_status: Database["public"]["Enums"]["offer_status"]
+          offer_working_days: string
+          offer_working_hours: string
+          position_title: string
           reference_code: string
           status: Database["public"]["Enums"]["application_status"]
           submitted_at: string
         }[]
       }
+      my_employee_id: { Args: never; Returns: string }
+      reject_change_request: {
+        Args: { p_reason: string; p_request_id: string }
+        Returns: undefined
+      }
       respond_to_job_offer: {
-        Args: {
-          p_decision: string
-          p_email: string
-          p_reference_code: string
-        }
+        Args: { p_decision: string; p_email: string; p_reference_code: string }
         Returns: string
       }
+      submit_job_application:
+        | {
+            Args: {
+              p_address: string
+              p_cover_letter?: string
+              p_email: string
+              p_first_name: string
+              p_job_posting_id: string
+              p_last_name: string
+              p_phone: string
+              p_resume_path: string
+            }
+            Returns: {
+              applicant_id: string
+              application_id: string
+            }[]
+          }
+        | {
+            Args: {
+              p_address: string
+              p_cover_letter?: string
+              p_email: string
+              p_first_name: string
+              p_job_posting_id: string
+              p_last_name: string
+              p_middle_name?: string
+              p_phone: string
+              p_resume_path: string
+            }
+            Returns: {
+              applicant_id: string
+              application_id: string
+              reference_code: string
+            }[]
+          }
+      sync_employment_statuses: { Args: never; Returns: undefined }
     }
     Enums: {
       account_status: "active" | "inactive"
@@ -1655,14 +1858,11 @@ export type Database = {
       contract_status: "draft" | "printed" | "signed"
       employment_status:
         | "active"
-        | "regular"
-        | "contractual"
-        | "temporary"
         | "on_leave"
         | "resigned"
         | "terminated"
         | "retired"
-      employment_type: "full_time" | "part_time"
+      employment_type: "regular" | "part_time"
       interview_status:
         | "scheduled"
         | "passed"
@@ -1801,6 +2001,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       account_status: ["active", "inactive"],
@@ -1831,15 +2034,12 @@ export const Constants = {
       contract_status: ["draft", "printed", "signed"],
       employment_status: [
         "active",
-        "regular",
-        "contractual",
-        "temporary",
         "on_leave",
         "resigned",
         "terminated",
         "retired",
       ],
-      employment_type: ["full_time", "part_time"],
+      employment_type: ["regular", "part_time"],
       interview_status: [
         "scheduled",
         "passed",
@@ -1858,7 +2058,10 @@ export const Constants = {
   },
 } as const
 
-// Convenience aliases used throughout the app.
+
+// ---- Convenience aliases ----
+// Hand-maintained; `supabase gen types` overwrites this file, so re-append
+// these after regenerating.
 export type UserRole = Enums<"user_role">
 export type AccountStatus = Enums<"account_status">
 export type InterviewType = Enums<"interview_type">

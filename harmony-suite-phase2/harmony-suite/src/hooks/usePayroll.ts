@@ -181,7 +181,7 @@ export function useCreatePayrollPeriod() {
 
 // ---- Steps 2-10: Generate Payroll ----
 
-const ACTIVE_EMPLOYMENT_STATUSES: EmploymentStatus[] = ['active', 'regular', 'contractual', 'temporary', 'on_leave']
+const ACTIVE_EMPLOYMENT_STATUSES: EmploymentStatus[] = ['active', 'on_leave']
 
 export function useGeneratePayroll() {
   const { profile } = useAuth()
