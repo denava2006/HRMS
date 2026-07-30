@@ -32,6 +32,15 @@ export function canPostJobs(role: UserRole | undefined): boolean {
   return role === 'admin' || role === 'hr_staff'
 }
 
+/** Creating a payroll period, generating the figures, adjusting them, and
+ * submitting for approval is HR Staff's work. An HR Manager who could also
+ * generate would be on both sides of the review — they approve payroll, so
+ * they must not be the one who produced it. Mirrors the database's
+ * protect_payroll_generation(). */
+export function canPreparePayroll(role: UserRole | undefined): boolean {
+  return role === 'admin' || role === 'hr_staff'
+}
+
 /** Deciding whether an application is qualified or rejected is an approval, so
  * it belongs to the HR Manager alongside payroll and leave. HR Staff picks the
  * pipeline back up at Interview Management, which lists qualified applicants

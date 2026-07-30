@@ -37,7 +37,7 @@ import {
 import { useDepartments } from '@/hooks/useDepartments'
 import { usePositions } from '@/hooks/usePositions'
 import { useAuth } from '@/contexts/AuthContext'
-import { canApproveWork } from '@/lib/roles'
+import { canApproveWork, canPreparePayroll } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { PAYROLL_STATUS_LABEL, PAYROLL_STATUS_VARIANT, PAYROLL_FREQUENCY_LABEL } from '@/lib/payrollLabels'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
@@ -84,6 +84,9 @@ export default function PayrollPage() {
 
   const { profile } = useAuth()
   const canApprove = canApproveWork(profile?.role)
+  // Preparing and deciding are separate jobs — an HR Manager who could also
+  // generate would be approving their own figures.
+  const canPrepare = canPreparePayroll(profile?.role)
   const { data: periods, isLoading: periodsLoading } = usePayrollPeriods()
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string | null>(null)
 
@@ -133,9 +136,9 @@ export default function PayrollPage() {
       case 'generated':
         return {
           title: 'Step 2 — Check the entries',
-          detail: canApprove
-            ? 'HR Staff is still checking these figures. They come to you once submitted.'
-            : 'Review the employee list, deductions, and totals, then submit them for HR Manager approval.',
+          detail: canPrepare
+            ? 'Review the employee list, deductions, and totals, then submit them for HR Manager approval.'
+            : 'HR Staff is still checking these figures. They come to you once submitted.',
         }
       case 'pending_approval':
         return {
@@ -147,9 +150,9 @@ export default function PayrollPage() {
       case 'rejected':
         return {
           title: `Step 2 — ${rejectedCount} ${rejectedCount === 1 ? 'record was' : 'records were'} sent back`,
-          detail: canApprove
-            ? 'HR Staff is correcting the records you rejected.'
-            : 'Each rejected row shows why. Adjust it, then submit the period again.',
+          detail: canPrepare
+            ? 'Each rejected row shows why. Adjust it, then submit the period again.'
+            : 'HR Staff is correcting the records you rejected.',
         }
       case 'approved':
         return {
@@ -164,7 +167,7 @@ export default function PayrollPage() {
       default:
         return { title: 'Payroll not generated yet', detail: 'Generate payroll to compute this period.' }
     }
-  }, [selectedPeriod?.status, canApprove, rejectedCount])
+  }, [selectedPeriod?.status, canApprove, canPrepare, rejectedCount])
 
   const rows = React.useMemo(() => {
     if (!records) return []
@@ -276,7 +279,7 @@ export default function PayrollPage() {
               {!canApprove && isAwaitingDecision && (
                 <DropdownMenuItem disabled>Awaiting HR Manager</DropdownMenuItem>
               )}
-              {record.status !== 'released' && record.status !== 'pending_approval' && (
+              {canPrepare && record.status !== 'released' && record.status !== 'pending_approval' && (
                 <DropdownMenuItem onClick={() => setAdjustingRecord(record)}>Adjust Payroll</DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -293,10 +296,12 @@ export default function PayrollPage() {
           <h2 className="font-display text-xl font-semibold text-foreground">Payroll Management</h2>
           <p className="text-sm text-muted-foreground">Compute, review, and release payroll for every employee.</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          New Payroll Period
-        </Button>
+        {canPrepare && (
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New Payroll Period
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -377,13 +382,13 @@ export default function PayrollPage() {
                   {/* Submitting is the one batch step left: it isn't a
                     * decision, just HR Staff saying they've finished checking. */}
                   {(selectedPeriod.status === 'generated' || selectedPeriod.status === 'rejected') &&
-                    (canApprove ? (
-                      <Badge variant="muted">Waiting for HR Staff to submit</Badge>
-                    ) : (
+                    (canPrepare ? (
                       <Button loading={submitPayroll.isPending} onClick={() => setSubmitConfirmOpen(true)}>
                         <ClipboardList className="h-4 w-4" />
                         Submit for Approval
                       </Button>
+                    ) : (
+                      <Badge variant="muted">Waiting for HR Staff to submit</Badge>
                     ))}
                   {selectedPeriod.status === 'pending_approval' && (
                     <Badge variant="warning">
@@ -409,12 +414,16 @@ export default function PayrollPage() {
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
               <p className="font-medium text-foreground">Payroll hasn't been generated for this period yet</p>
               <p className="text-sm text-muted-foreground">
-                Employee records, attendance, and leave will be retrieved automatically.
+                {canPrepare
+                  ? 'Employee records, attendance, and leave will be retrieved automatically.'
+                  : 'HR Staff generates payroll. It arrives here for your review once they submit it.'}
               </p>
-              <Button loading={generatePayroll.isPending} onClick={() => generatePayroll.mutate({ periodId: selectedPeriod.id })}>
-                <PlayCircle className="h-4 w-4" />
-                Generate Payroll
-              </Button>
+              {canPrepare && (
+                <Button loading={generatePayroll.isPending} onClick={() => generatePayroll.mutate({ periodId: selectedPeriod.id })}>
+                  <PlayCircle className="h-4 w-4" />
+                  Generate Payroll
+                </Button>
+              )}
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-16 text-center">

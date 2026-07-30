@@ -100,9 +100,12 @@ Sign in as **staff@suite.com**.
   refresh Deployment. She stays in the queue as **Offer Declined** with a
   **Close Application** button. The application only leaves the pipeline when
   HR closes it — it doesn't silently vanish into Recruitment as "Closed".
-- **Payroll** — click **Generate Payroll**, then **Submit for Approval**. Point
-  out there is no approve button here at all: submitting is HR Staff saying
-  they've finished checking, not a decision.
+- **Payroll** — click **New Payroll Period**, **Generate Payroll**, then
+  **Submit for Approval**. Point out there is no approve button here at all:
+  submitting is HR Staff saying they've finished checking, not a decision. Sign
+  in as the manager and the mirror image is true — no *New Payroll Period*, no
+  *Generate Payroll*, no *Adjust Payroll*, because someone who could produce the
+  figures would be approving their own work.
 - **Notice what's also missing:** Attendance has no *Record Attendance* button
   and Leave has no *Submit Leave Request* button. Employees do both themselves;
   HR reviews and corrects. Salary Grades isn't in the sidebar either — it was a
