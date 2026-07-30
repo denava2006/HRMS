@@ -2,19 +2,31 @@ import type { PayrollStatus } from '@/lib/database.types'
 import type { BadgeProps } from '@/components/ui/badge'
 
 /** The lifecycle, in the order it happens:
- *   Draft     — computed, still being checked by HR Staff
- *   Approved  — HR Manager signed off; ready to release  (enum value: 'reviewed')
- *   Released  — payslips generated and visible to employees
- * 'reviewed' keeps its database name; "Approved" is what it means to a user. */
+ *   Draft            — period exists, payroll not computed yet
+ *   Generated        — computed; HR Staff is checking and adjusting it
+ *   Pending Approval — HR Staff submitted it; waiting on the HR Manager
+ *   Approved         — HR Manager signed off; ready to release
+ *   Rejected         — sent back to HR Staff with a reason to fix
+ *   Released         — payslips generated and visible to employees
+ *
+ * A payroll_record walks this path per employee. A payroll_period's status is
+ * an aggregate of its records, recomputed by trigger — one rejected record
+ * holds the period at Rejected, because that's what HR Staff has to act on. */
 export const PAYROLL_STATUS_LABEL: Record<PayrollStatus, string> = {
   draft: 'Draft',
-  reviewed: 'Approved',
+  generated: 'Generated',
+  pending_approval: 'Pending Approval',
+  approved: 'Approved',
+  rejected: 'Rejected',
   released: 'Released',
 }
 
 export const PAYROLL_STATUS_VARIANT: Record<PayrollStatus, BadgeProps['variant']> = {
   draft: 'muted',
-  reviewed: 'warning',
+  generated: 'secondary',
+  pending_approval: 'warning',
+  approved: 'warning',
+  rejected: 'destructive',
   released: 'success',
 }
 
@@ -47,8 +59,23 @@ export const DEDUCTION_LABEL_PRESETS = [
 
 export const PAYROLL_AUDIT_ACTION = {
   generated: 'Payroll Generated',
-  reviewed: 'Payroll Reviewed',
+  submitted: 'Payroll Submitted for Approval',
+  approved: 'Payroll Approved',
+  rejected: 'Payroll Rejected',
   adjusted: 'Payroll Adjusted',
   payslipGenerated: 'Payslip Generated',
   payslipReleased: 'Payslip Released',
 } as const
+
+/** Why an HR Manager sent a payroll record back. Free text is still collected
+ * alongside it — the list is here so the common cases are one click and read
+ * consistently in the audit log. */
+export const PAYROLL_REJECTION_REASONS = [
+  'Late deduction was not included',
+  'Undertime or absence not reflected',
+  'Overtime hours are wrong',
+  'Allowance or benefit missing',
+  'Statutory contribution is incorrect',
+  'Basic salary does not match the employee record',
+  'Other',
+] as const

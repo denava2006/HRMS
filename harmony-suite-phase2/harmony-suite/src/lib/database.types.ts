@@ -1336,10 +1336,14 @@ export type Database = {
           paid_leave_days: number
           payroll_period_id: string
           philhealth_contribution: number
+          rejection_reason: string | null
           released_at: string | null
+          reviewed_at: string | null
           reviewed_by: string | null
           sss_contribution: number
           status: Database["public"]["Enums"]["payroll_status"]
+          submitted_at: string | null
+          submitted_by: string | null
           total_allowances: number
           total_deductions: number
           undertime_deduction: number
@@ -1370,10 +1374,14 @@ export type Database = {
           paid_leave_days?: number
           payroll_period_id: string
           philhealth_contribution?: number
+          rejection_reason?: string | null
           released_at?: string | null
+          reviewed_at?: string | null
           reviewed_by?: string | null
           sss_contribution?: number
           status?: Database["public"]["Enums"]["payroll_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
           total_allowances?: number
           total_deductions?: number
           undertime_deduction?: number
@@ -1404,10 +1412,14 @@ export type Database = {
           paid_leave_days?: number
           payroll_period_id?: string
           philhealth_contribution?: number
+          rejection_reason?: string | null
           released_at?: string | null
+          reviewed_at?: string | null
           reviewed_by?: string | null
           sss_contribution?: number
           status?: Database["public"]["Enums"]["payroll_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
           total_allowances?: number
           total_deductions?: number
           undertime_deduction?: number
@@ -1434,6 +1446,13 @@ export type Database = {
           {
             foreignKeyName: "payroll_records_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_records_submitted_by_fkey"
+            columns: ["submitted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1786,6 +1805,10 @@ export type Database = {
         }[]
       }
       my_employee_id: { Args: never; Returns: string }
+      recompute_payroll_period_status: {
+        Args: { p_period_id: string }
+        Returns: undefined
+      }
       reject_change_request: {
         Args: { p_reason: string; p_request_id: string }
         Returns: undefined
@@ -1873,7 +1896,13 @@ export type Database = {
       job_posting_status: "draft" | "open" | "closed"
       leave_request_status: "pending" | "approved" | "rejected" | "cancelled"
       offer_status: "pending" | "accepted" | "declined"
-      payroll_status: "draft" | "reviewed" | "released"
+      payroll_status:
+        | "draft"
+        | "generated"
+        | "pending_approval"
+        | "approved"
+        | "rejected"
+        | "released"
       report_format: "pdf" | "docx" | "excel"
       user_role: "admin" | "hr_staff" | "employee" | "hr_manager"
     }
@@ -2051,7 +2080,14 @@ export const Constants = {
       job_posting_status: ["draft", "open", "closed"],
       leave_request_status: ["pending", "approved", "rejected", "cancelled"],
       offer_status: ["pending", "accepted", "declined"],
-      payroll_status: ["draft", "reviewed", "released"],
+      payroll_status: [
+        "draft",
+        "generated",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "released",
+      ],
       report_format: ["pdf", "docx", "excel"],
       user_role: ["admin", "hr_staff", "employee", "hr_manager"],
     },

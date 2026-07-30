@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { CurrencyCode } from '@/lib/currency'
+import type { PayrollStatus } from '@/lib/database.types'
 
 function todayISODate(): string {
   const d = new Date()
@@ -122,7 +123,7 @@ export interface DashboardPayrollSummary {
   periodStart: string
   periodEnd: string
   frequency: string
-  status: 'draft' | 'reviewed' | 'released'
+  status: PayrollStatus
   employeesIncluded: number
   estimatedPayroll: number
   currency: CurrencyCode

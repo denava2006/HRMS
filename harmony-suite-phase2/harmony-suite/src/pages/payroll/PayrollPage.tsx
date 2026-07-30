@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { motion } from 'framer-motion'
-import { Users2, TrendingUp, TrendingDown, Wallet, FileCheck, Plus, MoreHorizontal, PlayCircle, ShieldCheck, ClipboardList } from 'lucide-react'
+import { Users2, TrendingUp, TrendingDown, Wallet, FileCheck, Plus, MoreHorizontal, PlayCircle, ShieldCheck, ClipboardList, AlertCircle } from 'lucide-react'
 import { DataTable } from '@/components/data-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -21,13 +21,15 @@ import {
 } from '@/components/ui/alert-dialog'
 import { CreatePayrollPeriodDialog } from '@/components/payroll/CreatePayrollPeriodDialog'
 import { AdjustPayrollRecordDialog } from '@/components/payroll/AdjustPayrollRecordDialog'
+import { RejectPayrollDialog } from '@/components/payroll/RejectPayrollDialog'
 import { PayrollDetailsSheet } from '@/components/payroll/PayrollDetailsSheet'
 import {
   usePayrollPeriods,
   usePayrollRecords,
   usePayrollPeriodStats,
   useGeneratePayroll,
-  useReviewPayroll,
+  useSubmitPayrollForApproval,
+  useApprovePayrollRecord,
   useReleasePayroll,
   usePayrollRealtimeAlerts,
   type PayrollRecord,
@@ -99,7 +101,8 @@ export default function PayrollPage() {
   const { data: positions } = usePositions()
 
   const generatePayroll = useGeneratePayroll()
-  const reviewPayroll = useReviewPayroll()
+  const submitPayroll = useSubmitPayrollForApproval()
+  const approveRecord = useApprovePayrollRecord()
   const releasePayroll = useReleasePayroll()
 
   const [departmentFilter, setDepartmentFilter] = React.useState(ALL)
@@ -110,13 +113,58 @@ export default function PayrollPage() {
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
   const [adjustingRecord, setAdjustingRecord] = React.useState<PayrollRecord | null>(null)
   const [viewingRecordId, setViewingRecordId] = React.useState<string | null>(null)
-  const [reviewConfirmOpen, setReviewConfirmOpen] = React.useState(false)
+  const [submitConfirmOpen, setSubmitConfirmOpen] = React.useState(false)
+  const [rejectingRecord, setRejectingRecord] = React.useState<PayrollRecord | null>(null)
   const [releaseConfirmOpen, setReleaseConfirmOpen] = React.useState(false)
 
   const filteredPositions = React.useMemo(
     () => (departmentFilter === ALL ? positions : positions?.filter((p) => p.department_id === departmentFilter)),
     [positions, departmentFilter]
   )
+
+  const pendingCount = records?.filter((r) => r.status === 'pending_approval').length ?? 0
+  const rejectedCount = records?.filter((r) => r.status === 'rejected').length ?? 0
+
+  // Whose turn it is, in the words of whoever is reading it. The period status
+  // is an aggregate of its records (see recompute_payroll_period_status), so
+  // this is the one place that translates it into a next action.
+  const workflowCopy = React.useMemo(() => {
+    switch (selectedPeriod?.status) {
+      case 'generated':
+        return {
+          title: 'Step 2 — Check the entries',
+          detail: canApprove
+            ? 'HR Staff is still checking these figures. They come to you once submitted.'
+            : 'Review the employee list, deductions, and totals, then submit them for HR Manager approval.',
+        }
+      case 'pending_approval':
+        return {
+          title: 'Step 3 — Waiting on approval',
+          detail: canApprove
+            ? 'Approve or reject each employee individually from the row menu below.'
+            : 'The HR Manager is reviewing these one employee at a time.',
+        }
+      case 'rejected':
+        return {
+          title: `Step 2 — ${rejectedCount} ${rejectedCount === 1 ? 'record was' : 'records were'} sent back`,
+          detail: canApprove
+            ? 'HR Staff is correcting the records you rejected.'
+            : 'Each rejected row shows why. Adjust it, then submit the period again.',
+        }
+      case 'approved':
+        return {
+          title: 'Step 4 — Approved, ready to release',
+          detail: 'Releasing generates payslips and makes them visible to employees.',
+        }
+      case 'released':
+        return {
+          title: 'Complete — payslips released',
+          detail: 'Employees can now see their payslip and net salary in My Payroll.',
+        }
+      default:
+        return { title: 'Payroll not generated yet', detail: 'Generate payroll to compute this period.' }
+    }
+  }, [selectedPeriod?.status, canApprove, rejectedCount])
 
   const rows = React.useMemo(() => {
     if (!records) return []
@@ -182,26 +230,59 @@ export default function PayrollPage() {
     {
       id: 'status',
       header: 'Status',
-      cell: ({ row }) => <Badge variant={PAYROLL_STATUS_VARIANT[row.original.status]}>{PAYROLL_STATUS_LABEL[row.original.status]}</Badge>,
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-0.5">
+          <Badge variant={PAYROLL_STATUS_VARIANT[row.original.status]} className="w-fit">
+            {PAYROLL_STATUS_LABEL[row.original.status]}
+          </Badge>
+          {/* A rejection is only useful if the reason travels with it, so it
+            * sits on the row HR Staff has to fix rather than in a detail view. */}
+          {row.original.status === 'rejected' && row.original.rejection_reason && (
+            <span className="max-w-[16rem] text-xs text-muted-foreground">{row.original.rejection_reason}</span>
+          )}
+        </div>
+      ),
     },
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setViewingRecordId(row.original.id)}>View</DropdownMenuItem>
-            {row.original.status !== 'released' && (
-              <DropdownMenuItem onClick={() => setAdjustingRecord(row.original)}>Adjust Payroll</DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      cell: ({ row }) => {
+        const record = row.original
+        // Approve and Reject are per-record on purpose — there is no
+        // "approve all", because the review step exists so a manager looks at
+        // each employee's figures.
+        const isAwaitingDecision = record.status === 'pending_approval'
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setViewingRecordId(record.id)}>View</DropdownMenuItem>
+              {canApprove && isAwaitingDecision && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => approveRecord.mutate({ recordId: record.id, periodId: record.payroll_period_id })}
+                  >
+                    Approve
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive" onClick={() => setRejectingRecord(record)}>
+                    Reject
+                  </DropdownMenuItem>
+                </>
+              )}
+              {!canApprove && isAwaitingDecision && (
+                <DropdownMenuItem disabled>Awaiting HR Manager</DropdownMenuItem>
+              )}
+              {record.status !== 'released' && record.status !== 'pending_approval' && (
+                <DropdownMenuItem onClick={() => setAdjustingRecord(record)}>Adjust Payroll</DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
     },
   ]
 
@@ -256,9 +337,10 @@ export default function PayrollPage() {
             <StatCard label="Payslips Released" value={String(stats?.payslipsReleased ?? 0)} icon={FileCheck} isLoading={statsLoading} index={5} />
           </div>
 
-          {/* Approval bar — the Draft -> Approved -> Released step lives here,
-            * above the entries being approved, rather than tucked into the
-            * table's filter row where it read as just another control. */}
+          {/* Workflow bar — where the period sits on
+            * generated -> pending approval -> approved -> released, and whose
+            * turn it is. Sits above the entries rather than in the table's
+            * filter row, where it read as just another control. */}
           {records && records.length > 0 && (
             <Card>
               <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
@@ -268,48 +350,47 @@ export default function PayrollPage() {
                       'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
                       selectedPeriod.status === 'released'
                         ? 'bg-success/10 text-success'
-                        : selectedPeriod.status === 'reviewed'
-                          ? 'bg-warning/10 text-warning'
-                          : 'bg-muted text-muted-foreground'
+                        : selectedPeriod.status === 'rejected'
+                          ? 'bg-destructive/10 text-destructive'
+                          : selectedPeriod.status === 'approved' || selectedPeriod.status === 'pending_approval'
+                            ? 'bg-warning/10 text-warning'
+                            : 'bg-muted text-muted-foreground'
                     )}
                   >
                     {selectedPeriod.status === 'released' ? (
                       <FileCheck className="h-4 w-4" />
-                    ) : selectedPeriod.status === 'reviewed' ? (
+                    ) : selectedPeriod.status === 'rejected' ? (
+                      <AlertCircle className="h-4 w-4" />
+                    ) : selectedPeriod.status === 'approved' ? (
                       <ShieldCheck className="h-4 w-4" />
                     ) : (
                       <ClipboardList className="h-4 w-4" />
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">
-                      {selectedPeriod.status === 'draft'
-                        ? 'Step 2 — Review the entries'
-                        : selectedPeriod.status === 'reviewed'
-                          ? 'Step 3 — Approved, ready to release'
-                          : 'Complete — payslips released'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedPeriod.status === 'draft'
-                        ? 'Check the employee list, deductions, and totals below before approving.'
-                        : selectedPeriod.status === 'reviewed'
-                          ? 'Releasing generates payslips and makes them visible to employees.'
-                          : 'Employees can now see their payslip and net salary in My Payroll.'}
-                    </p>
+                    <p className="font-medium text-foreground">{workflowCopy.title}</p>
+                    <p className="text-sm text-muted-foreground">{workflowCopy.detail}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {selectedPeriod.status === 'draft' &&
+                  {/* Submitting is the one batch step left: it isn't a
+                    * decision, just HR Staff saying they've finished checking. */}
+                  {(selectedPeriod.status === 'generated' || selectedPeriod.status === 'rejected') &&
                     (canApprove ? (
-                      <Button loading={reviewPayroll.isPending} onClick={() => setReviewConfirmOpen(true)}>
-                        <ShieldCheck className="h-4 w-4" />
-                        Review &amp; Approve
-                      </Button>
+                      <Badge variant="muted">Waiting for HR Staff to submit</Badge>
                     ) : (
-                      <Badge variant="muted">Checked — waiting for HR Manager approval</Badge>
+                      <Button loading={submitPayroll.isPending} onClick={() => setSubmitConfirmOpen(true)}>
+                        <ClipboardList className="h-4 w-4" />
+                        Submit for Approval
+                      </Button>
                     ))}
-                  {selectedPeriod.status === 'reviewed' &&
+                  {selectedPeriod.status === 'pending_approval' && (
+                    <Badge variant="warning">
+                      {canApprove ? `${pendingCount} awaiting your decision` : 'Waiting for HR Manager approval'}
+                    </Badge>
+                  )}
+                  {selectedPeriod.status === 'approved' &&
                     (canApprove ? (
                       <Button loading={releasePayroll.isPending} onClick={() => setReleaseConfirmOpen(true)}>
                         <FileCheck className="h-4 w-4" />
@@ -414,24 +495,31 @@ export default function PayrollPage() {
       <AdjustPayrollRecordDialog open={!!adjustingRecord} onOpenChange={(open) => !open && setAdjustingRecord(null)} record={adjustingRecord} />
       <PayrollDetailsSheet recordId={viewingRecordId} open={!!viewingRecordId} onOpenChange={(open) => !open && setViewingRecordId(null)} />
 
-      <AlertDialog open={reviewConfirmOpen} onOpenChange={setReviewConfirmOpen}>
+      <RejectPayrollDialog
+        record={rejectingRecord}
+        open={!!rejectingRecord}
+        onOpenChange={(open) => !open && setRejectingRecord(null)}
+      />
+
+      <AlertDialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Approve this payroll for release?</AlertDialogTitle>
+            <AlertDialogTitle>Submit this payroll for approval?</AlertDialogTitle>
             <AlertDialogDescription>
-              This confirms the salary computation, attendance, leave, and deductions are correct for all {stats?.employeesIncluded ?? 0} employees. You
-              can still adjust individual records afterward if needed — any adjustment returns this payroll to draft for re-approval.
+              This hands {stats?.employeesIncluded ?? 0} employee {(stats?.employeesIncluded ?? 0) === 1 ? 'record' : 'records'} to
+              the HR Manager, who approves or rejects each one individually. You can still adjust a record after it comes
+              back — adjusting it returns that employee to your side of the workflow.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (selectedPeriod) reviewPayroll.mutate({ periodId: selectedPeriod.id })
-                setReviewConfirmOpen(false)
+                if (selectedPeriod) submitPayroll.mutate({ periodId: selectedPeriod.id })
+                setSubmitConfirmOpen(false)
               }}
             >
-              Approve
+              Submit for Approval
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -442,7 +530,7 @@ export default function PayrollPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Release this payroll?</AlertDialogTitle>
             <AlertDialogDescription>
-              This generates a payslip for every employee in this period and marks all records as released. Released payroll records become read-only.
+              This generates a payslip for every approved employee in this period. Released payroll records become read-only and appear in the employee’s My Payroll.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

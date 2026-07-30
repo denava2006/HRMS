@@ -6,6 +6,7 @@ import type { Tables, TablesInsert, EmploymentStatus } from '@/lib/database.type
 import { toast } from '@/components/ui/sonner'
 import { invalidateEmployeePortal } from '@/lib/employeePortalQueries'
 import { fetchEffectiveSchedule } from '@/hooks/useAttendance'
+import { PAYROLL_AUDIT_ACTION } from '@/lib/payrollLabels'
 import {
   dateRangesOverlap,
   countScheduledWorkingDays,
@@ -334,7 +335,7 @@ export function useGeneratePayroll() {
             overtime_hours: overtimeHours,
             paid_leave_days: paidLeaveDays,
             unpaid_leave_days: unpaidLeaveDays,
-            status: 'draft',
+            status: 'generated',
           })
           .select('id')
           .single()
@@ -380,30 +381,97 @@ export function useGeneratePayroll() {
 
 // ---- Steps 11-12: HR Reviews Payroll ----
 
-export function useReviewPayroll() {
+/** HR Staff hands the whole computed period to the HR Manager. This is the one
+ * batch action left in the workflow, and deliberately so: submitting isn't a
+ * decision, it's "I've finished checking these". The decisions that follow are
+ * taken one employee at a time. */
+export function useSubmitPayrollForApproval() {
   const { profile } = useAuth()
   const invalidate = useInvalidatePayroll()
   return useMutation({
     mutationFn: async ({ periodId }: { periodId: string }) => {
-      const { error: recordsError } = await supabase
+      const { data: updated, error } = await supabase
         .from('payroll_records')
-        .update({ status: 'reviewed', reviewed_by: profile?.id })
+        .update({ status: 'pending_approval', submitted_by: profile?.id, submitted_at: new Date().toISOString(), rejection_reason: null })
         .eq('payroll_period_id', periodId)
-      if (recordsError) throw recordsError
-
-      const { error: periodError } = await supabase.from('payroll_periods').update({ status: 'reviewed' }).eq('id', periodId)
-      if (periodError) throw periodError
+        .in('status', ['draft', 'generated', 'rejected'])
+        .select('id')
+      if (error) throw error
+      if (!updated?.length) throw new Error('There is nothing left to submit for this period.')
 
       await supabase.from('audit_logs').insert({
         actor_id: profile?.id,
-        action: 'Payroll Reviewed',
+        action: PAYROLL_AUDIT_ACTION.submitted,
         table_name: 'payroll_periods',
         record_id: periodId,
+        new_data: { records_submitted: updated.length },
+      })
+      return updated.length
+    },
+    onSuccess: (count, { periodId }) => {
+      invalidate(periodId)
+      toast.success(`${count} payroll ${count === 1 ? 'record' : 'records'} submitted for approval.`)
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+/** One employee's payroll, approved on its own. There is no "approve all" —
+ * the point of the review step is that a manager looked at each figure. */
+export function useApprovePayrollRecord() {
+  const { profile } = useAuth()
+  const invalidate = useInvalidatePayroll()
+  return useMutation({
+    mutationFn: async ({ recordId }: { recordId: string; periodId: string }) => {
+      const { error } = await supabase
+        .from('payroll_records')
+        .update({ status: 'approved', reviewed_by: profile?.id, reviewed_at: new Date().toISOString(), rejection_reason: null })
+        .eq('id', recordId)
+        .eq('status', 'pending_approval')
+      if (error) throw error
+
+      await supabase.from('audit_logs').insert({
+        actor_id: profile?.id,
+        action: PAYROLL_AUDIT_ACTION.approved,
+        table_name: 'payroll_records',
+        record_id: recordId,
       })
     },
-    onSuccess: (_data, { periodId }) => {
-      invalidate(periodId)
-      toast.success('Payroll reviewed and approved.')
+    onSuccess: (_data, { periodId, recordId }) => {
+      invalidate(periodId, recordId)
+      toast.success('Payroll approved for this employee.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+/** Sends one record back to HR Staff. The reason is what makes the return
+ * actionable, so it's required here and again in a database trigger. */
+export function useRejectPayrollRecord() {
+  const { profile } = useAuth()
+  const invalidate = useInvalidatePayroll()
+  return useMutation({
+    mutationFn: async ({ recordId, reason }: { recordId: string; periodId: string; reason: string }) => {
+      if (!reason.trim()) throw new Error('A reason is required when rejecting payroll.')
+
+      const { error } = await supabase
+        .from('payroll_records')
+        .update({ status: 'rejected', reviewed_by: profile?.id, reviewed_at: new Date().toISOString(), rejection_reason: reason.trim() })
+        .eq('id', recordId)
+        .eq('status', 'pending_approval')
+      if (error) throw error
+
+      await supabase.from('audit_logs').insert({
+        actor_id: profile?.id,
+        action: PAYROLL_AUDIT_ACTION.rejected,
+        table_name: 'payroll_records',
+        record_id: recordId,
+        new_data: { reason: reason.trim() },
+      })
+    },
+    onSuccess: (_data, { periodId, recordId }) => {
+      invalidate(periodId, recordId)
+      toast.success('Payroll sent back to HR Staff.')
     },
     onError: (error) => toast.error(error.message),
   })
@@ -457,13 +525,17 @@ export function useAddPayrollLineItem() {
           gross_salary: newGross,
           net_salary: newNet,
           notes: input.notes || null,
-          status: 'draft',
+          // Editing a figure invalidates whatever decision was made about it,
+          // so the record goes back to HR Staff's side of the workflow and has
+          // to be submitted again. Only this employee's record moves — the
+          // rest of the period is unaffected.
+          status: 'generated',
+          submitted_at: null,
+          reviewed_at: null,
+          rejection_reason: null,
         })
         .eq('id', input.recordId)
       if (updateError) throw updateError
-
-      // Adjusting after review means the whole batch needs re-approval.
-      await supabase.from('payroll_periods').update({ status: 'draft' }).eq('id', input.periodId).eq('status', 'reviewed')
 
       await supabase.from('audit_logs').insert({
         actor_id: profile?.id,
@@ -491,12 +563,17 @@ export function useReleasePayroll() {
     mutationFn: async ({ periodId }: { periodId: string }) => {
       const { data: period, error: periodError } = await supabase.from('payroll_periods').select('status').eq('id', periodId).single()
       if (periodError) throw periodError
-      if (period.status !== 'reviewed') throw new Error('Payroll must be reviewed before it can be released.')
+      if (period.status !== 'approved') {
+        throw new Error('Every employee in this period must be approved before payroll can be released.')
+      }
 
+      // Only approved records are released. A record still sitting in draft or
+      // rejected can't ride along on the period's status.
       const { data: records, error: recordsError } = await supabase
         .from('payroll_records')
         .select('id')
         .eq('payroll_period_id', periodId)
+        .eq('status', 'approved')
       if (recordsError) throw recordsError
 
       const now = new Date().toISOString()
@@ -508,10 +585,10 @@ export function useReleasePayroll() {
         .from('payroll_records')
         .update({ status: 'released', released_at: now })
         .eq('payroll_period_id', periodId)
+        .eq('status', 'approved')
       if (recordsUpdateError) throw recordsUpdateError
-
-      const { error: periodUpdateError } = await supabase.from('payroll_periods').update({ status: 'released' }).eq('id', periodId)
-      if (periodUpdateError) throw periodUpdateError
+      // The period's own status follows its records via trigger — no separate
+      // update here, which is what used to let the two drift apart.
 
       await supabase.from('audit_logs').insert([
         { actor_id: profile?.id, action: 'Payslip Generated', table_name: 'payroll_periods', record_id: periodId },
