@@ -49,6 +49,9 @@ import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { EMPLOYMENT_STATUS_LABEL } from '@/lib/employeeLabels'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 import { RESPONSE_WINDOW_DAYS, daysRemaining } from '@/lib/applicationSla'
+import { OFFER_DECLINE_REASONS } from '@/lib/deploymentLabels'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { loadApplicantSession, saveApplicantSession, clearApplicantSession } from '@/lib/applicantSession'
 
 function formatDateTime(value: string) {
@@ -184,6 +187,9 @@ function OfferCard({
 }) {
   const respond = useRespondToOfferAsApplicant()
   const [confirmDecline, setConfirmDecline] = React.useState(false)
+  const [declineReason, setDeclineReason] = React.useState('')
+  const [declineNotes, setDeclineNotes] = React.useState('')
+  const [declineError, setDeclineError] = React.useState('')
   if (!record.offer_id) return null
 
   const currency: CurrencyCode = record.offer_currency === 'USD' ? 'USD' : 'PHP'
@@ -191,7 +197,7 @@ function OfferCard({
 
   const submit = (decision: 'accepted' | 'declined') => {
     respond.mutate(
-      { credentials, decision },
+      { credentials, decision, declineReason, declineNotes },
       {
         onSuccess: () =>
           toast.success(decision === 'accepted' ? 'Offer accepted — welcome aboard!' : 'Offer declined.'),
@@ -264,7 +270,17 @@ function OfferCard({
         </CardContent>
       </Card>
 
-      <AlertDialog open={confirmDecline} onOpenChange={setConfirmDecline}>
+      <AlertDialog
+        open={confirmDecline}
+        onOpenChange={(open) => {
+          setConfirmDecline(open)
+          if (!open) {
+            setDeclineReason('')
+            setDeclineNotes('')
+            setDeclineError('')
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Decline this job offer?</AlertDialogTitle>
@@ -273,10 +289,56 @@ function OfferCard({
               before declining.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {/* One question, because it's the only thing HR learns from a
+            * candidate they'd already chosen. The notes are optional. */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="decline_reason">
+                Reason <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={declineReason}
+                onValueChange={(v) => {
+                  setDeclineReason(v)
+                  setDeclineError('')
+                }}
+              >
+                <SelectTrigger id="decline_reason" invalid={!!declineError}>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {OFFER_DECLINE_REASONS.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {declineError && <p className="text-xs text-destructive">{declineError}</p>}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="decline_notes">Anything else? (optional)</Label>
+              <Textarea
+                id="decline_notes"
+                rows={3}
+                value={declineNotes}
+                onChange={(e) => setDeclineNotes(e.target.value)}
+              />
+            </div>
+          </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={(e) => {
+                if (!declineReason) {
+                  // Keeps the dialog open — AlertDialogAction closes it otherwise.
+                  e.preventDefault()
+                  setDeclineError('Select a reason so HR knows why.')
+                  return
+                }
                 submit('declined')
                 setConfirmDecline(false)
               }}

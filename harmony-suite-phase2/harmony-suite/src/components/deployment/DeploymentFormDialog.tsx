@@ -17,27 +17,27 @@ import { useBranches, useWorkLocations } from '@/hooks/useBranches'
 import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 
-function todayISODate(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 export function DeploymentFormDialog({
   open,
   onOpenChange,
   applicationId,
-  minDate,
-  minDateReason,
+  startDate,
+  contractSignedDate,
   offerWorkScheduleId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   applicationId: string
-  /** Earliest allowable deployment date — the later of the agreed offer start
-   * date and the contract signing date, whichever landed last. Deploying
-   * someone before either of those happened is an impossible date order. */
-  minDate?: string | null
-  minDateReason?: string
+  /** The start date the accepted job offer promised. This *is* the deployment
+   * date — the two used to be separate fields that could disagree about the
+   * day someone joined, which is the kind of thing that only surfaces when
+   * payroll runs. Shown here, not editable; changing it means changing the
+   * offer. */
+  startDate?: string | null
+  /** Only used to warn when the contract was signed after the promised start
+   * date. The date isn't adjusted for it: the offer is what both sides agreed
+   * to, and quietly moving it would hide the conflict rather than show it. */
+  contractSignedDate?: string | null
   /** Shift agreed on the accepted job offer — pre-selected here so deployment
    * confirms what was offered rather than starting from a blank field. */
   offerWorkScheduleId?: string | null
@@ -46,7 +46,6 @@ export function DeploymentFormDialog({
   const { data: branches } = useBranches()
   const { data: workSchedules } = useWorkSchedules()
 
-  const [deploymentDate, setDeploymentDate] = React.useState('')
   const [branchId, setBranchId] = React.useState('')
   const [workLocationId, setWorkLocationId] = React.useState('')
   const [workScheduleId, setWorkScheduleId] = React.useState('')
@@ -59,15 +58,13 @@ export function DeploymentFormDialog({
 
   React.useEffect(() => {
     if (open) {
-      const today = todayISODate()
-      setDeploymentDate(minDate && minDate > today ? minDate : today)
       setBranchId('')
       setWorkLocationId('')
       setWorkScheduleId(offerWorkScheduleId ?? workSchedules?.find((s) => s.is_default)?.id ?? '')
       setRemarks('')
       setErrors({})
     }
-  }, [open, minDate, offerWorkScheduleId, workSchedules])
+  }, [open, offerWorkScheduleId, workSchedules])
 
   const selectedBranch = branches?.find((b) => b.id === branchId) ?? null
   const selectedLocation = locations?.find((l) => l.id === workLocationId) ?? null
@@ -75,11 +72,7 @@ export function DeploymentFormDialog({
 
   const onSubmit = () => {
     const nextErrors: Record<string, string> = {}
-    if (!deploymentDate) {
-      nextErrors.deploymentDate = 'Deployment date is required.'
-    } else if (minDate && deploymentDate < minDate) {
-      nextErrors.deploymentDate = `Deployment date cannot be earlier than ${minDate}${minDateReason ? ` (${minDateReason})` : ''}.`
-    }
+    if (!startDate) nextErrors.deploymentDate = 'This offer has no start date, so there is no day to deploy on.'
     if (!branchId) nextErrors.branchId = 'Assigned branch is required.'
     if (!workLocationId) nextErrors.workLocationId = 'Work location is required.'
     if (!workScheduleId) nextErrors.workScheduleId = 'Work schedule is required.'
@@ -91,7 +84,7 @@ export function DeploymentFormDialog({
     completeDeployment.mutate(
       {
         applicationId,
-        deploymentDate,
+        deploymentDate: startDate as string,
         branchId,
         workLocationId,
         workScheduleId,
@@ -115,20 +108,17 @@ export function DeploymentFormDialog({
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="deployment_date">
-              Deployment Date <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="deployment_date"
-              type="date"
-              min={minDate ?? undefined}
-              invalid={!!errors.deploymentDate}
-              value={deploymentDate}
-              onChange={(e) => {
-                setDeploymentDate(e.target.value)
-                if (errors.deploymentDate) setErrors({})
-              }}
-            />
+            <Label htmlFor="deployment_date">Deployment Date</Label>
+            <Input id="deployment_date" type="date" value={startDate ?? ''} disabled readOnly />
+            <p className="text-xs text-muted-foreground">
+              This is the start date agreed on the job offer. To change it, change the offer.
+            </p>
+            {contractSignedDate && startDate && contractSignedDate > startDate && (
+              <p className="text-xs text-warning">
+                The contract was signed on {contractSignedDate}, after the agreed start date. Deploying on the agreed date
+                records a first day that has already passed.
+              </p>
+            )}
             {errors.deploymentDate && <p className="text-xs text-destructive">{errors.deploymentDate}</p>}
           </div>
 

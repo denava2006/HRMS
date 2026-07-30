@@ -5,6 +5,19 @@ import type { BadgeProps } from '@/components/ui/badge'
 export type OfferStatus = Enums<'offer_status'>
 export type ContractStatus = Enums<'contract_status'>
 
+/** Why an applicant turned an offer down. Fixed list rather than free text so
+ * it stays a reportable dimension — "we lose people on salary" is only
+ * knowable if the answers are comparable. Mirrored by a check constraint on
+ * job_offers.decline_reason; keep the two in step. */
+export const OFFER_DECLINE_REASONS = [
+  'Accepted another job offer',
+  'Salary expectation',
+  'Personal reason',
+  'Location',
+  'Schedule conflict',
+  'Other',
+] as const
+
 export const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
   pending: 'Waiting for Offer Acceptance',
   accepted: 'Offer Accepted',

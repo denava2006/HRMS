@@ -189,22 +189,9 @@ export function DeploymentDetailsSheet({
   const finalInterview = application ? getFinalInterview(application) : null
   const deploymentRecord = application ? getDeploymentRecord(application) : null
 
-  // Deployment can't predate the start date the offer promised, nor the day
-  // the contract was actually signed — whichever of those landed later is the
-  // earliest valid deployment date.
+  // The deployment date is the offer's start date, not a separate choice —
+  // this is only used to warn when the contract was signed after that day.
   const contractSignedDate = contract?.signed_at ? contract.signed_at.slice(0, 10) : null
-  let deploymentMinDate: string | null = null
-  let deploymentMinDateReason: string | undefined
-  if (offer?.start_date && contractSignedDate && contractSignedDate > offer.start_date) {
-    deploymentMinDate = contractSignedDate
-    deploymentMinDateReason = 'the contract signing date'
-  } else if (offer?.start_date) {
-    deploymentMinDate = offer.start_date
-    deploymentMinDateReason = 'the agreed offer start date'
-  } else if (contractSignedDate) {
-    deploymentMinDate = contractSignedDate
-    deploymentMinDateReason = 'the contract signing date'
-  }
 
   const deploymentSchedule =
     workSchedules?.find((s) => s.id === deploymentRecord?.work_schedule_id) ?? null
@@ -348,6 +335,19 @@ export function DeploymentDetailsSheet({
                           <Field label="Working Hours" value={offer.working_hours ?? '—'} />
                           <Field label="Working Days" value={offer.working_days ?? '—'} />
                         </div>
+
+                        {/* The one thing worth having from a candidate who
+                          * said no. Offers declined before this was collected
+                          * simply have nothing here. */}
+                        {offer.status === 'declined' && offer.decline_reason && (
+                          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                            <p className="text-xs text-muted-foreground">Why they declined</p>
+                            <p className="text-sm font-medium text-foreground">{offer.decline_reason}</p>
+                            {offer.decline_notes && (
+                              <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">{offer.decline_notes}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </section>
                   )}
@@ -565,8 +565,8 @@ export function DeploymentDetailsSheet({
           open={deploymentDialogOpen}
           onOpenChange={setDeploymentDialogOpen}
           applicationId={applicationId}
-          minDate={deploymentMinDate}
-          minDateReason={deploymentMinDateReason}
+          startDate={offer?.start_date}
+          contractSignedDate={contractSignedDate}
           offerWorkScheduleId={offer?.work_schedule_id}
         />
       )}

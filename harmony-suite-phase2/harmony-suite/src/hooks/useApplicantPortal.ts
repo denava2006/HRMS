@@ -97,6 +97,7 @@ const FRIENDLY_RESPONSE_ERRORS: Record<string, string> = {
   NO_OFFER: 'There’s no job offer on this application yet.',
   ALREADY_RESPONDED: 'You’ve already responded to this offer.',
   INVALID_DECISION: 'That response isn’t valid.',
+  DECLINE_REASON_REQUIRED: 'Please tell us why you’re declining.',
 }
 
 export function useRespondToOfferAsApplicant() {
@@ -105,14 +106,22 @@ export function useRespondToOfferAsApplicant() {
     mutationFn: async ({
       credentials,
       decision,
+      declineReason,
+      declineNotes,
     }: {
       credentials: ApplicantCredentials
       decision: 'accepted' | 'declined'
+      /** Required when declining — HR has no other way to learn why a
+       * candidate they'd chosen said no. Ignored on accept. */
+      declineReason?: string
+      declineNotes?: string
     }) => {
       const { error } = await supabase.rpc('respond_to_job_offer', {
         p_reference_code: credentials.referenceCode,
         p_email: credentials.email,
         p_decision: decision,
+        p_decline_reason: decision === 'declined' ? declineReason : undefined,
+        p_decline_notes: decision === 'declined' ? declineNotes : undefined,
       })
       if (error) {
         throw new Error(FRIENDLY_RESPONSE_ERRORS[error.message] ?? 'We couldn’t record your response. Please try again.')

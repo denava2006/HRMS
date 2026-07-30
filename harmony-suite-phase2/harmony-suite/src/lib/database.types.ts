@@ -934,6 +934,8 @@ export type Database = {
           benefits: string | null
           created_at: string
           currency: string
+          decline_notes: string | null
+          decline_reason: string | null
           employment_type: Database["public"]["Enums"]["employment_type"]
           id: string
           notes: string | null
@@ -955,6 +957,8 @@ export type Database = {
           benefits?: string | null
           created_at?: string
           currency?: string
+          decline_notes?: string | null
+          decline_reason?: string | null
           employment_type?: Database["public"]["Enums"]["employment_type"]
           id?: string
           notes?: string | null
@@ -976,6 +980,8 @@ export type Database = {
           benefits?: string | null
           created_at?: string
           currency?: string
+          decline_notes?: string | null
+          decline_reason?: string | null
           employment_type?: Database["public"]["Enums"]["employment_type"]
           id?: string
           notes?: string | null
@@ -1814,7 +1820,13 @@ export type Database = {
         Returns: undefined
       }
       respond_to_job_offer: {
-        Args: { p_decision: string; p_email: string; p_reference_code: string }
+        Args: {
+          p_decision: string
+          p_decline_notes?: string
+          p_decline_reason?: string
+          p_email: string
+          p_reference_code: string
+        }
         Returns: string
       }
       submit_job_application:
