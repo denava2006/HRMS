@@ -380,6 +380,31 @@ export function useCreateEmployeeAccount() {
   })
 }
 
+/** Puts an employee's password back to the documented default.
+ *
+ * There is no mailbox a reset link could reach on a local stack (see
+ * create-employee-account), so "reset" means handing them the default again.
+ * The actual change needs the service_role key and happens in the Edge
+ * Function; this only reports what to tell them. */
+export function useResetEmployeePassword() {
+  const invalidate = useInvalidateEmployees()
+  return useMutation({
+    mutationFn: async ({ employeeId }: { employeeId: string }) => {
+      const { data, error } = await supabase.functions.invoke('reset-employee-password', {
+        body: { employeeId },
+      })
+      if (error) throw new Error(await describeFunctionError(error))
+      if (data?.error) throw new Error(data.error)
+      return data as { email: string; password: string }
+    },
+    onSuccess: (data, { employeeId }) => {
+      invalidate(employeeId)
+      toast.success(`Password reset. They can sign in with ${data.email} / ${data.password}.`)
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
 export function useSetEmployeeAccountStatus() {
   const { profile } = useAuth()
   const invalidate = useInvalidateEmployees()

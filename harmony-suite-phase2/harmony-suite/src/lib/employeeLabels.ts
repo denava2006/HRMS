@@ -55,6 +55,7 @@ export const EMPLOYEE_HISTORY_EVENT_LABEL: Record<string, string> = {
   account_activated: 'Employee Activated Account',
   account_enabled: 'Employee Account Enabled',
   account_disabled: 'Employee Account Disabled',
+  password_reset: 'Password Reset by HR',
   documents_uploaded: 'Documents Uploaded',
   department_assigned: 'Department Assigned',
   position_assigned: 'Position Assigned',

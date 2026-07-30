@@ -14,6 +14,8 @@ import {
   Calendar,
   Wallet,
   CheckCircle2,
+  KeyRound,
+  IdCard,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +32,7 @@ import {
   useEmployeeHistory,
   useEmployeeAuditLog,
   useCreateEmployeeAccount,
+  useResetEmployeePassword,
   useSetEmployeeAccountStatus,
 } from '@/hooks/useEmployees'
 import { useEmployeeAttendanceSummary, type EmployeeAttendanceSummary } from '@/hooks/useAttendance'
@@ -78,6 +81,50 @@ function TimelineStep({ label, timestamp, actor }: { label: string; timestamp: s
   )
 }
 
+/** The default every employee login is created with and reset to. Documented
+ * rather than emailed because the app runs on a per-deployer local stack with
+ * no reachable mailbox — see create-employee-account. */
+const DEFAULT_EMPLOYEE_PASSWORD = 'Employee123'
+
+/** Employee ID, email, and password in one place. HR reads these out to the
+ * employee; having them in three different places is how people end up being
+ * told the wrong one. */
+function CredentialsPanel({
+  employeeNumber,
+  email,
+  password,
+}: {
+  employeeNumber: string
+  email: string
+  password: string
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <IdCard className="h-3.5 w-3.5" />
+        Sign-in details
+      </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <p className="text-xs text-muted-foreground">Employee ID</p>
+          <p className="font-mono text-sm text-foreground">{employeeNumber}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Email</p>
+          <p className="text-sm break-all text-foreground">{email}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Temporary Password</p>
+          <p className="font-mono text-sm text-foreground">{password}</p>
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Ask the employee to change this after their first sign-in.
+      </p>
+    </div>
+  )
+}
+
 function DetailsSkeleton() {
   return (
     <div className="flex flex-col gap-6">
@@ -94,6 +141,7 @@ export default function EmployeeDetailsPage() {
   const { data: history } = useEmployeeHistory(employeeId)
   const { data: auditLog } = useEmployeeAuditLog(employeeId)
   const createAccount = useCreateEmployeeAccount()
+  const resetPassword = useResetEmployeePassword()
   const setAccountStatus = useSetEmployeeAccountStatus()
 
   const [editPersonalOpen, setEditPersonalOpen] = React.useState(false)
@@ -203,9 +251,14 @@ export default function EmployeeDetailsPage() {
               {!account ? (
                 <div className="flex flex-col items-start gap-3">
                   <p className="text-sm text-muted-foreground">
-                    No account has been created for this employee yet. They'll be able to sign in immediately with{' '}
-                    {employee.email} and the default password <strong>Employee123</strong>.
+                    No account has been created for this employee yet. Once created they can sign in immediately —
+                    there is no activation email to wait for.
                   </p>
+                  <CredentialsPanel
+                    employeeNumber={employee.employee_number}
+                    email={employee.email}
+                    password={DEFAULT_EMPLOYEE_PASSWORD}
+                  />
                   <Button
                     loading={createAccount.isPending}
                     onClick={() =>
@@ -237,7 +290,23 @@ export default function EmployeeDetailsPage() {
                     </div>
                     <Field icon={Calendar} label="Last Login" value={formatDateTime(account.last_login_at)} />
                   </div>
+                  {/* Restated after creation too: this is the page HR opens
+                    * when an employee says they can't get in. */}
+                  <CredentialsPanel
+                    employeeNumber={employee.employee_number}
+                    email={account.email}
+                    password={DEFAULT_EMPLOYEE_PASSWORD}
+                  />
+
                   <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+                    <Button
+                      variant="outline"
+                      loading={resetPassword.isPending}
+                      onClick={() => resetPassword.mutate({ employeeId: employee.id })}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      Reset Password
+                    </Button>
                     {account.status === 'active' ? (
                       <Button
                         variant="outline"
