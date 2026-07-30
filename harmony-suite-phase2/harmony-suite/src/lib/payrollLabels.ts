@@ -39,7 +39,6 @@ export const PAYROLL_FREQUENCY_LABEL: Record<string, string> = {
 
 export const ALLOWANCE_LABEL_PRESETS = [
   'Overtime Pay',
-  'Holiday Pay',
   'Night Differential',
   'Meal Allowance',
   'Transportation Allowance',

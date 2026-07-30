@@ -149,7 +149,7 @@ export function RecordAttendanceDialog({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Use this for Absent, On Leave, Holiday, Rest Day, Official Business, or Work From Home.</p>
+            <p className="text-xs text-muted-foreground">Use this for Absent, On Leave, Rest Day, Official Business, or Work From Home.</p>
           </div>
         </div>
 

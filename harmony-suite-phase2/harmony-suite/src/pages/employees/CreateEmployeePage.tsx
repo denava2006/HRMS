@@ -27,9 +27,8 @@ import {
   useUploadEmployeeDocument,
   validateEmployeeDocumentFile,
 } from '@/hooks/useEmployees'
-import { useCurrency } from '@/hooks/useSystemSettings'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
-import { CURRENCY_LABEL, type CurrencyCode } from '@/lib/currency'
+import { DEFAULT_CURRENCY } from '@/lib/currency'
 import { CIVIL_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, EMPLOYMENT_STATUS_LABEL, SELECTABLE_EMPLOYMENT_STATUSES } from '@/lib/employeeLabels'
 import type { EmploymentStatus } from '@/lib/database.types'
 
@@ -94,7 +93,7 @@ const employeeSchema = z.object({
   employmentType: z.enum(['regular', 'part_time']),
   salaryGradeId: z.string().optional(),
   basicSalary: z.string().min(1, 'Basic salary is required'),
-  currency: z.enum(['PHP', 'USD']),
+  currency: z.literal('PHP'),
   hireDate: z.string().min(1, 'Date hired is required'),
   employmentStatus: z.string().min(1, 'Employment status is required'),
   workScheduleId: z.string().min(1, 'Work schedule is required'),
@@ -172,7 +171,6 @@ export default function CreateEmployeePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const applicationId = searchParams.get('applicationId') ?? undefined
-  const defaultCurrency = useCurrency()
   const { data: departments } = useDepartments()
   const { data: positions } = usePositions()
   const { data: salaryGrades } = useSalaryGrades()
@@ -213,7 +211,7 @@ export default function CreateEmployeePage() {
     resolver: zodResolver(employeeSchema),
     defaultValues: {
       employmentType: 'regular',
-      currency: defaultCurrency,
+      currency: DEFAULT_CURRENCY,
       hireDate: todayISODate(),
       employmentStatus: 'active',
     },
@@ -248,7 +246,6 @@ export default function CreateEmployeePage() {
             employmentType: offer.employment_type,
             salaryGradeId: offer.salary_grade_id ?? undefined,
             basicSalary: String(offer.proposed_salary),
-            currency: offer.currency as CurrencyCode,
           }
         : {}),
       // Whichever shift the deployment confirmed (falling back to the offer's).
@@ -259,7 +256,7 @@ export default function CreateEmployeePage() {
         ...AUTO_FILLABLE_FIELDS,
         ...(jobPosting?.department_id ? (['departmentId'] as const) : []),
         ...(jobPosting?.position_id ? (['positionId'] as const) : []),
-        ...(offer ? (['employmentType', 'salaryGradeId', 'basicSalary', 'currency'] as const) : []),
+        ...(offer ? (['employmentType', 'salaryGradeId', 'basicSalary'] as const) : []),
         ...(applicationData.workScheduleId ? (['workScheduleId'] as const) : []),
       ])
     )
@@ -280,7 +277,6 @@ export default function CreateEmployeePage() {
   const autoFillClass = (field: string) => (autoFilledFields.has(field) ? 'border-warning/60 bg-warning/5 ring-1 ring-warning/30' : undefined)
 
   const departmentId = watch('departmentId')
-  const currency = watch('currency')
   const filteredPositions = React.useMemo(
     () => positions?.filter((p) => p.department_id === departmentId),
     [positions, departmentId]
@@ -341,7 +337,7 @@ export default function CreateEmployeePage() {
       employmentType: values.employmentType,
       salaryGradeId: values.salaryGradeId || undefined,
       basicSalary: Number(values.basicSalary),
-      currency: values.currency,
+      currency: DEFAULT_CURRENCY,
       hireDate: values.hireDate,
       employmentStatus: values.employmentStatus as EmploymentStatus,
       workScheduleId: values.workScheduleId,
@@ -798,36 +794,13 @@ export default function CreateEmployeePage() {
                       name="basicSalary"
                       render={({ field }) => (
                         <MoneyInput
-                          id="basicSalary"
-                          currency={currency as CurrencyCode}
-                          invalid={!!errors.basicSalary}
+                          id="basicSalary"                          invalid={!!errors.basicSalary}
                           value={field.value ?? ''}
                           onValueChange={field.onChange}
                         />
                       )}
                     />
                     {errors.basicSalary && <p className="text-xs text-destructive">{errors.basicSalary.message}</p>}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Currency</Label>
-                    <Controller
-                      control={control}
-                      name="currency"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(Object.entries(CURRENCY_LABEL) as [CurrencyCode, string][]).map(([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
                   </div>
                 </div>
               </div>

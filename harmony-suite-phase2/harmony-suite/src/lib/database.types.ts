@@ -801,33 +801,6 @@ export type Database = {
           },
         ]
       }
-      holidays: {
-        Row: {
-          created_at: string
-          holiday_date: string
-          holiday_type: string
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          holiday_date: string
-          holiday_type: string
-          id?: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          holiday_date?: string
-          holiday_type?: string
-          id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       interviews: {
         Row: {
           application_id: string
@@ -1328,7 +1301,6 @@ export type Database = {
           days_present: number
           employee_id: string
           gross_salary: number
-          holiday_pay: number
           id: string
           late_deduction: number
           late_minutes: number
@@ -1366,7 +1338,6 @@ export type Database = {
           days_present?: number
           employee_id: string
           gross_salary?: number
-          holiday_pay?: number
           id?: string
           late_deduction?: number
           late_minutes?: number
@@ -1404,7 +1375,6 @@ export type Database = {
           days_present?: number
           employee_id?: string
           gross_salary?: number
-          holiday_pay?: number
           id?: string
           late_deduction?: number
           late_minutes?: number
@@ -1883,7 +1853,6 @@ export type Database = {
         | "absent"
         | "late"
         | "on_leave"
-        | "holiday"
         | "half_day"
         | "rest_day"
         | "official_business"
@@ -2064,7 +2033,6 @@ export const Constants = {
         "absent",
         "late",
         "on_leave",
-        "holiday",
         "half_day",
         "rest_day",
         "official_business",

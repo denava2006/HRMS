@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 export interface CalendarEvent {
   date: string
   label: string
-  type: 'interview' | 'deployment' | 'leave' | 'payroll' | 'holiday'
+  type: 'interview' | 'deployment' | 'leave' | 'payroll'
 }
 
 interface UpcomingInterviewRow {
@@ -31,7 +31,7 @@ export function useUpcomingEvents() {
     queryFn: async () => {
       const today = todayISODate()
 
-      const [interviewsRes, holidaysRes, leavesRes, periodsRes] = await Promise.all([
+      const [interviewsRes, leavesRes, periodsRes] = await Promise.all([
         supabase
           .from('interviews')
           .select('scheduled_at, interview_type, applications(applicants(first_name, last_name))')
@@ -39,7 +39,6 @@ export function useUpcomingEvents() {
           .gte('scheduled_at', new Date().toISOString())
           .order('scheduled_at', { ascending: true })
           .limit(20),
-        supabase.from('holidays').select('holiday_date, name').gte('holiday_date', today).order('holiday_date', { ascending: true }).limit(10),
         supabase
           .from('leave_requests')
           .select('start_date, employees(first_name, last_name), leave_types(name)')
@@ -57,7 +56,6 @@ export function useUpcomingEvents() {
           .limit(5),
       ])
       if (interviewsRes.error) throw interviewsRes.error
-      if (holidaysRes.error) throw holidaysRes.error
       if (leavesRes.error) throw leavesRes.error
       if (periodsRes.error) throw periodsRes.error
 
@@ -65,12 +63,6 @@ export function useUpcomingEvents() {
         date: row.scheduled_at,
         label: `${row.interview_type === 'initial' ? 'Initial' : 'Final'} Interview — ${row.applications?.applicants?.first_name ?? ''} ${row.applications?.applicants?.last_name ?? ''}`.trim(),
         type: 'interview',
-      }))
-
-      const holidayEvents: CalendarEvent[] = holidaysRes.data.map((row) => ({
-        date: row.holiday_date,
-        label: row.name,
-        type: 'holiday',
       }))
 
       const leaveEvents: CalendarEvent[] = leavesRes.data.map((row) => ({
@@ -85,7 +77,7 @@ export function useUpcomingEvents() {
         type: 'payroll',
       }))
 
-      return [...interviewEvents, ...holidayEvents, ...leaveEvents, ...payrollEvents].sort((a, b) => a.date.localeCompare(b.date))
+      return [...interviewEvents, ...leaveEvents, ...payrollEvents].sort((a, b) => a.date.localeCompare(b.date))
     },
     staleTime: 60_000,
   })

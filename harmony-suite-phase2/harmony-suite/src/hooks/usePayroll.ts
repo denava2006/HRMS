@@ -13,7 +13,6 @@ import {
   calculateDailyRate,
   calculateHourlyRate,
   calculateOvertimePay,
-  calculateHolidayPay,
   calculateLateDeduction,
   calculateUndertimeDeduction,
   calculateAbsenceDeduction,
@@ -203,14 +202,6 @@ export function useGeneratePayroll() {
       if (employeesError) throw employeesError
       if (employees.length === 0) throw new Error('No active employees to include in this payroll.')
 
-      const { data: regularHolidays, error: holidaysError } = await supabase
-        .from('holidays')
-        .select('holiday_date')
-        .eq('holiday_type', 'regular')
-        .gte('holiday_date', period.period_start)
-        .lte('holiday_date', period.period_end)
-      if (holidaysError) throw holidaysError
-
       let includedCount = 0
       for (const employee of employees) {
         const { data: existingRecord } = await supabase
@@ -285,7 +276,6 @@ export function useGeneratePayroll() {
         }
 
         const overtimePay = calculateOvertimePay(overtimeHours, hourlyRate)
-        const holidayPay = calculateHolidayPay(regularHolidays.length, dailyRate)
         const lateDeduction = calculateLateDeduction(lateMinutes, hourlyRate)
         const undertimeDeduction = calculateUndertimeDeduction(undertimeMinutes, hourlyRate)
         const absenceDeduction = calculateAbsenceDeduction(absentDays, dailyRate)
@@ -300,7 +290,7 @@ export function useGeneratePayroll() {
           periodsPerMonth(period.frequency)
         )
 
-        const totalAllowances = overtimePay + holidayPay
+        const totalAllowances = overtimePay
         const totalDeductions =
           lateDeduction + undertimeDeduction + absenceDeduction + leaveDeduction + statutory.total
         const periodBasicSalary = Math.round(dailyRate * workingDays * 100) / 100
@@ -316,7 +306,6 @@ export function useGeneratePayroll() {
             currency: employee.currency,
             total_allowances: totalAllowances,
             overtime_pay: overtimePay,
-            holiday_pay: holidayPay,
             gross_salary: grossSalary,
             late_deduction: lateDeduction,
             undertime_deduction: undertimeDeduction,
@@ -343,7 +332,6 @@ export function useGeneratePayroll() {
 
         const lineItems: TablesInsert<'payroll_line_items'>[] = []
         if (overtimePay > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'allowance', label: 'Overtime Pay', amount: overtimePay })
-        if (holidayPay > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'allowance', label: 'Holiday Pay', amount: holidayPay })
         if (lateDeduction > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'Late Deduction', amount: lateDeduction })
         if (undertimeDeduction > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'Undertime Deduction', amount: undertimeDeduction })
         if (absenceDeduction > 0) lineItems.push({ payroll_record_id: record.id, item_type: 'deduction', label: 'Absences', amount: absenceDeduction })

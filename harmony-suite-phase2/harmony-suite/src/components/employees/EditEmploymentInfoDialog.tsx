@@ -18,7 +18,7 @@ import { useSalaryGrades } from '@/hooks/useSalaryGrades'
 import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import { useUpdateEmployee, type Employee } from '@/hooks/useEmployees'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
-import { CURRENCY_LABEL, type CurrencyCode } from '@/lib/currency'
+import { DEFAULT_CURRENCY } from '@/lib/currency'
 import { EMPLOYMENT_STATUS_LABEL, SELECTABLE_EMPLOYMENT_STATUSES } from '@/lib/employeeLabels'
 import type { EmploymentStatus } from '@/lib/database.types'
 
@@ -43,7 +43,6 @@ export function EditEmploymentInfoDialog({
   const [employmentStatus, setEmploymentStatus] = React.useState<EmploymentStatus>('active')
   const [salaryGradeId, setSalaryGradeId] = React.useState('')
   const [basicSalary, setBasicSalary] = React.useState('')
-  const [currency, setCurrency] = React.useState<CurrencyCode>('PHP')
   const [hireDate, setHireDate] = React.useState('')
   const [workScheduleId, setWorkScheduleId] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
@@ -56,7 +55,6 @@ export function EditEmploymentInfoDialog({
       setEmploymentStatus(employee.employment_status)
       setSalaryGradeId(employee.salary_grade_id ?? '')
       setBasicSalary(String(employee.basic_salary))
-      setCurrency((employee.currency as CurrencyCode) ?? 'PHP')
       setHireDate(employee.hire_date)
       setWorkScheduleId(employee.work_schedule_id ?? '')
       setErrors({})
@@ -90,7 +88,7 @@ export function EditEmploymentInfoDialog({
           employment_status: employmentStatus,
           salary_grade_id: salaryGradeId || null,
           basic_salary: Number(basicSalary),
-          currency,
+          currency: DEFAULT_CURRENCY,
           hire_date: hireDate,
           work_schedule_id: workScheduleId,
         },
@@ -239,23 +237,8 @@ export function EditEmploymentInfoDialog({
           <div className="grid grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="edit_basic_salary">Basic Salary</Label>
-              <MoneyInput id="edit_basic_salary" currency={currency} invalid={!!errors.basicSalary} value={basicSalary} onValueChange={setBasicSalary} />
+              <MoneyInput id="edit_basic_salary" invalid={!!errors.basicSalary} value={basicSalary} onValueChange={setBasicSalary} />
               {errors.basicSalary && <p className="text-xs text-destructive">{errors.basicSalary}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Currency</Label>
-              <Select value={currency} onValueChange={(v) => setCurrency(v as CurrencyCode)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.entries(CURRENCY_LABEL) as [CurrencyCode, string][]).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </div>

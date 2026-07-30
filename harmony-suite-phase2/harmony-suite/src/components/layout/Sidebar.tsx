@@ -54,14 +54,13 @@ const employeeNav: NavItem[] = [
 
 // Reference data every HR role can reach. What each may actually *do* there
 // differs by role (staff prepares change requests, manager approves, salary
-// grades/holidays are manager-only) and is enforced in RLS — see
+// grades are manager-only) and is enforced in RLS — see
 // 20260729070000_reference_data_approval_workflow.sql.
 const referenceNav: NavItem[] = [
   { label: 'Departments', to: '/dashboard/admin/departments', icon: Building2 },
   { label: 'Positions', to: '/dashboard/admin/positions', icon: Layers },
   { label: 'Salary Grades', to: '/dashboard/admin/salary-grades', icon: DollarSign },
   { label: 'Work Schedules', to: '/dashboard/admin/work-schedules', icon: CalendarClock },
-  { label: 'Holidays', to: '/dashboard/admin/holidays', icon: CalendarCheck },
   { label: 'Approvals', to: '/dashboard/admin/approvals', icon: ClipboardCheck },
 ]
 

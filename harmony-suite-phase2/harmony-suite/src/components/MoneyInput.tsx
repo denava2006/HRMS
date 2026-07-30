@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { CURRENCY_SYMBOL, formatGroupedAmount, sanitizeMoneyInput, type CurrencyCode } from '@/lib/currency'
+import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, formatGroupedAmount, sanitizeMoneyInput, type CurrencyCode } from '@/lib/currency'
 
 export interface MoneyInputProps {
   id?: string
@@ -9,7 +9,8 @@ export interface MoneyInputProps {
   value: string
   onValueChange: (raw: string) => void
   onBlur?: () => void
-  currency: CurrencyCode
+  /** Defaults to the system currency; there is only one to choose from. */
+  currency?: CurrencyCode
   invalid?: boolean
   placeholder?: string
   disabled?: boolean
@@ -26,7 +27,7 @@ export function MoneyInput({
   value,
   onValueChange,
   onBlur,
-  currency,
+  currency = DEFAULT_CURRENCY,
   invalid,
   placeholder,
   disabled,

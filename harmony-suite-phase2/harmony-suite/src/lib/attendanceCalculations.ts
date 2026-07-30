@@ -7,7 +7,6 @@ export type WorkSchedule = Pick<Tables<'work_schedules'>, 'working_days' | 'star
 export const EXPLICIT_ATTENDANCE_STATUSES = [
   'absent',
   'on_leave',
-  'holiday',
   'rest_day',
   'official_business',
   'work_from_home',
@@ -113,7 +112,7 @@ function formatClock(d: Date): string {
 }
 
 /** Present/Late/Half Day are the only statuses derived from time entries —
- * everything else (Absent, On Leave, Holiday, Rest Day, Official Business,
+ * everything else (Absent, On Leave, Rest Day, Official Business,
  * Work From Home) is an explicit HR choice, never inferred. */
 export function deriveAttendanceStatus(workingHours: number, lateMinutes: number, scheduledHours: number): 'present' | 'late' | 'half_day' {
   if (scheduledHours > 0 && workingHours > 0 && workingHours < scheduledHours / 2) return 'half_day'

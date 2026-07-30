@@ -19,7 +19,7 @@ function InfoBanner({ message }: { message: string }) {
 
 /** The single Time In / Time Out action, shared by the Employee Dashboard's
  * Today's Attendance widget and the Attendance page itself so the button's
- * state (holiday/leave/time-in/time-out/done) is derived exactly once. */
+ * state (leave/time-in/time-out/done) is derived exactly once. */
 export function TimeInOutButton() {
   const { data: myEmployee, isLoading: isLoadingEmployee } = useMyEmployeeRecord()
   const { data: today, isLoading: isLoadingToday } = useMyTodayAttendance()
@@ -38,10 +38,6 @@ export function TimeInOutButton() {
 
   if (isLoadingEmployee || isLoadingToday || !myEmployee) {
     return <Skeleton className="h-9 w-32" />
-  }
-
-  if (today?.isHoliday) {
-    return <InfoBanner message={`Today is a company holiday${today.holidayName ? ` — ${today.holidayName}` : ''}.`} />
   }
 
   if (today?.onApprovedLeave) {

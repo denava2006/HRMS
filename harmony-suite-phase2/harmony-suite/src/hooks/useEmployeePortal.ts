@@ -51,12 +51,10 @@ export function useMyEmployeeRecord() {
   })
 }
 
-// ---- Today's attendance (composite: record + holiday + approved leave) ----
+// ---- Today's attendance (composite: record + approved leave) ----
 
 export interface MyTodayAttendance {
   record: Tables<'attendance_records'> | null
-  isHoliday: boolean
-  holidayName: string | null
   onApprovedLeave: boolean
   leaveTypeName: string | null
 }
@@ -68,9 +66,8 @@ export function useMyTodayAttendance() {
     queryKey: ['my-today-attendance', employeeId],
     queryFn: async (): Promise<MyTodayAttendance> => {
       const today = todayISODate()
-      const [recordRes, holidayRes, leaveRes] = await Promise.all([
+      const [recordRes, leaveRes] = await Promise.all([
         supabase.from('attendance_records').select('*').eq('employee_id', employeeId as string).eq('attendance_date', today).maybeSingle(),
-        supabase.from('holidays').select('name').eq('holiday_date', today).maybeSingle(),
         supabase
           .from('leave_requests')
           .select('leave_types(name)')
@@ -81,13 +78,10 @@ export function useMyTodayAttendance() {
           .maybeSingle(),
       ])
       if (recordRes.error) throw recordRes.error
-      if (holidayRes.error) throw holidayRes.error
       if (leaveRes.error) throw leaveRes.error
 
       return {
         record: recordRes.data,
-        isHoliday: !!holidayRes.data,
-        holidayName: holidayRes.data?.name ?? null,
         onApprovedLeave: !!leaveRes.data,
         leaveTypeName: leaveRes.data?.leave_types?.name ?? null,
       }

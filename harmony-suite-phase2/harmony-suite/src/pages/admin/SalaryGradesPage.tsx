@@ -38,7 +38,6 @@ import {
   useUpdateSalaryGrade,
   useDeleteSalaryGrade,
 } from '@/hooks/useSalaryGrades'
-import { useCurrency } from '@/hooks/useSystemSettings'
 import { formatMoney } from '@/lib/currency'
 
 const MAX_SALARY = 999_999_999_999
@@ -82,7 +81,6 @@ function GradeFormDialog({
   grade?: SalaryGrade | null
 }) {
   const isEdit = !!grade
-  const currency = useCurrency()
   const createGrade = useCreateSalaryGrade()
   const updateGrade = useUpdateSalaryGrade()
   const { data: allGrades } = useSalaryGrades()
@@ -122,7 +120,7 @@ function GradeFormDialog({
     )
     if (clash) {
       setError('min_salary', {
-        message: `This range overlaps ${clash.grade_name} (${formatMoney(clash.min_salary, currency)} – ${formatMoney(clash.max_salary, currency)}).`,
+        message: `This range overlaps ${clash.grade_name} (${formatMoney(clash.min_salary)} – ${formatMoney(clash.max_salary)}).`,
       })
       return
     }
@@ -161,7 +159,6 @@ function GradeFormDialog({
                 render={({ field }) => (
                   <MoneyInput
                     id="min_salary"
-                    currency={currency}
                     invalid={!!errors.min_salary}
                     value={field.value}
                     onValueChange={field.onChange}
@@ -181,7 +178,6 @@ function GradeFormDialog({
                 render={({ field }) => (
                   <MoneyInput
                     id="max_salary"
-                    currency={currency}
                     invalid={!!errors.max_salary}
                     value={field.value}
                     onValueChange={field.onChange}
@@ -210,7 +206,6 @@ export default function SalaryGradesPage() {
   const { profile } = useAuth()
   const canManage = canApproveWork(profile?.role)
   const { data, isLoading } = useSalaryGrades()
-  const currency = useCurrency()
   const deleteGrade = useDeleteSalaryGrade()
   const [formOpen, setFormOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<SalaryGrade | null>(null)
@@ -221,12 +216,12 @@ export default function SalaryGradesPage() {
     {
       accessorKey: 'min_salary',
       header: 'Minimum',
-      cell: ({ row }) => <span className="font-mono">{formatMoney(row.original.min_salary, currency)}</span>,
+      cell: ({ row }) => <span className="font-mono">{formatMoney(row.original.min_salary)}</span>,
     },
     {
       accessorKey: 'max_salary',
       header: 'Maximum',
-      cell: ({ row }) => <span className="font-mono">{formatMoney(row.original.max_salary, currency)}</span>,
+      cell: ({ row }) => <span className="font-mono">{formatMoney(row.original.max_salary)}</span>,
     },
     {
       id: 'actions',

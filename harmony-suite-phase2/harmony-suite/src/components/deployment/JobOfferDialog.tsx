@@ -16,10 +16,9 @@ import { MoneyInput } from '@/components/MoneyInput'
 import { useSalaryGrades } from '@/hooks/useSalaryGrades'
 import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import { usePrepareJobOffer } from '@/hooks/useDeployment'
-import { useCurrency } from '@/hooks/useSystemSettings'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 import { EMPLOYMENT_TYPE_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
-import { CURRENCY_LABEL, formatMoney, type CurrencyCode } from '@/lib/currency'
+import { formatMoney, DEFAULT_CURRENCY } from '@/lib/currency'
 
 /** Local calendar date (not UTC) in YYYY-MM-DD form, matching what a date input's own picker considers "today". */
 function todayISODate(): string {
@@ -49,7 +48,6 @@ export function JobOfferDialog({
   positionTitle: string
   departmentName: string
 }) {
-  const defaultCurrency = useCurrency()
   const { data: salaryGrades } = useSalaryGrades()
   const { data: workSchedules } = useWorkSchedules()
   const prepareOffer = usePrepareJobOffer()
@@ -57,7 +55,6 @@ export function JobOfferDialog({
   const employmentType: EmploymentType = 'regular'
   const [salaryGradeId, setSalaryGradeId] = React.useState('')
   const [salary, setSalary] = React.useState('')
-  const [currency, setCurrency] = React.useState<CurrencyCode>('PHP')
   const [workScheduleId, setWorkScheduleId] = React.useState('')
   const [startDate, setStartDate] = React.useState('')
   const [additionalCompensation, setAdditionalCompensation] = React.useState('')
@@ -68,14 +65,13 @@ export function JobOfferDialog({
     if (open) {
       setSalaryGradeId('')
       setSalary('')
-      setCurrency(defaultCurrency)
       setWorkScheduleId(workSchedules?.find((s) => s.is_default)?.id ?? '')
       setStartDate('')
       setAdditionalCompensation('')
       setNotes('')
       setErrors({})
     }
-  }, [open, defaultCurrency, workSchedules])
+  }, [open, workSchedules])
 
   const selectedGrade = salaryGrades?.find((g) => g.id === salaryGradeId) ?? null
   const selectedSchedule = workSchedules?.find((s) => s.id === workScheduleId) ?? null
@@ -92,7 +88,7 @@ export function JobOfferDialog({
     if (!salary || Number(salary) <= 0) {
       nextErrors.salary = 'Salary is required.'
     } else if (selectedGrade && (Number(salary) < selectedGrade.min_salary || Number(salary) > selectedGrade.max_salary)) {
-      nextErrors.salary = `Salary must be between ${formatMoney(selectedGrade.min_salary, currency)} and ${formatMoney(selectedGrade.max_salary, currency)} for ${selectedGrade.grade_name}.`
+      nextErrors.salary = `Salary must be between ${formatMoney(selectedGrade.min_salary)} and ${formatMoney(selectedGrade.max_salary)} for ${selectedGrade.grade_name}.`
     }
     if (!workScheduleId) nextErrors.workScheduleId = 'Work schedule is required.'
     if (!startDate) {
@@ -112,7 +108,7 @@ export function JobOfferDialog({
         employmentType,
         salaryGradeId: salaryGradeId || undefined,
         proposedSalary: Number(salary),
-        currency,
+        currency: DEFAULT_CURRENCY,
         workScheduleId,
         workingHours: scheduleHoursText ?? undefined,
         workingDays: scheduleDaysText ?? undefined,
@@ -162,7 +158,7 @@ export function JobOfferDialog({
               </Select>
               {selectedGrade && (
                 <p className="text-xs text-muted-foreground">
-                  Range: {formatMoney(selectedGrade.min_salary, currency)} – {formatMoney(selectedGrade.max_salary, currency)}
+                  Range: {formatMoney(selectedGrade.min_salary)} – {formatMoney(selectedGrade.max_salary)}
                 </p>
               )}
             </div>
@@ -175,7 +171,6 @@ export function JobOfferDialog({
               </Label>
               <MoneyInput
                 id="salary"
-                currency={currency}
                 invalid={!!errors.salary}
                 value={salary}
                 onValueChange={(v) => {
@@ -184,21 +179,6 @@ export function JobOfferDialog({
                 }}
               />
               {errors.salary && <p className="text-xs text-destructive">{errors.salary}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Currency</Label>
-              <Select value={currency} onValueChange={(v) => setCurrency(v as CurrencyCode)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.entries(CURRENCY_LABEL) as [CurrencyCode, string][]).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

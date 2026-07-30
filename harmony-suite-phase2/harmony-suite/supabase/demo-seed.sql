@@ -21,15 +21,15 @@ insert into public.job_postings (id, department_id, position_id, description, re
   ('c1000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000002',
    'Drive retail sales, build customer relationships, and hit monthly targets in a fast-paced store environment.',
    'At least 1 year retail or customer-facing experience. Strong communication skills. Willing to work weekends.',
-   'full_time', 3, 'open', 'a0000000-0000-0000-0000-000000000001', now() - interval '14 days', current_date + 30),
+   'regular', 3, 'open', 'a0000000-0000-0000-0000-000000000001', now() - interval '14 days', current_date + 30),
   ('c1000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000004',
    'Provide first-line technical support to staff across all branches, maintain hardware inventory, and escalate systems issues.',
    'IT-related degree or equivalent experience. Familiarity with Windows and basic networking.',
-   'full_time', 1, 'open', 'a0000000-0000-0000-0000-000000000001', now() - interval '7 days', current_date + 21),
+   'regular', 1, 'open', 'a0000000-0000-0000-0000-000000000001', now() - interval '7 days', current_date + 21),
   ('c1000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001',
    'Support recruitment, onboarding, and employee records for a growing team.',
    'HR or Psychology graduate. Detail-oriented. Familiar with basic labor standards.',
-   'full_time', 1, 'closed', 'a0000000-0000-0000-0000-000000000001', now() - interval '40 days', current_date - 5)
+   'regular', 1, 'closed', 'a0000000-0000-0000-0000-000000000001', now() - interval '40 days', current_date - 5)
 on conflict do nothing;
 
 -- ---- Applicants -------------------------------------------------------------
@@ -110,7 +110,7 @@ on conflict do nothing;
 -- ---- Job offer for Nina (pending — she can accept it from /track) -----------
 insert into public.job_offers (id, application_id, employment_type, salary_grade_id, proposed_salary, currency,
   work_schedule_id, working_hours, working_days, start_date, additional_compensation, prepared_by, status, offer_date)
-select 'c5000000-0000-0000-0000-000000000001', 'c3000000-0000-0000-0000-000000000005', 'full_time',
+select 'c5000000-0000-0000-0000-000000000001', 'c3000000-0000-0000-0000-000000000005', 'regular',
   'f0000000-0000-0000-0000-000000000002', 24000, 'PHP',
   ws.id, '8:00 AM - 5:00 PM', 'Mon, Tue, Wed, Thu, Fri',
   current_date + 14, 'Transportation allowance of PHP 2,000/month.',
@@ -124,13 +124,13 @@ insert into public.employees (id, first_name, middle_name, last_name, email, pho
   civil_status, nationality, department_id, position_id, salary_grade_id, basic_salary, currency,
   employment_type, employment_status, hire_date, work_schedule_id)
 select v.id::uuid, v.fn, v.mn, v.ln, v.email, v.phone, v.addr, v.bd::date, v.gender, v.civil, 'Filipino',
-  v.dept::uuid, v.pos::uuid, v.grade::uuid, v.salary, 'PHP', 'full_time', v.status::employment_status,
+  v.dept::uuid, v.pos::uuid, v.grade::uuid, v.salary, 'PHP', 'regular', v.status::employment_status,
   v.hired::date, ws.id
 from (values
   -- Each on a different shift so the roster shows real variety, including one
   -- overnight worker.
-  ('c6000000-0000-0000-0000-000000000001','Liza','Domingo','Fernandez','liza.fernandez@example.com','09181000001','14 Malakas St, Quezon City','1994-03-12','Female','Single','d0000000-0000-0000-0000-000000000002','e0000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000002',24000,'regular', (current_date - interval '2 years')::text, 'a1000000-0000-0000-0000-000000000001'),
-  ('c6000000-0000-0000-0000-000000000002','Jerome','Sy','Castillo','jerome.castillo@example.com','09181000002','3 Sampaguita St, Pasig City','1990-11-02','Male','Married','d0000000-0000-0000-0000-000000000003','e0000000-0000-0000-0000-000000000004','f0000000-0000-0000-0000-000000000003',32000,'regular', (current_date - interval '3 years')::text, 'a1000000-0000-0000-0000-000000000002'),
+  ('c6000000-0000-0000-0000-000000000001','Liza','Domingo','Fernandez','liza.fernandez@example.com','09181000001','14 Malakas St, Quezon City','1994-03-12','Female','Single','d0000000-0000-0000-0000-000000000002','e0000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000002',24000,'active', (current_date - interval '2 years')::text, 'a1000000-0000-0000-0000-000000000001'),
+  ('c6000000-0000-0000-0000-000000000002','Jerome','Sy','Castillo','jerome.castillo@example.com','09181000002','3 Sampaguita St, Pasig City','1990-11-02','Male','Married','d0000000-0000-0000-0000-000000000003','e0000000-0000-0000-0000-000000000004','f0000000-0000-0000-0000-000000000003',32000,'active', (current_date - interval '3 years')::text, 'a1000000-0000-0000-0000-000000000002'),
   ('c6000000-0000-0000-0000-000000000003','Grace','Ann','Peralta','grace.peralta@example.com','09181000003','40 Ilang-Ilang St, Makati City','1998-06-25','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000001',18000,'active', (current_date - interval '8 months')::text, 'a1000000-0000-0000-0000-000000000003')
 ) as v(id, fn, mn, ln, email, phone, addr, bd, gender, civil, dept, pos, grade, salary, status, hired, sched)
 cross join lateral (select v.sched::uuid as id) ws

@@ -142,13 +142,11 @@ export default function MyAttendancePage() {
     },
   ]
 
-  const todayStatusLabel = today?.isHoliday
-    ? 'Holiday'
-    : today?.onApprovedLeave
-      ? 'On Leave'
-      : today?.record
-        ? ATTENDANCE_STATUS_LABEL[today.record.status]
-        : 'Not Timed In'
+  const todayStatusLabel = today?.onApprovedLeave
+    ? 'On Leave'
+    : today?.record
+      ? ATTENDANCE_STATUS_LABEL[today.record.status]
+      : 'Not Timed In'
 
   return (
     <div className="flex flex-col gap-4">

@@ -32,13 +32,6 @@ export function calculateOvertimePay(overtimeHours: number, hourlyRate: number, 
   return round2(overtimeHours * hourlyRate * multiplier)
 }
 
-/** Regular holidays are paid in full whether worked or not; special/company
- * holidays follow "no work, no pay" unless HR adds pay manually as an
- * allowance line item during Step 13 (Edit/Adjust Payroll). */
-export function calculateHolidayPay(regularHolidayCount: number, dailyRate: number): number {
-  return round2(regularHolidayCount * dailyRate)
-}
-
 export function calculateLateDeduction(lateMinutes: number, hourlyRate: number): number {
   return round2((lateMinutes / 60) * hourlyRate)
 }

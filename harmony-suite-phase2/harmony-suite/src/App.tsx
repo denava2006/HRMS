@@ -23,7 +23,6 @@ import CreateEmployeePage from '@/pages/employees/CreateEmployeePage'
 import EmployeeDetailsPage from '@/pages/employees/EmployeeDetailsPage'
 import AttendancePage from '@/pages/attendance/AttendancePage'
 import WorkSchedulesPage from '@/pages/admin/WorkSchedulesPage'
-import HolidaysPage from '@/pages/admin/HolidaysPage'
 import ApprovalsPage from '@/pages/admin/ApprovalsPage'
 import BranchesPage from '@/pages/admin/BranchesPage'
 import LeavePage from '@/pages/leave/LeavePage'
@@ -245,7 +244,7 @@ export default function App() {
               />
               {/* Reference-data modules are shared: HR Staff prepares changes
                   (which become change requests), HR Manager reviews and applies
-                  them, and salary grades / holidays are manager-controlled
+                  them, and salary grades are manager-controlled
                   outright. Per-action authority is enforced in RLS, not here. */}
               <Route
                 path="admin/departments"
@@ -287,14 +286,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="admin/holidays"
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
-                    <HolidaysPage />
-                  </ProtectedRoute>
-                }
-              />
+
               <Route
                 path="admin/approvals"
                 element={

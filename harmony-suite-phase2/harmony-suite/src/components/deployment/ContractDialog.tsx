@@ -60,7 +60,7 @@ export function ContractDialog({
     positionTitle,
     departmentName,
     employmentType: EMPLOYMENT_TYPE_LABEL[offer.employment_type],
-    salary: formatMoney(offer.proposed_salary, offer.currency === 'USD' ? 'USD' : 'PHP'),
+    salary: formatMoney(offer.proposed_salary),
     startDate: offer.start_date ?? '—',
     workingDays: offer.working_days ?? '—',
     workingHours: offer.working_hours ?? '—',
@@ -97,7 +97,7 @@ export function ContractDialog({
               <SummaryField label="Position" value={positionTitle} />
               <SummaryField label="Department" value={departmentName} />
               <SummaryField label="Employment Type" value={EMPLOYMENT_TYPE_LABEL[offer.employment_type]} />
-              <SummaryField label="Salary" value={formatMoney(offer.proposed_salary, offer.currency === 'USD' ? 'USD' : 'PHP')} />
+              <SummaryField label="Salary" value={formatMoney(offer.proposed_salary)} />
               <SummaryField label="Start Date" value={offer.start_date ?? '—'} />
               <SummaryField label="Working Hours" value={offer.working_hours ?? '—'} />
               <SummaryField label="Working Days" value={offer.working_days ?? '—'} />

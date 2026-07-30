@@ -72,25 +72,22 @@ function todayISODate(): string {
 /** The 6 dashboard summary cards, computed for a single day (defaults to
  * today). "Absent" isn't a status anyone sets directly here — it's derived as
  * active employees who were scheduled to work today but have no attendance
- * row at all (and today isn't a holiday). */
+ * row at all. */
 export function useAttendanceStats(dateISO: string = todayISODate()) {
   return useQuery({
     queryKey: ['attendance-stats', dateISO],
     queryFn: async () => {
-      const [employeesRes, recordsRes, holidayRes] = await Promise.all([
+      const [employeesRes, recordsRes] = await Promise.all([
         supabase
           .from('employees')
           .select('id, work_schedule_id, employment_status, work_schedules(working_days)')
           .in('employment_status', ['active', 'on_leave']),
         supabase.from('attendance_records').select('employee_id, status, overtime_minutes').eq('attendance_date', dateISO),
-        supabase.from('holidays').select('id').eq('holiday_date', dateISO).limit(1),
       ])
       if (employeesRes.error) throw employeesRes.error
       if (recordsRes.error) throw recordsRes.error
-      if (holidayRes.error) throw holidayRes.error
 
       const records = recordsRes.data
-      const isHoliday = (holidayRes.data?.length ?? 0) > 0
       const weekday = new Date(`${dateISO}T00:00:00`).getDay()
 
       const presentCount = records.filter((r) => r.status === 'present').length
@@ -100,13 +97,11 @@ export function useAttendanceStats(dateISO: string = todayISODate()) {
       const overtimeCount = records.filter((r) => r.overtime_minutes > 0).length
 
       const recordedEmployeeIds = new Set(records.map((r) => r.employee_id))
-      const absentCount = isHoliday
-        ? 0
-        : employeesRes.data.filter((emp) => {
-            const schedule = emp.work_schedules as unknown as { working_days: number[] } | null
-            const workingDays = schedule?.working_days ?? [1, 2, 3, 4, 5]
-            return workingDays.includes(weekday) && !recordedEmployeeIds.has(emp.id)
-          }).length
+      const absentCount = employeesRes.data.filter((emp) => {
+        const schedule = emp.work_schedules as unknown as { working_days: number[] } | null
+        const workingDays = schedule?.working_days ?? [1, 2, 3, 4, 5]
+        return workingDays.includes(weekday) && !recordedEmployeeIds.has(emp.id)
+      }).length
 
       return { presentCount, absentCount, lateCount, onLeaveCount, overtimeCount, remoteCount }
     },

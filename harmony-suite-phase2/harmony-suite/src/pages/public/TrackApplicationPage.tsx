@@ -44,7 +44,7 @@ import {
   type ApplicantCredentials,
   type ApplicationTrackingRecord,
 } from '@/hooks/useApplicantPortal'
-import { formatMoney, type CurrencyCode } from '@/lib/currency'
+import { formatMoney } from '@/lib/currency'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { EMPLOYMENT_STATUS_LABEL } from '@/lib/employeeLabels'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
@@ -192,7 +192,6 @@ function OfferCard({
   const [declineError, setDeclineError] = React.useState('')
   if (!record.offer_id) return null
 
-  const currency: CurrencyCode = record.offer_currency === 'USD' ? 'USD' : 'PHP'
   const isPending = record.offer_status === 'pending'
 
   const submit = (decision: 'accepted' | 'declined') => {
@@ -226,7 +225,7 @@ function OfferCard({
               label="Employment Type"
               value={record.offer_employment_type ? EMPLOYMENT_TYPE_LABEL[record.offer_employment_type] : '—'}
             />
-            <Field label="Salary" value={record.offer_salary != null ? formatMoney(record.offer_salary, currency) : '—'} />
+            <Field label="Salary" value={record.offer_salary != null ? formatMoney(record.offer_salary) : '—'} />
             <Field label="Start Date" value={formatDate(record.offer_start_date)} />
             <Field label="Working Days" value={record.offer_working_days ?? '—'} />
             <Field label="Working Hours" value={record.offer_working_hours ?? '—'} />
@@ -467,7 +466,6 @@ function EmployeeRecordCard({
   const download = useApplicantFileDownload()
   if (!record.employee_number) return null
 
-  const currency: CurrencyCode = record.employee_currency === 'USD' ? 'USD' : 'PHP'
 
   return (
     <Card>
@@ -484,7 +482,7 @@ function EmployeeRecordCard({
           <Field label="Department" value={record.employee_department ?? '—'} />
           <Field
             label="Basic Salary"
-            value={record.employee_basic_salary != null ? formatMoney(record.employee_basic_salary, currency) : '—'}
+            value={record.employee_basic_salary != null ? formatMoney(record.employee_basic_salary) : '—'}
           />
           <Field
             label="Employment Type"

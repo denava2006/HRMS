@@ -43,9 +43,7 @@ const TODAY_STATUS_LABEL: Record<string, string> = {
   present: 'Present',
   late: 'Late',
   half_day: 'Half Day',
-  on_leave: 'On Leave',
-  holiday: 'Holiday',
-  rest_day: 'Rest Day',
+  on_leave: 'On Leave',  rest_day: 'Rest Day',
   official_business: 'Official Business',
   work_from_home: 'Working Remotely',
   absent: 'Absent',
@@ -65,13 +63,11 @@ export default function EmployeeDashboard() {
 
   const latestPayroll = payrollRecords?.[0]
 
-  const todayStatusLabel = today?.isHoliday
-    ? 'Holiday'
-    : today?.onApprovedLeave
-      ? 'On Leave'
-      : today?.record
-        ? TODAY_STATUS_LABEL[today.record.status] ?? today.record.status
-        : 'Not Timed In'
+  const todayStatusLabel = today?.onApprovedLeave
+    ? 'On Leave'
+    : today?.record
+      ? TODAY_STATUS_LABEL[today.record.status] ?? today.record.status
+      : 'Not Timed In'
 
   return (
     <div className="flex flex-col gap-4">

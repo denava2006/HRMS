@@ -4,9 +4,9 @@ import type { Json } from '@/lib/database.types'
 import { useAuth } from '@/contexts/AuthContext'
 import { toast } from '@/components/ui/sonner'
 
-/** Reference-data modules that go through HR Manager review. Salary grades and
- * holidays are absent on purpose — those are manager-controlled outright, with
- * no staff-authored path at all. */
+/** Reference-data modules that go through HR Manager review. Salary grades are
+ * absent on purpose — they're manager-controlled outright, with no
+ * staff-authored path at all. */
 export type ChangeRequestTable = 'departments' | 'positions' | 'work_schedules'
 export type ChangeRequestOperation = 'create' | 'update' | 'delete'
 export type ChangeRequestStatus = 'pending' | 'approved' | 'rejected'

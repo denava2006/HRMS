@@ -108,8 +108,3 @@ insert into public.salary_grades (id, grade_name, min_salary, max_salary) values
   ('f0000000-0000-0000-0000-000000000003', 'Grade 3', 28000, 40000)
 on conflict (id) do nothing;
 
--- ---- A couple of sample holidays this year, for the Attendance module's holiday checks ----
-insert into public.holidays (name, holiday_date, holiday_type) values
-  ('New Year''s Day', date_trunc('year', current_date)::date, 'regular'),
-  ('Independence Day', (date_trunc('year', current_date) + interval '5 months' + interval '11 days')::date, 'regular')
-on conflict do nothing;

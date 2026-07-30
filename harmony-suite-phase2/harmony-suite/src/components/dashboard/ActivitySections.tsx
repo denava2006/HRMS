@@ -74,7 +74,6 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   deployment: 'Deployment',
   leave: 'Leave',
   payroll: 'Payroll',
-  holiday: 'Holiday',
 }
 
 export function UpcomingScheduleSection() {

@@ -1,18 +1,26 @@
-export type CurrencyCode = 'PHP' | 'USD'
+/** The system runs in pesos. Currency used to be selectable per job offer,
+ * per employee, and system-wide, which meant three places could disagree about
+ * what a number on a payslip meant — and nothing ever converted between them.
+ * The `currency` columns stay so historical rows keep their label, but there
+ * is no longer anything to pick.
+ *
+ * Kept as a type rather than inlined so the columns that carry it stay
+ * self-describing, and so widening it later is a change in one file. */
+export type CurrencyCode = 'PHP'
 
-export const CURRENCY_SYMBOL: Record<CurrencyCode, string> = { PHP: '₱', USD: '$' }
-export const CURRENCY_LABEL: Record<CurrencyCode, string> = {
-  PHP: 'Philippine Peso (₱)',
-  USD: 'US Dollar ($)',
-}
-const CURRENCY_LOCALE: Record<CurrencyCode, string> = { PHP: 'en-PH', USD: 'en-US' }
+export const DEFAULT_CURRENCY: CurrencyCode = 'PHP'
 
-export function parseCurrencyCode(value: string | undefined): CurrencyCode {
-  return value === 'USD' ? 'USD' : 'PHP'
+export const CURRENCY_SYMBOL: Record<CurrencyCode, string> = { PHP: '₱' }
+const CURRENCY_LOCALE: Record<CurrencyCode, string> = { PHP: 'en-PH' }
+
+/** Anything stored before the system settled on one currency still reads back
+ * as pesos — there is no conversion, and no second currency to fall back to. */
+export function parseCurrencyCode(_value?: string): CurrencyCode {
+  return DEFAULT_CURRENCY
 }
 
 /** Full currency-formatted display for read-only contexts (tables, summaries) — always 2 decimals. */
-export function formatMoney(amount: number, currency: CurrencyCode): string {
+export function formatMoney(amount: number, currency: CurrencyCode = DEFAULT_CURRENCY): string {
   return new Intl.NumberFormat(CURRENCY_LOCALE[currency], {
     style: 'currency',
     currency,
