@@ -11,12 +11,10 @@
 -- identically (a name under a parent) and one table means one place to
 -- maintain, one policy, and one cascade query.
 --
--- DATA SCOPE: seeded with all 81 provinces plus Metro Manila (a region rather
--- than a province, but the level an address actually needs), and with NCR and
--- Cavite filled in down to barangay level — the areas this system's own records
--- live in. The full PSGC set is ~42,000 barangays and belongs in an import, not
--- a migration. The table is administrator-managed, so the rest is extendable
--- without touching code.
+-- The data itself is loaded by 20260731110000 — the complete PSGC set, every
+-- province, city, municipality, and barangay in the country. The table is
+-- administrator-managed on top of that, so a gap or a rename can be fixed
+-- without a code change.
 
 create table if not exists public.ph_locations (
   id uuid primary key default gen_random_uuid(),
