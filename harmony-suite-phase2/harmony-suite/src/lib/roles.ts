@@ -26,8 +26,28 @@ export function canApproveWork(role: UserRole | undefined): boolean {
 }
 
 /** Creating, editing, publishing, and closing job postings is HR Staff's own
- * process — HR Manager gets read access for context but doesn't run the job
- * board. Mirrors the database's is_hr_staff_or_admin(). */
+ * process — HR Manager doesn't run the job board. Mirrors the database's
+ * is_hr_staff_or_admin(). */
 export function canPostJobs(role: UserRole | undefined): boolean {
   return role === 'admin' || role === 'hr_staff'
+}
+
+/** Deciding whether an application is qualified or rejected is an approval, so
+ * it belongs to the HR Manager alongside payroll and leave. HR Staff picks the
+ * pipeline back up at Interview Management, which lists qualified applicants
+ * in its own right. Mirrors the database's screening trigger. */
+export function canScreenApplicants(role: UserRole | undefined): boolean {
+  return role === 'admin' || role === 'hr_manager'
+}
+
+/** Modules a role has no action in are hidden outright rather than shown with
+ * every control disabled — a manager staring at a Job Posting page they can't
+ * touch is just clutter. This is the single source of truth behind both the
+ * sidebar and the route guards in App.tsx; the database enforces the same
+ * split independently, so hiding a module is never the only thing stopping
+ * someone. */
+export function canAccessModule(role: UserRole | undefined, path: string): boolean {
+  if (path === '/dashboard/job-postings') return canPostJobs(role)
+  if (path === '/dashboard/recruitment') return canScreenApplicants(role)
+  return true
 }

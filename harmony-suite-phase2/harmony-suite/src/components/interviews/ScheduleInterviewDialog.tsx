@@ -17,6 +17,7 @@ import { useScheduleInterview } from '@/hooks/useInterviews'
 import { useBranches, useWorkLocations } from '@/hooks/useBranches'
 import type { InterviewType } from '@/lib/database.types'
 import { INTERVIEW_TYPE_LABEL } from '@/lib/interviewLabels'
+import { isValidMeetingLink } from '@/lib/meetingLink'
 
 /** Local calendar datetime (not UTC) in the format a datetime-local input expects. */
 function nowLocalDatetimeValue(): string {
@@ -78,8 +79,15 @@ export function ScheduleInterviewDialog({
       nextErrors.scheduledAt = 'Interview cannot be scheduled in the past.'
     }
     if (!mode) nextErrors.mode = 'Select an interview type.'
-    if (mode === 'online' && !meetingLink.trim()) {
-      nextErrors.meetingLink = 'A meeting link is required for online interviews.'
+    if (mode === 'online') {
+      const link = meetingLink.trim()
+      if (!link) {
+        nextErrors.meetingLink = 'A meeting link is required for online interviews.'
+      } else if (!isValidMeetingLink(link)) {
+        // "htts:12534gsdg" was previously accepted and sent straight to the
+        // applicant, who would only discover it was broken at interview time.
+        nextErrors.meetingLink = 'Enter a full meeting link starting with https:// (e.g. https://meet.google.com/abc-defg-hij).'
+      }
     }
     if (mode === 'face_to_face' && !location.trim()) {
       nextErrors.location = 'A location is required for face-to-face interviews.'

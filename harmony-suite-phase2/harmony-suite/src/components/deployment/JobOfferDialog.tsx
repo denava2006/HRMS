@@ -27,6 +27,15 @@ function todayISODate(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/** The earliest start date an offer may promise. An applicant still has to
+ * receive the offer, accept it, and sign a contract, so a start date of today
+ * is never actually achievable — the soonest real option is tomorrow. */
+function earliestStartDate(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function JobOfferDialog({
   open,
   onOpenChange,
@@ -86,7 +95,12 @@ export function JobOfferDialog({
       nextErrors.salary = `Salary must be between ${formatMoney(selectedGrade.min_salary, currency)} and ${formatMoney(selectedGrade.max_salary, currency)} for ${selectedGrade.grade_name}.`
     }
     if (!workScheduleId) nextErrors.workScheduleId = 'Work schedule is required.'
-    if (!startDate) nextErrors.startDate = 'Start date is required.'
+    if (!startDate) {
+      nextErrors.startDate = 'Start date is required.'
+    } else if (startDate <= todayISODate()) {
+      // `min` on the input only guards the picker; a typed date still lands here.
+      nextErrors.startDate = 'Start date must be tomorrow or later.'
+    }
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
       return
@@ -229,7 +243,7 @@ export function JobOfferDialog({
             <Input
               id="start_date"
               type="date"
-              min={todayISODate()}
+              min={earliestStartDate()}
               invalid={!!errors.startDate}
               value={startDate}
               onChange={(e) => {

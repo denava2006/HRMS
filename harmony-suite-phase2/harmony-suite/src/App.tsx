@@ -81,10 +81,13 @@ export default function App() {
 
               {/* Internal HR back-office — employee-role logins are blocked from
                   all of it and land on DashboardHome's placeholder instead. */}
+              {/* Job Posting and Recruitment are each one role's own work (see
+                * canAccessModule in lib/roles.ts), so the other role is kept out
+                * of the route as well as off the sidebar. */}
               <Route
                 path="job-postings"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_staff']}>
                     <JobPostingsPage />
                   </ProtectedRoute>
                 }
@@ -92,7 +95,7 @@ export default function App() {
               <Route
                 path="recruitment"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager']}>
                     <RecruitmentPage />
                   </ProtectedRoute>
                 }

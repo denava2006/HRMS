@@ -61,19 +61,44 @@ Pre-staged: **Nina Aquino** already has an offer waiting.
 Reference: run `select reference_code from applications where id = 'c3000000-0000-0000-0000-000000000005';`
 Email: `nina.aquino@example.com` → she can **Accept** or **Decline** the offer herself.
 
+Also pre-staged, and worth showing: **`APP-2026-0008` / `ponce@gmail.com`** is
+someone who went all the way through. Their page carries every copy HR
+produced downstream of the offer — the **signed contract** (with a real
+download, served through a 2-minute signed URL), **where they're reporting**
+(branch, work location, shift, working days), their **employee record**
+(number, hire date, salary, employment status), and confirmation that their
+**login account** exists and which email it uses.
+
+**Talking point:** the applicant never has to email HR asking "what's my
+schedule / did my contract go through / what's my employee number". The files
+themselves stay in private buckets — the page holds only paths, and a request
+for one is re-checked against the reference code + email before anything is
+signed.
+
 ### 3. HR Staff — the day-to-day work (3 min)
 Sign in as **staff@suite.com**.
 
-- **Recruitment** — two new applications waiting. Open one → *Mark as Qualified*
-  or *Reject*. Note the actions disappear once an applicant moves on.
+- **Notice what's missing from the sidebar:** there is no *Recruitment* entry.
+  Screening an applicant is an approval, so it belongs to the HR Manager — and
+  the module a role can't act in is hidden rather than shown greyed out. Typing
+  `/dashboard/recruitment` in the address bar bounces straight back to the
+  dashboard.
+- **Job Posting** — this *is* HR Staff's own module. Create and publish a
+  posting. (Sign in as the manager later and the entry is gone for them.)
 - **Interview Management** — *Bea Manalo* has an initial interview scheduled.
   Open *Paolo Del Rosario* to show a completed initial evaluation.
   **Talking point:** when HR Staff passes someone, they must nominate an
   **HR Manager** for the final interview — staff cannot run the final round.
 - **Deployment** — *Paolo* is hired and waiting for a job offer. Prepare one:
   working hours/days come from the Admin-configured **work schedule**, not free
-  text. *Nina* is at "waiting for applicant response" — HR has **no**
-  Accept/Decline buttons any more.
+  text, and the **start date can't be today** — the earliest selectable day is
+  tomorrow, because an offer still has to be accepted and a contract signed.
+  *Nina* is at "waiting for applicant response" — HR has **no** Accept/Decline
+  buttons any more.
+- **If an applicant declines:** have Nina decline from her tracking page, then
+  refresh Deployment. She stays in the queue as **Offer Declined** with a
+  **Close Application** button. The application only leaves the pipeline when
+  HR closes it — it doesn't silently vanish into Recruitment as "Closed".
 - **Payroll** — click **Generate Payroll**. Then show that HR Staff sees
   *"Waiting for HR Manager approval"* instead of a Review button.
 
@@ -89,6 +114,11 @@ Still as **HR Staff**, open the **Reference Data** section:
 
 Now sign in as **manager@suite.com**:
 
+- **The sidebar has swapped:** *Recruitment* is there, *Job Posting* is gone.
+  Each role sees only the modules it can actually act in.
+- **Recruitment** → two new applications waiting. Open one → **Mark as
+  Qualified** or **Reject**. The moment one is qualified it shows up in HR
+  Staff's *Interview Management* queue — that's the hand-off.
 - **Approvals** → two pending requests with a payload preview. **Approve** one →
   it's applied immediately. **Reject** the other → a reason is mandatory, and
   HR Staff can see why.
@@ -107,6 +137,17 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" -X POST \
   -H "Content-Type: application/json" \
   -d '{"grade_name":"Bypass","min_salary":1,"max_salary":2}'
 # -> HTTP 403
+```
+
+The recruitment split holds at the same level — HR Staff can't qualify an
+applicant even by calling the API directly:
+
+```bash
+curl -s -X PATCH \
+  "http://127.0.0.1:55321/rest/v1/applications?reference_code=eq.APP-2026-0001" \
+  -H "apikey: $ANON" -H "Authorization: Bearer $STAFF_TOKEN" \
+  -H "Content-Type: application/json" -d '{"status":"qualified"}'
+# -> {"message":"Only an HR Manager can qualify or reject an application."}
 ```
 
 ### 5. Response times (good answer to "why did this sit for a month?")

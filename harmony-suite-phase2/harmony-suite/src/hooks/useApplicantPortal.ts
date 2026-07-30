@@ -28,6 +28,41 @@ export interface ApplicationTrackingRecord {
   offer_working_days: string | null
   offer_benefits: string | null
   offer_additional_compensation: string | null
+  contract_id: string | null
+  contract_status: Enums<'contract_status'> | null
+  contract_start_date: string | null
+  contract_signed_at: string | null
+  contract_file_path: string | null
+  contract_company_policies: string | null
+  contract_terms: string | null
+  contract_additional_notes: string | null
+  deployment_date: string | null
+  deployment_branch: string | null
+  deployment_work_location: string | null
+  deployment_schedule_name: string | null
+  deployment_schedule_start: string | null
+  deployment_schedule_end: string | null
+  deployment_schedule_days: number[] | null
+  deployment_remarks: string | null
+  employee_number: string | null
+  employee_email: string | null
+  employee_hire_date: string | null
+  employee_position: string | null
+  employee_department: string | null
+  employee_basic_salary: number | null
+  employee_currency: string | null
+  employee_employment_type: Enums<'employment_type'> | null
+  employee_employment_status: Enums<'employment_status'> | null
+  employee_benefits: string | null
+  account_email: string | null
+  account_activated_at: string | null
+  documents: ApplicantDocument[]
+}
+
+export interface ApplicantDocument {
+  document_type: string
+  file_path: string
+  uploaded_at: string
 }
 
 export interface ApplicantCredentials {
@@ -86,6 +121,40 @@ export function useRespondToOfferAsApplicant() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRACKING_KEY })
+    },
+  })
+}
+
+/** Opens one of the applicant's own files — their signed contract, or a
+ * document HR filed against their employee record.
+ *
+ * Both buckets are private and readable only by HR, so the browser can't fetch
+ * them directly. The applicant-file Edge Function re-checks the reference code
+ * and email server-side and returns a signed URL that expires in a couple of
+ * minutes; nothing durable is handed to the browser. */
+export function useApplicantFileDownload() {
+  return useMutation({
+    mutationFn: async ({
+      credentials,
+      bucket,
+      path,
+    }: {
+      credentials: ApplicantCredentials
+      bucket: 'contracts' | 'employee-documents'
+      path: string
+    }) => {
+      const { data, error } = await supabase.functions.invoke<{ path?: string; error?: string }>('applicant-file', {
+        body: { referenceCode: credentials.referenceCode, email: credentials.email, bucket, path },
+      })
+      if (error || !data?.path) {
+        throw new Error(data?.error ?? 'We couldn’t open that file. Please try again.')
+      }
+      // The function returns only the signed path — the origin is ours to
+      // supply, since the one it sees is the internal gateway's.
+      return new URL(data.path, import.meta.env.VITE_SUPABASE_URL).toString()
+    },
+    onSuccess: (url) => {
+      window.open(url, '_blank', 'noopener,noreferrer')
     },
   })
 }

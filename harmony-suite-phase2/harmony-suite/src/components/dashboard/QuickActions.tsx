@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { Briefcase, UserPlus, ShieldPlus, Wallet, FileBarChart, ClipboardList, CalendarSearch, Truck, CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/contexts/AuthContext'
+import { canAccessModule } from '@/lib/roles'
 
 interface QuickAction {
   label: string
@@ -16,7 +18,7 @@ const ADMIN_ACTIONS: QuickAction[] = [
   { label: 'Generate Report', to: '/dashboard/reports/new', icon: FileBarChart },
 ]
 
-const HR_STAFF_ACTIONS: QuickAction[] = [
+const HR_ACTIONS: QuickAction[] = [
   { label: 'Create Job Posting', to: '/dashboard/job-postings', icon: Briefcase },
   { label: 'Recruitment', to: '/dashboard/recruitment', icon: ClipboardList },
   { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch },
@@ -27,7 +29,10 @@ const HR_STAFF_ACTIONS: QuickAction[] = [
 
 export function QuickActions({ isAdmin }: { isAdmin: boolean }) {
   const navigate = useNavigate()
-  const actions = isAdmin ? ADMIN_ACTIONS : HR_STAFF_ACTIONS
+  const { profile } = useAuth()
+  // Shortcuts to a module the role can't open would just bounce off the route
+  // guard, so they're dropped along with the sidebar entry.
+  const actions = (isAdmin ? ADMIN_ACTIONS : HR_ACTIONS).filter((a) => canAccessModule(profile?.role, a.to))
 
   return (
     <div className="flex flex-wrap gap-2">

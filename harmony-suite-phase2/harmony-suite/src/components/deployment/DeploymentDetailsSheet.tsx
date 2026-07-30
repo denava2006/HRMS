@@ -38,6 +38,7 @@ import {
   useDeploymentApplicationDetail,
   useGenerateContract,
   useCloseUnresponsiveOffer,
+  useCloseDeclinedApplication,
   getLatestOffer,
   getLatestContract,
   getFinalInterview,
@@ -177,6 +178,7 @@ export function DeploymentDetailsSheet({
   const [deploymentDialogOpen, setDeploymentDialogOpen] = React.useState(false)
   const [closeConfirmOpen, setCloseConfirmOpen] = React.useState(false)
   const closeUnresponsive = useCloseUnresponsiveOffer()
+  const closeDeclined = useCloseDeclinedApplication()
 
   if (!application && !isLoading) return null
 
@@ -491,6 +493,29 @@ export function DeploymentDetailsSheet({
                     Complete Deployment
                   </Button>
                 )}
+
+                {stage === 'offer_declined' &&
+                  (application.status === 'closed' ? (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Lock className="h-3.5 w-3.5" />
+                      The applicant declined this offer and the application is closed.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="text-xs text-warning">
+                        The applicant declined this offer. Close the application when you&apos;ve finished with it.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        loading={closeDeclined.isPending}
+                        onClick={() => applicationId && closeDeclined.mutate({ applicationId })}
+                      >
+                        Close Application
+                      </Button>
+                    </div>
+                  ))}
 
                 {stage === 'deployed' && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

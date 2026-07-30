@@ -78,6 +78,9 @@ export function deriveDeploymentStage({
   contractStatus,
   hasDeploymentRecord,
 }: DeploymentStageInput): DeploymentStage {
+  // A declined offer stays visible in Deployment until HR closes it — checked
+  // before 'closed' so the stage is the same whether HR has acted yet or not.
+  if (offerStatus === 'declined') return 'offer_declined'
   if (applicationStatus === 'closed') return 'offer_declined'
   if (hasDeploymentRecord || applicationStatus === 'deployed') return 'deployed'
   if (contractStatus === 'signed') return 'contract_signed'
@@ -89,6 +92,7 @@ export function deriveDeploymentStage({
 }
 
 /** The application statuses an applicant can hold while inside the Deployment
- * pipeline — used for the page's Status filter. 'closed' (declined offers) is
- * excluded on purpose: those disappear from Deployment immediately. */
-export const DEPLOYMENT_PIPELINE_STATUSES = ['hired', 'offered', 'deployed'] as const
+ * pipeline — used for the page's Status filter. 'closed' is included so a
+ * declined offer HR has already closed stays reviewable in context rather than
+ * vanishing to Recruitment the moment the applicant clicks Decline. */
+export const DEPLOYMENT_PIPELINE_STATUSES = ['hired', 'offered', 'deployed', 'closed'] as const

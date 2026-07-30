@@ -8,9 +8,14 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock,
+  Download,
   ExternalLink,
+  FileText,
+  IdCard,
+  KeyRound,
   LogOut,
   MapPin,
+  Paperclip,
   Search,
   Video,
 } from 'lucide-react'
@@ -34,12 +39,15 @@ import { toast } from '@/components/ui/sonner'
 import {
   useApplicationTracking,
   useRespondToOfferAsApplicant,
+  useApplicantFileDownload,
   APPLICANT_STATUS_COPY,
   type ApplicantCredentials,
   type ApplicationTrackingRecord,
 } from '@/hooks/useApplicantPortal'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
+import { EMPLOYMENT_STATUS_LABEL } from '@/lib/employeeLabels'
+import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 import { RESPONSE_WINDOW_DAYS, daysRemaining } from '@/lib/applicationSla'
 
 function formatDateTime(value: string) {
@@ -260,7 +268,8 @@ function OfferCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Decline this job offer?</AlertDialogTitle>
             <AlertDialogDescription>
-              This closes your application and can’t be undone. If you’re unsure, contact HR before declining.
+              This can’t be undone — HR will be notified and will close your application. If you’re unsure, contact HR
+              before declining.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -277,6 +286,215 @@ function OfferCard({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  )
+}
+
+/** Long-form contract text — folded away by default so the card stays readable,
+ * but present in full rather than summarised, because this is the applicant's
+ * copy of what they signed. */
+function ContractText({ title, body }: { title: string; body: string | null }) {
+  if (!body) return null
+  return (
+    <details className="rounded-lg border border-border">
+      <summary className="cursor-pointer px-4 py-2.5 text-sm font-medium text-foreground">{title}</summary>
+      <p className="whitespace-pre-line border-t border-border px-4 py-3 text-sm text-muted-foreground">{body}</p>
+    </details>
+  )
+}
+
+function ContractCard({
+  record,
+  credentials,
+}: {
+  record: ApplicationTrackingRecord
+  credentials: ApplicantCredentials
+}) {
+  const download = useApplicantFileDownload()
+  if (!record.contract_id) return null
+
+  const isSigned = record.contract_status === 'signed'
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-4 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-secondary" />
+            <h2 className="font-display text-base font-semibold text-foreground">Employment Contract</h2>
+          </div>
+          <Badge variant={isSigned ? 'success' : 'warning'}>{isSigned ? 'Signed' : 'Being Prepared'}</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Contract Start Date" value={formatDate(record.contract_start_date)} />
+          <Field label="Signed On" value={record.contract_signed_at ? formatDateTime(record.contract_signed_at) : '—'} />
+        </div>
+
+        {record.contract_file_path && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="self-start"
+            loading={download.isPending}
+            onClick={() =>
+              download.mutate(
+                { credentials, bucket: 'contracts', path: record.contract_file_path! },
+                { onError: (e) => toast.error(e.message) }
+              )
+            }
+          >
+            <Download className="h-4 w-4" />
+            Download Your Copy
+          </Button>
+        )}
+
+        <ContractText title="Company Policies" body={record.contract_company_policies} />
+        <ContractText title="Terms &amp; Conditions" body={record.contract_terms} />
+        <ContractText title="Additional Notes" body={record.contract_additional_notes} />
+      </CardContent>
+    </Card>
+  )
+}
+
+function OnboardingCard({ record }: { record: ApplicationTrackingRecord }) {
+  if (!record.deployment_date) return null
+
+  const scheduleHours =
+    record.deployment_schedule_start && record.deployment_schedule_end
+      ? `${formatScheduleTime(record.deployment_schedule_start)} – ${formatScheduleTime(record.deployment_schedule_end)}`
+      : '—'
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-4 p-6">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-secondary" />
+          <h2 className="font-display text-base font-semibold text-foreground">Where You&apos;re Reporting</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="First Day" value={formatDate(record.deployment_date)} />
+          <Field label="Branch" value={record.deployment_branch ?? '—'} />
+          <Field label="Work Location" value={record.deployment_work_location ?? '—'} />
+          <Field label="Shift" value={record.deployment_schedule_name ?? '—'} />
+          <Field label="Working Hours" value={scheduleHours} />
+          <Field
+            label="Working Days"
+            value={record.deployment_schedule_days ? formatWorkingDays(record.deployment_schedule_days) : '—'}
+          />
+        </div>
+        {record.deployment_remarks && (
+          <div>
+            <p className="text-xs text-muted-foreground">Notes from HR</p>
+            <p className="whitespace-pre-line text-sm text-foreground">{record.deployment_remarks}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function EmployeeRecordCard({
+  record,
+  credentials,
+}: {
+  record: ApplicationTrackingRecord
+  credentials: ApplicantCredentials
+}) {
+  const download = useApplicantFileDownload()
+  if (!record.employee_number) return null
+
+  const currency: CurrencyCode = record.employee_currency === 'USD' ? 'USD' : 'PHP'
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-5 p-6">
+        <div className="flex items-center gap-2">
+          <IdCard className="h-4 w-4 text-secondary" />
+          <h2 className="font-display text-base font-semibold text-foreground">Your Employee Record</h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Employee Number" value={<span className="font-mono">{record.employee_number}</span>} />
+          <Field label="Date Hired" value={formatDate(record.employee_hire_date)} />
+          <Field label="Position" value={record.employee_position ?? '—'} />
+          <Field label="Department" value={record.employee_department ?? '—'} />
+          <Field
+            label="Basic Salary"
+            value={record.employee_basic_salary != null ? formatMoney(record.employee_basic_salary, currency) : '—'}
+          />
+          <Field
+            label="Employment Type"
+            value={record.employee_employment_type ? EMPLOYMENT_TYPE_LABEL[record.employee_employment_type] : '—'}
+          />
+          <Field
+            label="Employment Status"
+            value={record.employee_employment_status ? EMPLOYMENT_STATUS_LABEL[record.employee_employment_status] : '—'}
+          />
+          <Field label="Work Email" value={record.employee_email ?? '—'} />
+        </div>
+
+        {record.employee_benefits && (
+          <div>
+            <p className="text-xs text-muted-foreground">Benefits</p>
+            <p className="whitespace-pre-line text-sm text-foreground">{record.employee_benefits}</p>
+          </div>
+        )}
+
+        {/* The password itself is never shown here — HR hands it over directly,
+          * and this page is reachable with nothing but a reference code. */}
+        {record.account_email && (
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+            <p className="flex items-center gap-2 font-display text-sm font-semibold text-foreground">
+              <KeyRound className="h-4 w-4 text-accent" />
+              Your Employee Account Is Ready
+            </p>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Sign in at the employee portal with <span className="font-medium text-foreground">{record.account_email}</span>.
+              HR will give you your starting password — you&apos;ll be asked to change it after your first sign-in.
+            </p>
+            {record.account_activated_at && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Created {formatDateTime(record.account_activated_at)}
+              </p>
+            )}
+          </div>
+        )}
+
+        {record.documents.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Paperclip className="h-3.5 w-3.5" />
+              Documents On File
+            </p>
+            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+              {record.documents.map((doc) => (
+                <li key={doc.file_path} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                  <div>
+                    <p className="text-sm text-foreground">{doc.document_type}</p>
+                    <p className="text-xs text-muted-foreground">Filed {formatDate(doc.uploaded_at)}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      download.mutate(
+                        { credentials, bucket: 'employee-documents', path: doc.file_path },
+                        { onError: (e) => toast.error(e.message) }
+                      )
+                    }
+                  >
+                    <Download className="h-4 w-4" />
+                    Open
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -359,6 +577,9 @@ function StatusResult({
 
       <InterviewCard record={record} />
       <OfferCard record={record} credentials={credentials} />
+      <ContractCard record={record} credentials={credentials} />
+      <OnboardingCard record={record} />
+      <EmployeeRecordCard record={record} credentials={credentials} />
     </div>
   )
 }

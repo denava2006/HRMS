@@ -74,8 +74,9 @@ export function getDeploymentRecord(app: DeploymentApplication): DeploymentRecor
 
 const LIST_KEY = ['deployment-applications']
 
-// Only 'hired' | 'offered' | 'deployed' ever belong here — 'closed' (a declined
-// offer) and 'rejected' applicants must never appear, per the module spec.
+// 'rejected' applicants never reach Deployment. 'closed' ones do appear: an
+// applicant who declines leaves a decision HR still has to acknowledge, and
+// dropping the row on decline made candidates seem to vanish mid-pipeline.
 export function useDeploymentApplications() {
   return useQuery({
     queryKey: LIST_KEY,
@@ -83,7 +84,7 @@ export function useDeploymentApplications() {
       const { data, error } = await supabase
         .from('applications')
         .select(DEPLOYMENT_QUEUE_SELECT)
-        .in('status', ['hired', 'offered', 'deployed'])
+        .in('status', ['hired', 'offered', 'deployed', 'closed'])
         .order('created_at', { ascending: false })
       if (error) throw error
       return data as unknown as DeploymentApplication[]
@@ -302,6 +303,32 @@ export function useCloseUnresponsiveOffer() {
     onSuccess: (_data, { applicationId }) => {
       invalidate(applicationId)
       toast.success('Offer closed — the applicant did not respond in time.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+/** HR's acknowledgement of a declined offer. The applicant's decision already
+ * stands on the offer itself; this is the deliberate step that ends the
+ * application and removes it from the active pipeline. */
+export function useCloseDeclinedApplication() {
+  const { profile } = useAuth()
+  const invalidate = useInvalidateDeployment()
+  return useMutation({
+    mutationFn: async ({ applicationId }: { applicationId: string }) => {
+      const { error } = await supabase.from('applications').update({ status: 'closed' }).eq('id', applicationId)
+      if (error) throw error
+
+      await supabase.from('application_history').insert({
+        application_id: applicationId,
+        event: 'application_closed',
+        notes: 'Closed by HR after the applicant declined the offer.',
+        actor_id: profile?.id,
+      })
+    },
+    onSuccess: (_data, { applicationId }) => {
+      invalidate(applicationId)
+      toast.success('Application closed.')
     },
     onError: (error) => toast.error(error.message),
   })

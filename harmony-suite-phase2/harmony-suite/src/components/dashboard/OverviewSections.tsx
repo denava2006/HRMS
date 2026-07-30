@@ -3,6 +3,8 @@ import { Users, Building2, Briefcase } from 'lucide-react'
 import { DashboardSectionCard, MiniStat } from '@/components/dashboard/DashboardPrimitives'
 import { useOrganizationOverview, useRecruitmentOverview } from '@/hooks/useDashboard'
 import { useEmployeeStats, usePendingEmployees } from '@/hooks/useEmployees'
+import { useAuth } from '@/contexts/AuthContext'
+import { canAccessModule } from '@/lib/roles'
 
 export function OrganizationOverviewSection() {
   const { data, isLoading } = useOrganizationOverview()
@@ -20,9 +22,17 @@ export function OrganizationOverviewSection() {
 
 export function RecruitmentOverviewSection() {
   const navigate = useNavigate()
+  const { profile } = useAuth()
   const { data, isLoading } = useRecruitmentOverview()
+  // The numbers are useful to everyone in HR, but only the role that owns
+  // Recruitment can follow the card through to it.
+  const canOpen = canAccessModule(profile?.role, '/dashboard/recruitment')
   return (
-    <DashboardSectionCard title="Recruitment Overview" icon={Briefcase} onClick={() => navigate('/dashboard/recruitment')}>
+    <DashboardSectionCard
+      title="Recruitment Overview"
+      icon={Briefcase}
+      onClick={canOpen ? () => navigate('/dashboard/recruitment') : undefined}
+    >
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <MiniStat label="New Applications" value={data?.newApplications ?? 0} isLoading={isLoading} />
         <MiniStat label="Qualified" value={data?.qualified ?? 0} isLoading={isLoading} />
