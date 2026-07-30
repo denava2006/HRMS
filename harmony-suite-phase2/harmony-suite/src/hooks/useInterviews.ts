@@ -67,9 +67,24 @@ function belongsInInterviewQueue(row: InterviewApplication) {
   return row.status !== 'rejected' || row.interviews.length > 0
 }
 
+/** Whose queue this applicant is in.
+ *
+ * Once HR Staff nominates an HR Manager for the final round, the applicant
+ * leaves HR Staff's queue and appears in that manager's — and in no other
+ * manager's. Before the hand-off they're HR Staff's, since scheduling and
+ * running the initial interview is HR Staff's work.
+ *
+ * Administrators see everything, as everywhere else. */
+function isInMyInterviewQueue(row: InterviewApplication, role: string | undefined, profileId: string | undefined): boolean {
+  if (role === 'admin') return true
+  if (role === 'hr_manager') return row.final_interviewer_id === profileId
+  return row.final_interviewer_id === null
+}
+
 export function useInterviewApplications() {
+  const { profile } = useAuth()
   return useQuery({
-    queryKey: LIST_KEY,
+    queryKey: [...LIST_KEY, profile?.id, profile?.role],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('applications')
@@ -77,8 +92,11 @@ export function useInterviewApplications() {
         .in('status', ['qualified', 'interview_scheduled', 'hired', 'rejected'])
         .order('created_at', { ascending: false })
       if (error) throw error
-      return (data as unknown as InterviewApplication[]).filter(belongsInInterviewQueue)
+      return (data as unknown as InterviewApplication[])
+        .filter(belongsInInterviewQueue)
+        .filter((row) => isInMyInterviewQueue(row, profile?.role, profile?.id))
     },
+    enabled: !!profile,
   })
 }
 
