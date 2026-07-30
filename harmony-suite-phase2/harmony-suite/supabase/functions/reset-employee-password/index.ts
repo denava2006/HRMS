@@ -93,6 +93,11 @@ Deno.serve(async (req: Request) => {
     })
     if (updateError) return json({ error: updateError.message }, 400)
 
+    // They're back on a password HR knows, so they're back to not being
+    // activated — the app will make them choose a new one at their next login.
+    // Cleared after the reset, because changing the password stamps it.
+    await adminClient.from('profiles').update({ activated_at: null }).eq('id', profile.id)
+
     await adminClient.from('employee_history').insert({
       employee_id: employeeId,
       event: 'password_reset',

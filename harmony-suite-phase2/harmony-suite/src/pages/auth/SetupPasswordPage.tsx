@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { HarmonyWaves } from '@/components/HarmonyWaves'
+import { useAuth } from '@/contexts/AuthContext'
+import { needsPasswordSetup } from '@/lib/passwordSetup'
 
 const passwordSchema = z
   .object({
@@ -112,9 +114,9 @@ function SuccessState() {
       >
         <CheckCircle2 className="h-7 w-7" />
       </motion.div>
-      <h1 className="font-display text-2xl font-bold text-foreground">Account activated successfully</h1>
+      <h1 className="font-display text-2xl font-bold text-foreground">Password created</h1>
       <p className="text-sm text-muted-foreground">
-        Redirecting to login in {secondsLeft} second{secondsLeft === 1 ? '' : 's'}…
+        Sign in again with your new password. Redirecting in {secondsLeft} second{secondsLeft === 1 ? '' : 's'}…
       </p>
     </CardHeader>
   )
@@ -129,7 +131,7 @@ function CheckingState() {
   )
 }
 
-function SetupPasswordForm() {
+function SetupPasswordForm({ firstLogin }: { firstLogin: boolean }) {
   const [showPassword, setShowPassword] = React.useState(false)
   const [showConfirm, setShowConfirm] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
@@ -152,13 +154,11 @@ function SetupPasswordForm() {
       )
       return
     }
-    // Stamp activation while the invite-link session is still live (about to
-    // be signed out below) — this is what lets the UI distinguish "Pending
-    // Activation" from "Activated" (profiles.status flips to active at
-    // invite time, before the password is ever set).
-    if (data.user) {
-      await supabase.from('profiles').update({ activated_at: new Date().toISOString() }).eq('id', data.user.id)
-    }
+    // activated_at is stamped by a trigger on auth.users when the password
+    // actually changes — the client is deliberately not trusted to say so, and
+    // is no longer permitted to write it. See
+    // 20260731130000_employees_must_set_own_password.sql.
+    void data
     await supabase.auth.signOut()
     setActivated(true)
   }
@@ -169,7 +169,11 @@ function SetupPasswordForm() {
     <>
       <BrandHeader
         title="Welcome to Harmony Suite"
-        description="Your account has been created. Create a secure password to activate it."
+        description={
+          firstLogin
+            ? 'You signed in with the password HR gave you. Choose your own before continuing.'
+            : 'Your account has been created. Create a secure password to activate it.'
+        }
       />
       <CardContent>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -250,12 +254,17 @@ function SetupPasswordForm() {
 }
 
 export default function SetupPasswordPage() {
-  const [state, setState] = React.useState<PageState>('checking')
+  const { profile } = useAuth()
+  // Signed in already and simply hasn't chosen a password yet — as opposed to
+  // arriving on an invitation link with no session of their own.
+  const firstLogin = needsPasswordSetup(profile)
+  const [state, setState] = React.useState<PageState>(firstLogin ? 'ready' : 'checking')
   const [errorMessage, setErrorMessage] = React.useState(
     'This invitation link is invalid or missing. Please use the link from your invitation email.'
   )
 
   React.useEffect(() => {
+    if (firstLogin) return
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
     const errorCode = hashParams.get('error_code')
 
@@ -277,13 +286,13 @@ export default function SetupPasswordPage() {
         setState('ready')
       }
     })
-  }, [])
+  }, [firstLogin])
 
   return (
     <AuthCardShell>
       {state === 'checking' && <CheckingState />}
       {state === 'invalid' && <InvalidInviteState message={errorMessage} />}
-      {state === 'ready' && <SetupPasswordForm />}
+      {state === 'ready' && <SetupPasswordForm firstLogin={firstLogin} />}
     </AuthCardShell>
   )
 }

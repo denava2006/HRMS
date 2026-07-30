@@ -119,9 +119,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // handle_new_user() already created a `profiles` row (defaulting to
-    // hr_staff/inactive) — overwrite it for an employee login. activated_at is
-    // stamped immediately since there's no separate password-creation step
-    // left to wait on (see DEFAULT_EMPLOYEE_PASSWORD above).
+    // hr_staff/inactive) — overwrite it for an employee login.
+    //
+    // activated_at is deliberately NOT stamped. The account is usable
+    // immediately, but "activated" means the employee has set a password only
+    // they know, and they haven't yet — they're still on the default below.
+    // The app sends them to /auth/setup-password until they do, and the stamp
+    // comes from the password change itself (see
+    // 20260731130000_employees_must_set_own_password.sql).
     const now = new Date().toISOString()
     const { error: updateError } = await adminClient
       .from('profiles')
@@ -132,7 +137,6 @@ Deno.serve(async (req: Request) => {
         employee_id: employeeId,
         created_by: user.id,
         invited_at: now,
-        activated_at: now,
       })
       .eq('id', created.user.id)
 

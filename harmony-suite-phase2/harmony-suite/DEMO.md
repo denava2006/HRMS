@@ -34,8 +34,12 @@ To reset mid-demo, re-run the last three commands.
 | Administrator | `admin@suite.com` | `Admin123` |
 | HR Manager | `manager@suite.com` | `HrManager123` |
 | HR Staff | `staff@suite.com` | `HrStaff123` |
-| Employee | `liza.fernandez@example.com` | `Employee123` |
-| Employee | `jerome.castillo@example.com` | `Employee123` |
+| Employee | `liza.fernandez@example.com` | `Employee123` → set your own |
+| Employee | `jerome.castillo@example.com` | `Employee123` → set your own |
+
+Employees sign in with the password HR hands them and are then required to
+choose their own before they can go anywhere — see §5 below. Pick something you
+will remember, or reset it from the employee's Account tab.
 
 Applicant portal needs no account — reference code + the email applied with.
 
@@ -158,6 +162,16 @@ Now sign in as **manager@suite.com**:
   It says how many are in the way instead of raising a foreign-key error.
 - **Employee account** — the Account tab states Employee ID, email, and
   temporary password in one place, with a **Reset Password** button next to them.
+- **First login** — sign in as `liza.fernandez@example.com` / `Employee123`.
+  You land on *Create Password*, not the dashboard, and typing `/dashboard` in
+  the address bar bounces straight back. Set a password and sign in again to go
+  through. The Account tab then reads **Activated** and shows "Set by the
+  employee" instead of a password HR can read out.
+
+  **Talking point:** the activation stamp is written by a database trigger on
+  the actual password change, so it can't be faked. Try it live — an employee
+  PATCHing their own `activated_at` gets *"Activation is recorded when you
+  change your password, not set directly."*
 
 **Key talking point:** none of this is UI-only. HR Staff has *no write
 permission at all* on those five tables in the database, so even a direct API

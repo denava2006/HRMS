@@ -94,10 +94,15 @@ function CredentialsPanel({
   employeeNumber,
   email,
   password,
+  hasOwnPassword,
 }: {
   employeeNumber: string
   email: string
   password: string
+  /** True once the employee has set a password of their own, which HR does not
+   * know. Showing the default at that point is worse than showing nothing —
+   * it's an answer that no longer works. */
+  hasOwnPassword?: boolean
 }) {
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-4">
@@ -115,12 +120,18 @@ function CredentialsPanel({
           <p className="text-sm break-all text-foreground">{email}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Temporary Password</p>
-          <p className="font-mono text-sm text-foreground">{password}</p>
+          <p className="text-xs text-muted-foreground">Password</p>
+          {hasOwnPassword ? (
+            <p className="text-sm text-muted-foreground">Set by the employee</p>
+          ) : (
+            <p className="font-mono text-sm text-foreground">{password}</p>
+          )}
         </div>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Ask the employee to change this after their first sign-in.
+        {hasOwnPassword
+          ? 'Only the employee knows this. Use Reset Password to put it back to the default.'
+          : 'They will be asked to choose their own password the first time they sign in.'}
       </p>
     </div>
   )
@@ -297,6 +308,7 @@ export default function EmployeeDetailsPage() {
                     employeeNumber={employee.employee_number}
                     email={account.email}
                     password={DEFAULT_EMPLOYEE_PASSWORD}
+                    hasOwnPassword={!!account.activated_at}
                   />
 
                   <div className="flex flex-wrap gap-2 border-t border-border pt-4">
