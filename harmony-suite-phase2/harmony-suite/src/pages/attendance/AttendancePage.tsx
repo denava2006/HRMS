@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { motion } from 'framer-motion'
-import { UserCheck, UserX, Clock, CalendarCheck, TrendingUp, Home, MoreHorizontal, Plus } from 'lucide-react'
+import { UserCheck, UserX, Clock, CalendarCheck, TrendingUp, Home, MoreHorizontal } from 'lucide-react'
 import { DataTable } from '@/components/data-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { RecordAttendanceDialog } from '@/components/attendance/RecordAttendanceDialog'
 import { CorrectAttendanceDialog } from '@/components/attendance/CorrectAttendanceDialog'
 import { AttendanceDetailsSheet } from '@/components/attendance/AttendanceDetailsSheet'
 import {
@@ -110,7 +109,6 @@ export default function AttendancePage() {
   const [statusFilter, setStatusFilter] = React.useState(ALL)
   const [employmentStatusFilter, setEmploymentStatusFilter] = React.useState(ALL)
 
-  const [recordDialogOpen, setRecordDialogOpen] = React.useState(false)
   const [correctingRecord, setCorrectingRecord] = React.useState<AttendanceRecord | null>(null)
   const [viewingRecordId, setViewingRecordId] = React.useState<string | null>(null)
 
@@ -235,12 +233,11 @@ export default function AttendancePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-xl font-semibold text-foreground">Attendance Management</h2>
-          <p className="text-sm text-muted-foreground">Track, calculate, and review attendance for every employee.</p>
+          <p className="text-sm text-muted-foreground">
+            Track, calculate, and review attendance for every employee. Employees record their own time in and out —
+            use Correct Attendance on a row to fix an entry.
+          </p>
         </div>
-        <Button onClick={() => setRecordDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Record Attendance
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -344,7 +341,6 @@ export default function AttendancePage() {
         />
       )}
 
-      <RecordAttendanceDialog open={recordDialogOpen} onOpenChange={setRecordDialogOpen} />
       <CorrectAttendanceDialog open={!!correctingRecord} onOpenChange={(open) => !open && setCorrectingRecord(null)} record={correctingRecord} />
       <AttendanceDetailsSheet recordId={viewingRecordId} open={!!viewingRecordId} onOpenChange={(open) => !open && setViewingRecordId(null)} />
     </div>

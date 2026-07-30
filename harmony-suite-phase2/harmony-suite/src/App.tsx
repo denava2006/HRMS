@@ -266,7 +266,7 @@ export default function App() {
               <Route
                 path="admin/salary-grades"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'hr_staff']}>
+                  <ProtectedRoute allowedRoles={['admin', 'hr_manager']}>
                     <SalaryGradesPage />
                   </ProtectedRoute>
                 }

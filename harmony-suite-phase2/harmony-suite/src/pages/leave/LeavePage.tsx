@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { motion } from 'framer-motion'
-import { Hourglass, CheckCircle2, XCircle, Users2, CalendarDays, Wallet, MoreHorizontal, Plus } from 'lucide-react'
+import { Hourglass, CheckCircle2, XCircle, Users2, CalendarDays, Wallet, MoreHorizontal } from 'lucide-react'
 import { DataTable } from '@/components/data-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { SubmitLeaveRequestDialog } from '@/components/leave/SubmitLeaveRequestDialog'
 import { ApproveLeaveDialog } from '@/components/leave/ApproveLeaveDialog'
 import { RejectLeaveDialog } from '@/components/leave/RejectLeaveDialog'
 import { LeaveDetailsSheet } from '@/components/leave/LeaveDetailsSheet'
@@ -110,7 +109,6 @@ export default function LeavePage() {
   const [leaveTypeFilter, setLeaveTypeFilter] = React.useState(ALL)
   const [statusFilter, setStatusFilter] = React.useState(ALL)
 
-  const [submitDialogOpen, setSubmitDialogOpen] = React.useState(false)
   const [approvingRequest, setApprovingRequest] = React.useState<LeaveRequest | null>(null)
   const [rejectingRequest, setRejectingRequest] = React.useState<LeaveRequest | null>(null)
   const [viewingRequestId, setViewingRequestId] = React.useState<string | null>(null)
@@ -222,12 +220,11 @@ export default function LeavePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-xl font-semibold text-foreground">Leave Management</h2>
-          <p className="text-sm text-muted-foreground">Review, approve, and track leave requests for every employee.</p>
+          <p className="text-sm text-muted-foreground">
+            Review, approve, and track leave requests for every employee. Employees file their own requests from the
+            Employee Portal.
+          </p>
         </div>
-        <Button onClick={() => setSubmitDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Submit Leave Request
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -331,7 +328,6 @@ export default function LeavePage() {
         />
       )}
 
-      <SubmitLeaveRequestDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen} />
       <ApproveLeaveDialog open={!!approvingRequest} onOpenChange={(open) => !open && setApprovingRequest(null)} request={approvingRequest} />
       <RejectLeaveDialog open={!!rejectingRequest} onOpenChange={(open) => !open && setRejectingRequest(null)} request={rejectingRequest} />
       <LeaveDetailsSheet requestId={viewingRequestId} open={!!viewingRequestId} onOpenChange={(open) => !open && setViewingRequestId(null)} />

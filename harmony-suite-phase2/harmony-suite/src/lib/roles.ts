@@ -49,5 +49,10 @@ export function canScreenApplicants(role: UserRole | undefined): boolean {
 export function canAccessModule(role: UserRole | undefined, path: string): boolean {
   if (path === '/dashboard/job-postings') return canPostJobs(role)
   if (path === '/dashboard/recruitment') return canScreenApplicants(role)
+  // Salary grades are set by HR Managers. HR Staff had a read-only copy of the
+  // page with every button replaced by a "view only" badge, which is a module
+  // that costs a click and gives nothing back — the figures they actually need
+  // show up in the job offer and employee forms that consume them.
+  if (path === '/dashboard/admin/salary-grades') return canApproveWork(role)
   return true
 }

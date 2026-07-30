@@ -41,7 +41,8 @@ import {
 import { useCurrency } from '@/hooks/useSystemSettings'
 import { formatMoney } from '@/lib/currency'
 
-const MAX_SALARY = 100_000_000
+const MAX_SALARY = 999_999_999_999
+const MAX_SALARY_TEXT = '999,999,999,999.00'
 
 // Plain digits with an optional 2-decimal remainder — deliberately excludes "+",
 // "-", "e"/"E" (scientific notation), and any other symbol MoneyInput wouldn't
@@ -53,7 +54,7 @@ const amountField = (label: string) =>
     .string()
     .min(1, `${label} is required`)
     .regex(decimalAmount, 'Numbers only, e.g. 25000 or 25000.50')
-    .refine((v) => Number(v) <= MAX_SALARY, `${label} cannot exceed 100,000,000.00`)
+    .refine((v) => Number(v) <= MAX_SALARY, `${label} cannot exceed ${MAX_SALARY_TEXT}`)
 
 const gradeSchema = z
   .object({
@@ -84,11 +85,13 @@ function GradeFormDialog({
   const currency = useCurrency()
   const createGrade = useCreateSalaryGrade()
   const updateGrade = useUpdateSalaryGrade()
+  const { data: allGrades } = useSalaryGrades()
   const {
     register,
     control,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<GradeFormValues>({ resolver: zodResolver(gradeSchema) })
 
@@ -108,6 +111,22 @@ function GradeFormDialog({
       min_salary: Number(values.min_salary),
       max_salary: Number(values.max_salary),
     }
+
+    // A grade ladder has to partition salaries, not double-claim them: if two
+    // bands both cover ₱27,000, the range check the job offer form runs is
+    // answering a question with two right answers. The database enforces this
+    // too (salary_grades_no_overlap) — checking here names the grade that
+    // clashes instead of surfacing a constraint violation.
+    const clash = (allGrades ?? []).find(
+      (g) => g.id !== grade?.id && payload.min_salary <= g.max_salary && payload.max_salary >= g.min_salary
+    )
+    if (clash) {
+      setError('min_salary', {
+        message: `This range overlaps ${clash.grade_name} (${formatMoney(clash.min_salary, currency)} – ${formatMoney(clash.max_salary, currency)}).`,
+      })
+      return
+    }
+
     if (isEdit) {
       await updateGrade.mutateAsync({ id: grade.id, values: payload })
     } else {

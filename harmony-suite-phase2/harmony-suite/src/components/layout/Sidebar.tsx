@@ -124,9 +124,11 @@ export function Sidebar() {
             <p className="mb-1 mt-5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Reference Data
             </p>
-            {referenceNav.map((item) => (
-              <NavRow key={item.to} item={item} />
-            ))}
+            {referenceNav
+              .filter((item) => canAccessModule(profile?.role, item.to))
+              .map((item) => (
+                <NavRow key={item.to} item={item} />
+              ))}
           </>
         )}
 

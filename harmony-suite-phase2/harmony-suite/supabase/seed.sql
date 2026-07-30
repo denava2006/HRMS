@@ -100,9 +100,11 @@ insert into public.positions (id, title, department_id, description) values
   ('e0000000-0000-0000-0000-000000000005', 'Cleaner', 'd0000000-0000-0000-0000-000000000004', 'General facilities upkeep')
 on conflict (id) do nothing;
 
+-- Bands must not overlap (salary_grades_no_overlap), and bounds are
+-- inclusive, so each band stops just short of the next one's floor.
 insert into public.salary_grades (id, grade_name, min_salary, max_salary) values
-  ('f0000000-0000-0000-0000-000000000001', 'Grade 1', 15000, 20000),
-  ('f0000000-0000-0000-0000-000000000002', 'Grade 2', 20000, 28000),
+  ('f0000000-0000-0000-0000-000000000001', 'Grade 1', 15000, 19999.99),
+  ('f0000000-0000-0000-0000-000000000002', 'Grade 2', 20000, 27999.99),
   ('f0000000-0000-0000-0000-000000000003', 'Grade 3', 28000, 40000)
 on conflict (id) do nothing;
 
