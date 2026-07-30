@@ -61,8 +61,9 @@ Pre-staged: **Nina Aquino** already has an offer waiting.
 Reference: run `select reference_code from applications where id = 'c3000000-0000-0000-0000-000000000005';`
 Email: `nina.aquino@example.com` → she can **Accept** or **Decline** the offer herself.
 
-Also pre-staged, and worth showing: **`APP-2026-0008` / `ponce@gmail.com`** is
-someone who went all the way through. Their page carries every copy HR
+Also worth showing: whoever is at the **deployed** stage (find them with
+`select reference_code, ap.email from applications a join applicants ap on ap.id = a.applicant_id where a.status = 'deployed';`)
+went all the way through. Their page carries every copy HR
 produced downstream of the offer — the **signed contract** (with a real
 download, served through a 2-minute signed URL), **where they're reporting**
 (branch, work location, shift, working days), their **employee record**
@@ -99,14 +100,17 @@ Sign in as **staff@suite.com**.
   refresh Deployment. She stays in the queue as **Offer Declined** with a
   **Close Application** button. The application only leaves the pipeline when
   HR closes it — it doesn't silently vanish into Recruitment as "Closed".
-- **Payroll** — click **Generate Payroll**. Then show that HR Staff sees
-  *"Waiting for HR Manager approval"* instead of a Review button.
+- **Payroll** — click **Generate Payroll**, then **Submit for Approval**. Point
+  out there is no approve button here at all: submitting is HR Staff saying
+  they've finished checking, not a decision.
+- **Notice what's also missing:** Attendance has no *Record Attendance* button
+  and Leave has no *Submit Leave Request* button. Employees do both themselves;
+  HR reviews and corrects. Salary Grades isn't in the sidebar either — it was a
+  read-only page with every button replaced by a "view only" badge.
 
 ### 4. The role split — your professor's requirement (3 min)
 Still as **HR Staff**, open the **Reference Data** section:
 
-- **Salary Grades** → *"View only — managed by HR Managers"*, no buttons.
-- **Holidays** → same.
 - **Departments** → editable, but the button says **Submit for approval** and a
   badge reads *"Changes need HR Manager approval"*.
 - Create a department → it does **not** appear in the list. Open **Approvals** to
@@ -122,8 +126,35 @@ Now sign in as **manager@suite.com**:
 - **Approvals** → two pending requests with a payload preview. **Approve** one →
   it's applied immediately. **Reject** the other → a reason is mandatory, and
   HR Staff can see why.
-- **Payroll** → **Review & Approve**, then **Release Payroll**.
-- **Leave** → approve Liza's pending request.
+- **Payroll** → the period is *Pending Approval*. Open the row menu on **one
+  employee** → **Approve**. Do the next one → **Reject**, which demands a
+  reason from a list. That row comes back as *Rejected* with the reason printed
+  on it, and the whole period is held at Rejected until HR Staff fixes it —
+  because that's the state someone has to act on. There is deliberately no
+  "approve all": the review step exists so a manager looks at each figure.
+  Once every employee is approved, **Release Payslips**.
+- **Leave** → approve Liza's pending request. Watch her employment status flip
+  to *On Leave* on the Employees page — that isn't typed in, it's derived from
+  the approved dates and clears itself when the leave ends.
+
+### 5. Rules worth pointing at (2 min)
+
+- **Attendance windows** — sign in as an employee. Time In only opens two hours
+  before their shift, and Time Out runs from the shift end to two hours past it.
+  Outside the window the button is disabled and says why, rather than failing
+  after the click. HR's *Correct Attendance* is deliberately not bound by
+  either — it's how the cases these rules refuse get recorded.
+- **Addresses** — the application form asks Province → City → Barangay from a
+  list, with only the house/street line typed. City stays locked until a
+  province is chosen. That choice carries into the employee record instead of
+  being retyped.
+- **Salary grades** — try to create a band that overlaps an existing one. The
+  form names the grade you clashed with; the database refuses it independently
+  with an exclusion constraint.
+- **Deleting reference data** — try to delete a department that has employees.
+  It says how many are in the way instead of raising a foreign-key error.
+- **Employee account** — the Account tab states Employee ID, email, and
+  temporary password in one place, with a **Reset Password** button next to them.
 
 **Key talking point:** none of this is UI-only. HR Staff has *no write
 permission at all* on those five tables in the database, so even a direct API
