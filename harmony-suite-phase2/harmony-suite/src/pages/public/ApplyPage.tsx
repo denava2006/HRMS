@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { AddressFields, type AddressValue } from '@/components/AddressFields'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -45,7 +46,13 @@ const applicationSchema = z.object({
     .string()
     .min(1, 'Phone number is required')
     .regex(phoneRegex, 'Enter a valid Philippine mobile number (11 digits, starting with 09)'),
-  address: z.string().trim().min(1, 'Address is required').max(500),
+  // The administrative parts come from the location list; only the street
+  // line is typed. Kept in the same schema so one submit handler validates
+  // the whole form.
+  province: z.string().trim().min(1, 'Province is required'),
+  city: z.string().trim().min(1, 'City or municipality is required'),
+  barangay: z.string().trim().min(1, 'Barangay is required'),
+  address: z.string().trim().min(1, 'Residential address is required').max(500),
   coverLetter: z.string().max(2000, 'Cover letter cannot exceed 2,000 characters').optional(),
 })
 type ApplicationFormValues = z.infer<typeof applicationSchema>
@@ -174,6 +181,8 @@ export default function ApplyPage() {
     register,
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues>({ resolver: zodResolver(applicationSchema) })
   const phoneField = register('phone')
@@ -228,6 +237,9 @@ export default function ApplyPage() {
         email: values.email,
         phone: values.phone,
         address: values.address,
+        province: values.province,
+        city: values.city,
+        barangay: values.barangay,
         coverLetter: values.coverLetter,
         resumeFile,
       })
@@ -382,19 +394,26 @@ export default function ApplyPage() {
           {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="address">
-            Address <span className="text-destructive">*</span>
-          </Label>
-          <Textarea
-            id="address"
-            invalid={!!errors.address}
-            {...register('address')}
-            placeholder="Street, City, Province"
-            rows={2}
-          />
-          {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
-        </div>
+        <AddressFields
+          value={{
+            province: watch('province') ?? '',
+            city: watch('city') ?? '',
+            barangay: watch('barangay') ?? '',
+            street: watch('address') ?? '',
+          }}
+          onChange={(next: AddressValue) => {
+            setValue('province', next.province, { shouldValidate: true })
+            setValue('city', next.city, { shouldValidate: true })
+            setValue('barangay', next.barangay, { shouldValidate: true })
+            setValue('address', next.street, { shouldValidate: true })
+          }}
+          errors={{
+            province: errors.province?.message,
+            city: errors.city?.message,
+            barangay: errors.barangay?.message,
+            street: errors.address?.message,
+          }}
+        />
 
         <ResumeDropzone
           file={resumeFile}

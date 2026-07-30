@@ -27,6 +27,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { formatAddress } from '@/components/AddressFields'
 import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import {
   useApplicationDetail,
@@ -224,7 +225,7 @@ export function ApplicantDetailsSheet({
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <InfoRow icon={Mail} label="Email" value={applicant?.email ?? '—'} />
                       <InfoRow icon={Phone} label="Phone" value={applicant?.phone ?? '—'} />
-                      <InfoRow icon={MapPin} label="Address" value={applicant?.address ?? '—'} />
+                      <InfoRow icon={MapPin} label="Address" value={formatAddress({ street: applicant?.address ?? '', barangay: applicant?.barangay ?? '', city: applicant?.city ?? '', province: applicant?.province ?? '' }) || '—'} />
                     </div>
                   </section>
 

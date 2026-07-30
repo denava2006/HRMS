@@ -91,6 +91,9 @@ export interface SubmitApplicationInput {
   email: string
   phone: string
   address: string
+  province: string
+  city: string
+  barangay: string
   coverLetter?: string
   resumeFile: File
 }
@@ -115,6 +118,9 @@ export function useSubmitApplication() {
         p_email: input.email,
         p_phone: input.phone,
         p_address: input.address,
+        p_province: input.province,
+        p_city: input.city,
+        p_barangay: input.barangay,
         p_resume_path: resumePath,
         p_cover_letter: input.coverLetter || undefined,
       })

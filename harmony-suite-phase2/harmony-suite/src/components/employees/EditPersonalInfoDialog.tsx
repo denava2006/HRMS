@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { AddressFields, EMPTY_ADDRESS, type AddressValue } from '@/components/AddressFields'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useUpdateEmployee, type Employee } from '@/hooks/useEmployees'
 import { CIVIL_STATUS_OPTIONS } from '@/lib/employeeLabels'
@@ -42,7 +42,7 @@ export function EditPersonalInfoDialog({
   const [nationality, setNationality] = React.useState('')
   const [phone, setPhone] = React.useState('')
   const [email, setEmail] = React.useState('')
-  const [address, setAddress] = React.useState('')
+  const [address, setAddress] = React.useState<AddressValue>(EMPTY_ADDRESS)
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
@@ -56,7 +56,12 @@ export function EditPersonalInfoDialog({
       setNationality(employee.nationality ?? '')
       setPhone(employee.phone ?? '')
       setEmail(employee.email)
-      setAddress(employee.address ?? '')
+      setAddress({
+        province: employee.province ?? '',
+        city: employee.city ?? '',
+        barangay: employee.barangay ?? '',
+        street: employee.address ?? '',
+      })
       setErrors({})
     }
   }, [open, employee])
@@ -68,7 +73,10 @@ export function EditPersonalInfoDialog({
     if (!lastName.trim() || !nameRegex.test(lastName.trim())) nextErrors.lastName = 'Enter a valid last name.'
     if (!phoneRegex.test(phone)) nextErrors.phone = 'Enter a valid mobile number (11 digits, starting with 09).'
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) nextErrors.email = 'Enter a valid email address.'
-    if (!address.trim()) nextErrors.address = 'Address is required.'
+    if (!address.province) nextErrors.province = 'Province is required.'
+    if (!address.city) nextErrors.city = 'City or municipality is required.'
+    if (!address.barangay) nextErrors.barangay = 'Barangay is required.'
+    if (!address.street.trim()) nextErrors.street = 'Residential address is required.'
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
       return
@@ -87,7 +95,10 @@ export function EditPersonalInfoDialog({
           nationality: nationality.trim() || null,
           phone,
           email: email.trim(),
-          address: address.trim(),
+          address: address.street.trim(),
+          province: address.province,
+          city: address.city,
+          barangay: address.barangay,
         },
       },
       { onSuccess: () => onOpenChange(false) }
@@ -180,11 +191,17 @@ export function EditPersonalInfoDialog({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit_address">Complete Address</Label>
-            <Textarea id="edit_address" invalid={!!errors.address} value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
-            {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
-          </div>
+          <AddressFields
+            idPrefix="edit_address"
+            value={address}
+            onChange={setAddress}
+            errors={{
+              province: errors.province,
+              city: errors.city,
+              barangay: errors.barangay,
+              street: errors.street,
+            }}
+          />
         </div>
 
         <DialogFooter>

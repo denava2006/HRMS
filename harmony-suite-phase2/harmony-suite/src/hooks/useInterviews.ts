@@ -10,7 +10,7 @@ const NOTIFICATION_LOG_ONLY_NOTE = 'No email provider is configured yet — this
 
 const INTERVIEW_QUEUE_SELECT = `
   *,
-  applicants (id, first_name, last_name, email, phone, address, resume_url, cover_letter),
+  applicants (id, first_name, last_name, email, phone, address, province, city, barangay, resume_url, cover_letter),
   job_postings (id, department_id, position_id, departments (name), positions (title)),
   reviewer:profiles!applications_reviewed_by_fkey (full_name),
   final_interviewer:profiles!applications_final_interviewer_id_fkey (id, full_name),
@@ -22,7 +22,7 @@ export type InterviewRecord = Tables<'interviews'> & { interviewer: { full_name:
 export type InterviewApplication = Tables<'applications'> & {
   applicants: Pick<
     Tables<'applicants'>,
-    'id' | 'first_name' | 'last_name' | 'email' | 'phone' | 'address' | 'resume_url' | 'cover_letter'
+    'id' | 'first_name' | 'last_name' | 'email' | 'phone' | 'address' | 'province' | 'city' | 'barangay' | 'resume_url' | 'cover_letter'
   > | null
   job_postings:
     | (Pick<Tables<'job_postings'>, 'id' | 'department_id' | 'position_id'> & {

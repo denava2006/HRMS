@@ -120,19 +120,21 @@ on conflict do nothing;
 
 -- ---- Employees --------------------------------------------------------------
 -- Three active employees so Attendance, Leave, and Payroll all have subjects.
-insert into public.employees (id, first_name, middle_name, last_name, email, phone, address, birth_date, gender,
+insert into public.employees (id, first_name, middle_name, last_name, email, phone, address, province, city, barangay,
+  birth_date, gender,
   civil_status, nationality, department_id, position_id, salary_grade_id, basic_salary, currency,
   employment_type, employment_status, hire_date, work_schedule_id)
-select v.id::uuid, v.fn, v.mn, v.ln, v.email, v.phone, v.addr, v.bd::date, v.gender, v.civil, 'Filipino',
+select v.id::uuid, v.fn, v.mn, v.ln, v.email, v.phone, v.addr, v.province, v.city, v.barangay,
+  v.bd::date, v.gender, v.civil, 'Filipino',
   v.dept::uuid, v.pos::uuid, v.grade::uuid, v.salary, 'PHP', 'regular', v.status::employment_status,
   v.hired::date, ws.id
 from (values
   -- Each on a different shift so the roster shows real variety, including one
   -- overnight worker.
-  ('c6000000-0000-0000-0000-000000000001','Liza','Domingo','Fernandez','liza.fernandez@example.com','09181000001','14 Malakas St, Quezon City','1994-03-12','Female','Single','d0000000-0000-0000-0000-000000000002','e0000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000002',24000,'active', (current_date - interval '2 years')::text, 'a1000000-0000-0000-0000-000000000001'),
-  ('c6000000-0000-0000-0000-000000000002','Jerome','Sy','Castillo','jerome.castillo@example.com','09181000002','3 Sampaguita St, Pasig City','1990-11-02','Male','Married','d0000000-0000-0000-0000-000000000003','e0000000-0000-0000-0000-000000000004','f0000000-0000-0000-0000-000000000003',32000,'active', (current_date - interval '3 years')::text, 'a1000000-0000-0000-0000-000000000002'),
-  ('c6000000-0000-0000-0000-000000000003','Grace','Ann','Peralta','grace.peralta@example.com','09181000003','40 Ilang-Ilang St, Makati City','1998-06-25','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000001',18000,'active', (current_date - interval '8 months')::text, 'a1000000-0000-0000-0000-000000000003')
-) as v(id, fn, mn, ln, email, phone, addr, bd, gender, civil, dept, pos, grade, salary, status, hired, sched)
+  ('c6000000-0000-0000-0000-000000000001','Liza','Domingo','Fernandez','liza.fernandez@example.com','09181000001','14 Malakas St','Metro Manila','Quezon City','Kamuning','1994-03-12','Female','Single','d0000000-0000-0000-0000-000000000002','e0000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000002',24000,'active', (current_date - interval '2 years')::text, 'a1000000-0000-0000-0000-000000000001'),
+  ('c6000000-0000-0000-0000-000000000002','Jerome','Sy','Castillo','jerome.castillo@example.com','09181000002','3 Sampaguita St','Metro Manila','Pasig','Kapitolyo','1990-11-02','Male','Married','d0000000-0000-0000-0000-000000000003','e0000000-0000-0000-0000-000000000004','f0000000-0000-0000-0000-000000000003',32000,'active', (current_date - interval '3 years')::text, 'a1000000-0000-0000-0000-000000000002'),
+  ('c6000000-0000-0000-0000-000000000003','Grace','Ann','Peralta','grace.peralta@example.com','09181000003','40 Ilang-Ilang St','Metro Manila','Makati','Poblacion','1998-06-25','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000001',18000,'active', (current_date - interval '8 months')::text, 'a1000000-0000-0000-0000-000000000003')
+) as v(id, fn, mn, ln, email, phone, addr, province, city, barangay, bd, gender, civil, dept, pos, grade, salary, status, hired, sched)
 cross join lateral (select v.sched::uuid as id) ws
 on conflict do nothing;
 

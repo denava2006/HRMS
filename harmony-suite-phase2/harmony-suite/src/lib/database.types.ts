@@ -37,6 +37,8 @@ export type Database = {
       applicants: {
         Row: {
           address: string | null
+          barangay: string | null
+          city: string | null
           cover_letter: string | null
           created_at: string
           email: string
@@ -45,11 +47,14 @@ export type Database = {
           last_name: string
           middle_name: string | null
           phone: string | null
+          province: string | null
           resume_url: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          barangay?: string | null
+          city?: string | null
           cover_letter?: string | null
           created_at?: string
           email: string
@@ -58,11 +63,14 @@ export type Database = {
           last_name: string
           middle_name?: string | null
           phone?: string | null
+          province?: string | null
           resume_url?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          barangay?: string | null
+          city?: string | null
           cover_letter?: string | null
           created_at?: string
           email?: string
@@ -71,6 +79,7 @@ export type Database = {
           last_name?: string
           middle_name?: string | null
           phone?: string | null
+          province?: string | null
           resume_url?: string | null
           updated_at?: string
         }
@@ -581,9 +590,11 @@ export type Database = {
         Row: {
           address: string | null
           application_id: string | null
+          barangay: string | null
           basic_salary: number
           benefits: string | null
           birth_date: string | null
+          city: string | null
           civil_status: string | null
           created_at: string
           currency: string
@@ -602,6 +613,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           position_id: string | null
+          province: string | null
           salary_grade_id: string | null
           updated_at: string
           work_schedule_id: string | null
@@ -609,9 +621,11 @@ export type Database = {
         Insert: {
           address?: string | null
           application_id?: string | null
+          barangay?: string | null
           basic_salary?: number
           benefits?: string | null
           birth_date?: string | null
+          city?: string | null
           civil_status?: string | null
           created_at?: string
           currency?: string
@@ -630,6 +644,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           position_id?: string | null
+          province?: string | null
           salary_grade_id?: string | null
           updated_at?: string
           work_schedule_id?: string | null
@@ -637,9 +652,11 @@ export type Database = {
         Update: {
           address?: string | null
           application_id?: string | null
+          barangay?: string | null
           basic_salary?: number
           benefits?: string | null
           birth_date?: string | null
+          city?: string | null
           civil_status?: string | null
           created_at?: string
           currency?: string
@@ -658,6 +675,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           position_id?: string | null
+          province?: string | null
           salary_grade_id?: string | null
           updated_at?: string
           work_schedule_id?: string | null
@@ -1470,6 +1488,38 @@ export type Database = {
           },
         ]
       }
+      ph_locations: {
+        Row: {
+          created_at: string
+          id: string
+          level: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ph_locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ph_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       positions: {
         Row: {
           created_at: string
@@ -1703,6 +1753,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      applicant_address_parts: {
+        Args: { p_application_id: string }
+        Returns: {
+          barangay: string
+          city: string
+          province: string
+          street: string
+        }[]
+      }
       applicant_owns_file: {
         Args: {
           p_bucket: string
@@ -1819,6 +1878,8 @@ export type Database = {
         | {
             Args: {
               p_address: string
+              p_barangay?: string
+              p_city?: string
               p_cover_letter?: string
               p_email: string
               p_first_name: string
@@ -1826,6 +1887,7 @@ export type Database = {
               p_last_name: string
               p_middle_name?: string
               p_phone: string
+              p_province?: string
               p_resume_path: string
             }
             Returns: {

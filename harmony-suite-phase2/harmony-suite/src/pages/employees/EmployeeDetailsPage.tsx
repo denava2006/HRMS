@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { formatAddress } from '@/components/AddressFields'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -213,7 +214,7 @@ export default function EmployeeDetailsPage() {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <Field icon={Mail} label="Email" value={employee.email} />
                 <Field icon={Phone} label="Contact Number" value={employee.phone ?? ''} />
-                <Field icon={MapPin} label="Address" value={employee.address ?? ''} />
+                <Field icon={MapPin} label="Address" value={formatAddress({ street: employee.address ?? '', barangay: employee.barangay ?? '', city: employee.city ?? '', province: employee.province ?? '' })} />
                 <Field icon={Cake} label="Birth Date" value={formatDate(employee.birth_date)} />
                 <Field icon={Users2} label="Civil Status" value={employee.civil_status ?? ''} />
                 <Field icon={Globe} label="Nationality" value={employee.nationality ?? ''} />

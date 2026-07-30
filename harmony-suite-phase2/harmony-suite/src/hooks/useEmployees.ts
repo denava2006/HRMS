@@ -144,7 +144,7 @@ export function useApplicationForEmployeeCreation(applicationId: string | undefi
         .from('applications')
         .select(
           `id,
-          applicants (first_name, middle_name, last_name, email, phone, address),
+          applicants (first_name, middle_name, last_name, email, phone, address, province, city, barangay),
           job_postings (department_id, position_id),
           job_offers (employment_type, salary_grade_id, proposed_salary, currency, work_schedule_id, created_at),
           deployment_records (work_schedule_id)`
@@ -215,6 +215,9 @@ export interface CreateEmployeeInput {
   phone: string
   email: string
   address: string
+  province: string
+  city: string
+  barangay: string
   departmentId: string
   positionId: string
   employmentType: 'regular' | 'part_time'
@@ -247,6 +250,9 @@ export function useCreateEmployee() {
           phone: input.phone,
           email: input.email,
           address: input.address,
+          province: input.province,
+          city: input.city,
+          barangay: input.barangay,
           department_id: input.departmentId,
           position_id: input.positionId,
           employment_type: input.employmentType,

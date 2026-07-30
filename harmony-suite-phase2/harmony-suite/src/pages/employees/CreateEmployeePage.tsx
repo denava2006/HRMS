@@ -7,7 +7,6 @@ import { ArrowLeft, ArrowRight, Check, FileText, Sparkles, Upload, X } from 'luc
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,6 +28,7 @@ import {
 } from '@/hooks/useEmployees'
 import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
 import { DEFAULT_CURRENCY } from '@/lib/currency'
+import { AddressFields, formatAddress, type AddressValue } from '@/components/AddressFields'
 import { CIVIL_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, EMPLOYMENT_STATUS_LABEL, SELECTABLE_EMPLOYMENT_STATUSES } from '@/lib/employeeLabels'
 import type { EmploymentStatus } from '@/lib/database.types'
 
@@ -86,7 +86,10 @@ const employeeSchema = z.object({
   nationality: z.string().trim().min(1, 'Nationality is required').max(100),
   phone: z.string().min(1, 'Phone number is required').regex(phoneRegex, 'Enter a valid mobile number (11 digits, starting with 09)'),
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
-  address: z.string().trim().min(1, 'Address is required').max(500),
+  province: z.string().trim().min(1, 'Province is required'),
+  city: z.string().trim().min(1, 'City or municipality is required'),
+  barangay: z.string().trim().min(1, 'Barangay is required'),
+  address: z.string().trim().min(1, 'Residential address is required').max(500),
 
   departmentId: z.string().min(1, 'Department is required'),
   positionId: z.string().min(1, 'Position is required'),
@@ -101,7 +104,7 @@ const employeeSchema = z.object({
 type EmployeeFormValues = z.infer<typeof employeeSchema>
 
 const STEP_FIELDS: (keyof EmployeeFormValues)[][] = [
-  ['firstName', 'middleName', 'lastName', 'gender', 'birthDate', 'civilStatus', 'nationality', 'phone', 'email', 'address'],
+  ['firstName', 'middleName', 'lastName', 'gender', 'birthDate', 'civilStatus', 'nationality', 'phone', 'email', 'province', 'city', 'barangay', 'address'],
   ['departmentId', 'positionId', 'employmentType', 'salaryGradeId', 'basicSalary', 'currency', 'hireDate', 'employmentStatus', 'workScheduleId'],
   [],
   [],
@@ -142,7 +145,7 @@ function StepIndicator({ step }: { step: number }) {
   )
 }
 
-const AUTO_FILLABLE_FIELDS = ['firstName', 'middleName', 'lastName', 'phone', 'email', 'address'] as const
+const AUTO_FILLABLE_FIELDS = ['firstName', 'middleName', 'lastName', 'phone', 'email', 'province', 'city', 'barangay', 'address'] as const
 
 function PersonalInfoSkeleton() {
   return (
@@ -210,6 +213,9 @@ export default function CreateEmployeePage() {
   } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
+      province: '',
+      city: '',
+      barangay: '',
       employmentType: 'regular',
       currency: DEFAULT_CURRENCY,
       hireDate: todayISODate(),
@@ -239,6 +245,9 @@ export default function CreateEmployeePage() {
       phone: applicant.phone ?? '',
       email: applicant.email ?? '',
       address: applicant.address ?? '',
+      province: applicant.province ?? '',
+      city: applicant.city ?? '',
+      barangay: applicant.barangay ?? '',
       ...(jobPosting?.department_id ? { departmentId: jobPosting.department_id } : {}),
       ...(jobPosting?.position_id ? { positionId: jobPosting.position_id } : {}),
       ...(offer
@@ -332,6 +341,9 @@ export default function CreateEmployeePage() {
       phone: values.phone,
       email: values.email,
       address: values.address,
+      province: values.province,
+      city: values.city,
+      barangay: values.barangay,
       departmentId: values.departmentId,
       positionId: values.positionId,
       employmentType: values.employmentType,
@@ -579,21 +591,27 @@ export default function CreateEmployeePage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="address" className="flex items-center gap-1.5">
-                    Complete Address <span className="text-destructive">*</span>
-                    {autoFilledFields.has('address') && <Badge variant="warning" className="px-1.5 py-0 text-[10px] font-normal">Auto-filled</Badge>}
-                  </Label>
-                  <Textarea
-                    id="address"
-                    invalid={!!errors.address}
-                    className={autoFillClass('address')}
-                    {...register('address')}
-                    rows={2}
-                    onFocus={() => clearAutoFilled('address')}
-                  />
-                  {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
-                </div>
+                <AddressFields
+                  value={{
+                    province: watch('province') ?? '',
+                    city: watch('city') ?? '',
+                    barangay: watch('barangay') ?? '',
+                    street: watch('address') ?? '',
+                  }}
+                  onChange={(next: AddressValue) => {
+                    setValue('province', next.province, { shouldValidate: true })
+                    setValue('city', next.city, { shouldValidate: true })
+                    setValue('barangay', next.barangay, { shouldValidate: true })
+                    setValue('address', next.street, { shouldValidate: true })
+                    clearAutoFilled('address')
+                  }}
+                  errors={{
+                    province: errors.province?.message,
+                    city: errors.city?.message,
+                    barangay: errors.barangay?.message,
+                    street: errors.address?.message,
+                  }}
+                />
               </div>
             ))}
 
@@ -916,7 +934,15 @@ export default function CreateEmployeePage() {
                     <ReviewField label="Nationality" value={watch('nationality')} />
                     <ReviewField label="Contact Number" value={watch('phone')} />
                     <ReviewField label="Email" value={watch('email')} />
-                    <ReviewField label="Address" value={watch('address')} />
+                    <ReviewField
+                      label="Address"
+                      value={formatAddress({
+                        province: watch('province'),
+                        city: watch('city'),
+                        barangay: watch('barangay'),
+                        street: watch('address'),
+                      })}
+                    />
                   </div>
                 </div>
                 <div>

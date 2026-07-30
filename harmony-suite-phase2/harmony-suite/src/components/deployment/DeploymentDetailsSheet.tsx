@@ -27,6 +27,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import { formatAddress } from '@/components/AddressFields'
 import { ResumeViewer } from '@/components/recruitment/ResumeViewer'
 import { JobOfferDialog } from '@/components/deployment/JobOfferDialog'
 import { ContractDialog } from '@/components/deployment/ContractDialog'
@@ -252,7 +253,7 @@ export function DeploymentDetailsSheet({
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <InfoRow icon={Mail} label="Email" value={applicant?.email ?? '—'} />
                       <InfoRow icon={Phone} label="Phone" value={applicant?.phone ?? '—'} />
-                      <InfoRow icon={MapPin} label="Address" value={applicant?.address ?? '—'} />
+                      <InfoRow icon={MapPin} label="Address" value={formatAddress({ street: applicant?.address ?? '', barangay: applicant?.barangay ?? '', city: applicant?.city ?? '', province: applicant?.province ?? '' }) || '—'} />
                       <InfoRow icon={Briefcase} label="Position" value={jobPosting?.positions?.title ?? '—'} />
                       <InfoRow icon={Building2} label="Department" value={jobPosting?.departments?.name ?? '—'} />
                     </div>
