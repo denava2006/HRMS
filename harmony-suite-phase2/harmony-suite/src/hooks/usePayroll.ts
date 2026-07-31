@@ -197,7 +197,9 @@ export function useGeneratePayroll() {
 
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
-        .select('id, basic_salary, currency, work_schedule_id')
+        .select(
+          'id, first_name, last_name, basic_salary, currency, employment_type, work_schedule_id, salary_grade_id, work_schedules(employment_type), salary_grades(employment_type)'
+        )
         .in('employment_status', ACTIVE_EMPLOYMENT_STATUSES)
       if (employeesError) throw employeesError
       if (employees.length === 0) throw new Error('No active employees to include in this payroll.')
@@ -211,6 +213,21 @@ export function useGeneratePayroll() {
           .eq('employee_id', employee.id)
           .maybeSingle()
         if (existingRecord) continue // already generated for this employee — skip rather than duplicate
+
+        // Rates are derived from the employee's own shift and pay band, so a
+        // mismatched pairing doesn't fail loudly — it quietly pays a part-timer
+        // at full-time hours, or the reverse. Triggers stop new mismatches
+        // being stored; this catches any that predate them, and refuses rather
+        // than computing something wrong.
+        const who = `${employee.first_name} ${employee.last_name}`
+        const scheduleType = (employee.work_schedules as { employment_type: string } | null)?.employment_type
+        const gradeType = (employee.salary_grades as { employment_type: string } | null)?.employment_type
+        if (scheduleType && scheduleType !== employee.employment_type) {
+          throw new Error(`Work schedule does not match the employee's employment type (${who}).`)
+        }
+        if (gradeType && gradeType !== employee.employment_type) {
+          throw new Error(`Salary grade does not match the employee's employment type (${who}).`)
+        }
 
         const schedule = await fetchEffectiveSchedule(employee.id)
         const workingDays = countScheduledWorkingDays(period.period_start, period.period_end, schedule)

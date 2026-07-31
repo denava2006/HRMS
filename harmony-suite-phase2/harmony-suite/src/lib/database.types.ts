@@ -1490,6 +1490,7 @@ export type Database = {
       }
       ph_locations: {
         Row: {
+          code: string | null
           created_at: string
           id: string
           level: string
@@ -1497,6 +1498,7 @@ export type Database = {
           parent_id: string | null
         }
         Insert: {
+          code?: string | null
           created_at?: string
           id?: string
           level: string
@@ -1504,6 +1506,7 @@ export type Database = {
           parent_id?: string | null
         }
         Update: {
+          code?: string | null
           created_at?: string
           id?: string
           level?: string
@@ -1621,6 +1624,7 @@ export type Database = {
       salary_grades: {
         Row: {
           created_at: string
+          employment_type: Database["public"]["Enums"]["employment_type"]
           grade_name: string
           id: string
           max_salary: number
@@ -1629,6 +1633,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           grade_name: string
           id?: string
           max_salary: number
@@ -1637,6 +1642,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           grade_name?: string
           id?: string
           max_salary?: number
@@ -1716,6 +1722,7 @@ export type Database = {
         Row: {
           break_minutes: number
           created_at: string
+          employment_type: Database["public"]["Enums"]["employment_type"]
           end_time: string
           id: string
           is_default: boolean
@@ -1727,6 +1734,7 @@ export type Database = {
         Insert: {
           break_minutes?: number
           created_at?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           end_time: string
           id?: string
           is_default?: boolean
@@ -1738,6 +1746,7 @@ export type Database = {
         Update: {
           break_minutes?: number
           created_at?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           end_time?: string
           id?: string
           is_default?: boolean

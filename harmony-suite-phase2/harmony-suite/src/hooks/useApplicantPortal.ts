@@ -12,6 +12,7 @@ export interface ApplicationTrackingRecord {
   applicant_name: string
   position_title: string | null
   department_name: string | null
+  position_employment_type: Enums<'employment_type'> | null
   interview_type: Enums<'interview_type'> | null
   interview_scheduled_at: string | null
   interview_mode: string | null

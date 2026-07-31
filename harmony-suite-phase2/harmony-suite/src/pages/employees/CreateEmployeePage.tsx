@@ -26,7 +26,7 @@ import {
   useUploadEmployeeDocument,
   validateEmployeeDocumentFile,
 } from '@/hooks/useEmployees'
-import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
+import { EMPLOYMENT_TYPE_LABEL, EMPLOYMENT_TYPE_SHORT_LABEL } from '@/lib/jobPostingLabels'
 import { DEFAULT_CURRENCY } from '@/lib/currency'
 import { AddressFields, formatAddress, type AddressValue } from '@/components/AddressFields'
 import { CIVIL_STATUS_OPTIONS, DOCUMENT_TYPE_OPTIONS, EMPLOYMENT_STATUS_LABEL, SELECTABLE_EMPLOYMENT_STATUSES } from '@/lib/employeeLabels'
@@ -372,8 +372,27 @@ export default function CreateEmployeePage() {
 
   const selectedDepartment = departments?.find((d) => d.id === departmentId)
   const selectedPosition = filteredPositions?.find((p) => p.id === watch('positionId'))
-  const selectedGrade = salaryGrades?.find((g) => g.id === watch('salaryGradeId'))
-  const selectedSchedule = workSchedules?.find((s) => s.id === watch('workScheduleId'))
+  // Regular and part-time resources are not interchangeable: the database
+  // refuses a mismatched pairing, so the options are narrowed to the ones that
+  // will actually be accepted.
+  // A hire that came through recruitment carries the type from the job
+  // posting they applied to. HR confirms it here but cannot change it — that
+  // would mean hiring them into a different job than the one advertised, and
+  // the database refuses the mismatch anyway.
+  const inheritedEmploymentType = applicationData?.latestOffer?.employment_type ?? null
+
+  const employmentType = watch('employmentType')
+  const assignableGrades = React.useMemo(
+    () => (salaryGrades ?? []).filter((g) => g.employment_type === employmentType),
+    [salaryGrades, employmentType]
+  )
+  const assignableSchedules = React.useMemo(
+    () => (workSchedules ?? []).filter((s) => s.employment_type === employmentType),
+    [workSchedules, employmentType]
+  )
+
+  const selectedGrade = assignableGrades.find((g) => g.id === watch('salaryGradeId'))
+  const selectedSchedule = assignableSchedules.find((s) => s.id === watch('workScheduleId'))
 
   return (
     <div className="flex flex-col gap-6">
@@ -687,7 +706,17 @@ export default function CreateEmployeePage() {
                       control={control}
                       name="employmentType"
                       render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          disabled={inheritedEmploymentType !== null}
+                          onValueChange={(v) => {
+                            field.onChange(v)
+                            // Anything picked under the previous type is no
+                            // longer assignable.
+                            setValue('salaryGradeId', '')
+                            setValue('workScheduleId', '')
+                          }}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -747,10 +776,16 @@ export default function CreateEmployeePage() {
                         }}
                       >
                         <SelectTrigger invalid={!!errors.workScheduleId} className={autoFillClass('workScheduleId')}>
-                          <SelectValue placeholder={workSchedules?.length ? 'Select a shift' : 'No work schedules configured'} />
+                          <SelectValue
+                            placeholder={
+                              assignableSchedules.length
+                                ? 'Select a shift'
+                                : `No ${EMPLOYMENT_TYPE_SHORT_LABEL[employmentType]} work schedules configured`
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {workSchedules?.map((s) => (
+                          {assignableSchedules.map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.name}
                               {s.is_default ? ' (default)' : ''}
@@ -783,7 +818,7 @@ export default function CreateEmployeePage() {
                             <SelectValue placeholder="None" />
                           </SelectTrigger>
                           <SelectContent>
-                            {salaryGrades?.map((g) => (
+                                      {assignableGrades.map((g) => (
                               <SelectItem key={g.id} value={g.id}>
                                 {g.grade_name}
                               </SelectItem>

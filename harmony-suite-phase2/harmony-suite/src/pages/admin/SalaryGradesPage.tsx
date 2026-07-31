@@ -39,6 +39,13 @@ import {
   useDeleteSalaryGrade,
 } from '@/hooks/useSalaryGrades'
 import { formatMoney } from '@/lib/currency'
+import {
+  EMPLOYMENT_TYPES,
+  EMPLOYMENT_TYPE_LABEL,
+  EMPLOYMENT_TYPE_SHORT_LABEL,
+  EMPLOYMENT_TYPE_VARIANT,
+} from '@/lib/jobPostingLabels'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 
 const MAX_SALARY = 999_999_999_999
 const MAX_SALARY_TEXT = '999,999,999,999.00'
@@ -58,6 +65,7 @@ const amountField = (label: string) =>
 const gradeSchema = z
   .object({
     grade_name: z.string().min(1, 'Grade name is required').max(50),
+    employment_type: z.enum(['regular', 'part_time']),
     min_salary: amountField('Minimum salary').refine((v) => Number(v) > 0, 'Minimum salary must be greater than zero'),
     max_salary: amountField('Maximum salary'),
   })
@@ -97,6 +105,7 @@ function GradeFormDialog({
     if (open) {
       reset({
         grade_name: grade?.grade_name ?? '',
+        employment_type: grade?.employment_type ?? 'regular',
         min_salary: grade ? String(grade.min_salary) : '',
         max_salary: grade ? String(grade.max_salary) : '',
       })
@@ -106,6 +115,7 @@ function GradeFormDialog({
   const onSubmit = async (values: GradeFormValues) => {
     const payload = {
       grade_name: values.grade_name,
+      employment_type: values.employment_type,
       min_salary: Number(values.min_salary),
       max_salary: Number(values.max_salary),
     }
@@ -115,12 +125,19 @@ function GradeFormDialog({
     // answering a question with two right answers. The database enforces this
     // too (salary_grades_no_overlap) — checking here names the grade that
     // clashes instead of surfacing a constraint violation.
+    // Scoped to the same employment type: a part-time band and a regular band
+    // may cover identical amounts, because they're never offered to the same
+    // person. The database's exclusion constraint is scoped the same way.
     const clash = (allGrades ?? []).find(
-      (g) => g.id !== grade?.id && payload.min_salary <= g.max_salary && payload.max_salary >= g.min_salary
+      (g) =>
+        g.id !== grade?.id &&
+        g.employment_type === payload.employment_type &&
+        payload.min_salary <= g.max_salary &&
+        payload.max_salary >= g.min_salary
     )
     if (clash) {
       setError('min_salary', {
-        message: `This range overlaps ${clash.grade_name} (${formatMoney(clash.min_salary)} – ${formatMoney(clash.max_salary)}).`,
+        message: `This range overlaps ${clash.grade_name}, another ${EMPLOYMENT_TYPE_SHORT_LABEL[payload.employment_type]} grade (${formatMoney(clash.min_salary)} – ${formatMoney(clash.max_salary)}).`,
       })
       return
     }
@@ -147,6 +164,31 @@ function GradeFormDialog({
             </Label>
             <Input id="grade_name" invalid={!!errors.grade_name} {...register('grade_name')} placeholder="e.g. Grade 5" />
             {errors.grade_name && <p className="text-xs text-destructive">{errors.grade_name.message}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="grade_employment_type">
+              Employment Type <span className="text-destructive">*</span>
+            </Label>
+            {/* Decides who this band can be assigned to. Two bands of different
+              * types may cover the same amounts; two of the same type may not. */}
+            <Controller
+              control={control}
+              name="employment_type"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="grade_employment_type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYMENT_TYPES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {EMPLOYMENT_TYPE_LABEL[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
@@ -213,6 +255,15 @@ export default function SalaryGradesPage() {
 
   const columns: ColumnDef<SalaryGrade>[] = [
     { accessorKey: 'grade_name', header: 'Grade' },
+    {
+      id: 'employment_type',
+      header: 'Employment Type',
+      cell: ({ row }) => (
+        <Badge variant={EMPLOYMENT_TYPE_VARIANT[row.original.employment_type]}>
+          {EMPLOYMENT_TYPE_SHORT_LABEL[row.original.employment_type]}
+        </Badge>
+      ),
+    },
     {
       accessorKey: 'min_salary',
       header: 'Minimum',

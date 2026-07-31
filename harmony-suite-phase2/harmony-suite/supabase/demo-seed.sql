@@ -126,16 +126,26 @@ insert into public.employees (id, first_name, middle_name, last_name, email, pho
   employment_type, employment_status, hire_date, work_schedule_id)
 select v.id::uuid, v.fn, v.mn, v.ln, v.email, v.phone, v.addr, v.province, v.city, v.barangay,
   v.bd::date, v.gender, v.civil, 'Filipino',
-  v.dept::uuid, v.pos::uuid, v.grade::uuid, v.salary, 'PHP', 'regular', v.status::employment_status,
+  v.dept::uuid, v.pos::uuid, v.grade::uuid, v.salary, 'PHP', ws.employment_type, v.status::employment_status,
   v.hired::date, ws.id
 from (values
   -- Each on a different shift so the roster shows real variety, including one
   -- overnight worker.
   ('c6000000-0000-0000-0000-000000000001','Liza','Domingo','Fernandez','liza.fernandez@example.com','09181000001','14 Malakas St','Metro Manila','Quezon City','Kamuning','1994-03-12','Female','Single','d0000000-0000-0000-0000-000000000002','e0000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000002',24000,'active', (current_date - interval '2 years')::text, 'a1000000-0000-0000-0000-000000000001'),
   ('c6000000-0000-0000-0000-000000000002','Jerome','Sy','Castillo','jerome.castillo@example.com','09181000002','3 Sampaguita St','Metro Manila','Pasig','Kapitolyo','1990-11-02','Male','Married','d0000000-0000-0000-0000-000000000003','e0000000-0000-0000-0000-000000000004','f0000000-0000-0000-0000-000000000003',32000,'active', (current_date - interval '3 years')::text, 'a1000000-0000-0000-0000-000000000002'),
-  ('c6000000-0000-0000-0000-000000000003','Grace','Ann','Peralta','grace.peralta@example.com','09181000003','40 Ilang-Ilang St','Metro Manila','Makati','Poblacion','1998-06-25','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000001',18000,'active', (current_date - interval '8 months')::text, 'a1000000-0000-0000-0000-000000000003')
+  ('c6000000-0000-0000-0000-000000000003','Grace','Ann','Peralta','grace.peralta@example.com','09181000003','40 Ilang-Ilang St','Metro Manila','Makati','Poblacion','1998-06-25','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000001',18000,'active', (current_date - interval '8 months')::text, 'a1000000-0000-0000-0000-000000000003'),
+  ('c6000000-0000-0000-0000-000000000004','Pia','Marie','Reyes','pia.reyes@example.com','09181000004','22 Mabini St','Metro Manila','Manila','Ermita','2001-09-08','Female','Single','d0000000-0000-0000-0000-000000000001','e0000000-0000-0000-0000-000000000001',(select id from public.salary_grades where employment_type = 'part_time' order by min_salary limit 1)::text,8000,'active', (current_date - interval '4 months')::text, 'Part-Time Morning')
 ) as v(id, fn, mn, ln, email, phone, addr, province, city, barangay, bd, gender, civil, dept, pos, grade, salary, status, hired, sched)
-cross join lateral (select v.sched::uuid as id) ws
+-- Resolves the shift from the row, which names it either by id (the seeded
+-- full-time shifts) or by name (the part-time ones, whose ids the migration
+-- generates). employment_type comes from the shift itself, so an employee can
+-- never be seeded onto an incompatible one.
+cross join lateral (
+  select s.id, s.employment_type
+  from public.work_schedules s
+  where s.id::text = v.sched or s.name = v.sched
+  limit 1
+) ws
 on conflict do nothing;
 
 -- ---- Employee logins --------------------------------------------------------
@@ -181,11 +191,17 @@ with workdays as (
 -- with the schedule it's measured against.
 staff as (
   select e.id as employee_id, s.late_mins, ws.start_time, ws.end_time,
-         (ws.end_time <= ws.start_time) as is_overnight
+         (ws.end_time <= ws.start_time) as is_overnight,
+         -- Paid hours in one shift: the span, rolled over midnight where the
+         -- shift is overnight, less the unpaid break.
+         (extract(epoch from (ws.end_time - ws.start_time))
+            + case when ws.end_time <= ws.start_time then 86400 else 0 end) / 3600.0
+           - ws.break_minutes / 60.0 as shift_hours
   from (values
     ('c6000000-0000-0000-0000-000000000001'::uuid, 0),   -- Liza: always on time
     ('c6000000-0000-0000-0000-000000000002'::uuid, 18),  -- Jerome: late on every 4th day
-    ('c6000000-0000-0000-0000-000000000003'::uuid, 25)   -- Grace: late, plus an absence and a half day
+    ('c6000000-0000-0000-0000-000000000003'::uuid, 25),  -- Grace: late, plus an absence and a half day
+    ('c6000000-0000-0000-0000-000000000004'::uuid, 0)    -- Pia: part-time, always on time
   ) as s(employee_id, late_mins)
   join public.employees e on e.id = s.employee_id
   join public.work_schedules ws on ws.id = e.work_schedule_id
@@ -197,6 +213,7 @@ plan as (
     s.start_time,
     s.end_time,
     s.is_overnight,
+    s.shift_hours,
     -- Grace (3rd employee) is absent on day 3 and works a half day on day 5.
     case
       when s.employee_id = 'c6000000-0000-0000-0000-000000000003'::uuid and w.n = 3 then 'absent'
@@ -224,9 +241,11 @@ select
        -- lands on the next calendar day.
        else ((p.day + p.end_time + case when p.is_overnight then interval '1 day' else interval '0' end)
              at time zone 'Asia/Manila') end,
-  case when p.status = 'absent' then 0 when p.status = 'half_day' then 4 else 8 end,
+  case when p.status = 'absent' then 0
+       when p.status = 'half_day' then p.shift_hours / 2
+       else p.shift_hours end,
   p.late_mins,
-  case when p.status = 'half_day' then 240 else 0 end,
+  case when p.status = 'half_day' then round(p.shift_hours * 30) else 0 end,
   0,
   p.status::attendance_status
 from plan p

@@ -20,8 +20,8 @@ grep VITE_SUPABASE_URL .env         # must match that URL
 > hand. Use `npm run demo:seed` (safe to re-run, won't duplicate) if you only
 > want to top the demo data back up without wiping your own work.
 
-`demo-seed.sql` stages an applicant at **every** stage of the pipeline, three
-employees with a month of attendance, a pending leave request, a draft payroll
+`demo-seed.sql` stages an applicant at **every** stage of the pipeline, four
+employees with a month of attendance (one of them part-time), a pending leave request, a draft payroll
 period, and two pending change requests — so every module has something to show
 without clicking through the whole flow first.
 
@@ -35,6 +35,7 @@ To reset mid-demo, re-run the last three commands.
 | HR Manager | `manager@suite.com` | `HrManager123` |
 | HR Staff | `staff@suite.com` | `HrStaff123` |
 | Employee | `liza.fernandez@example.com` | `Employee123` → set your own |
+| Employee (part-time) | `pia.reyes@example.com` | no account — HR creates one |
 | Employee | `jerome.castillo@example.com` | `Employee123` → set your own |
 
 Employees sign in with the password HR hands them and are then required to
@@ -172,6 +173,34 @@ Now sign in as **manager@suite.com**:
   the actual password change, so it can't be faked. Try it live — an employee
   PATCHing their own `activated_at` gets *"Activation is recorded when you
   change your password, not set directly."*
+
+### 6. Part-time employment (2 min)
+
+Employment Type is a real distinction now, not a label — it decides which
+shifts and which pay bands someone can be given.
+
+- **Work Schedules** — the list has a **Schedule Type** column. *Part-Time
+  Morning* runs 8:00 AM–12:00 PM with no break: four paid hours, against the
+  full-time shifts' eight.
+- **Salary Grades** — an **Employment Type** column, with *Grade PT-1* at
+  ₱6,000–₱10,000. Try creating a part-time band that overlaps a regular one:
+  it's allowed, because the two are never offered to the same person. Overlap
+  a band of the *same* type and it's refused.
+- **Careers** — every posting shows Regular or Part-Time, in the list, on the
+  job details, and on the application form.
+- **Deployment** — open a job offer. Employment Type is fixed to whatever the
+  posting said, and the Salary Grade and Work Schedule dropdowns only offer
+  matching options. There is no way to put a part-time hire on a nine-hour
+  shift.
+- **Payroll** — the table has a **Type** column. Compare *Pia Reyes*
+  (part-time) with the others: her rates come off a four-hour day, so ₱8,000
+  monthly gives ₱363.64 a day and ₱90.91 an hour, against Liza's ₱136.36 on an
+  eight-hour shift. Thirty minutes late costs Pia ₱45.45 and Liza ₱68.18.
+
+**Talking point:** the pairing rules are enforced in the database, not just in
+the dropdowns. A direct API call assigning a part-time schedule to a regular
+employee comes back with *"Selected work schedule is not compatible with the
+employee's employment type."*
 
 **Key talking point:** none of this is UI-only. HR Staff has *no write
 permission at all* on those five tables in the database, so even a direct API

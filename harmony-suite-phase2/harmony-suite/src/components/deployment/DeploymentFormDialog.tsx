@@ -15,6 +15,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useCompleteDeployment } from '@/hooks/useDeployment'
 import { useBranches, useWorkLocations } from '@/hooks/useBranches'
 import { useWorkSchedules } from '@/hooks/useWorkSchedules'
+import { EMPLOYMENT_TYPE_SHORT_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 
 export function DeploymentFormDialog({
@@ -24,6 +25,7 @@ export function DeploymentFormDialog({
   startDate,
   contractSignedDate,
   offerWorkScheduleId,
+  employmentType,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -41,6 +43,10 @@ export function DeploymentFormDialog({
   /** Shift agreed on the accepted job offer — pre-selected here so deployment
    * confirms what was offered rather than starting from a blank field. */
   offerWorkScheduleId?: string | null
+  /** From the job posting the applicant applied to. Only shifts of this type
+   * are offered — a part-time hire on a nine-hour schedule would be paid for
+   * hours they were never engaged to work. */
+  employmentType: EmploymentType
 }) {
   const completeDeployment = useCompleteDeployment()
   const { data: branches } = useBranches()
@@ -60,15 +66,20 @@ export function DeploymentFormDialog({
     if (open) {
       setBranchId('')
       setWorkLocationId('')
-      setWorkScheduleId(offerWorkScheduleId ?? workSchedules?.find((s) => s.is_default)?.id ?? '')
+      const compatible = (workSchedules ?? []).filter((s) => s.employment_type === employmentType)
+      setWorkScheduleId(offerWorkScheduleId ?? compatible.find((s) => s.is_default)?.id ?? (compatible.length === 1 ? compatible[0].id : ''))
       setRemarks('')
       setErrors({})
     }
-  }, [open, offerWorkScheduleId, workSchedules])
+  }, [open, offerWorkScheduleId, workSchedules, employmentType])
 
   const selectedBranch = branches?.find((b) => b.id === branchId) ?? null
   const selectedLocation = locations?.find((l) => l.id === workLocationId) ?? null
-  const selectedSchedule = workSchedules?.find((s) => s.id === workScheduleId) ?? null
+  const assignableSchedules = React.useMemo(
+    () => (workSchedules ?? []).filter((s) => s.employment_type === employmentType),
+    [workSchedules, employmentType]
+  )
+  const selectedSchedule = assignableSchedules.find((s) => s.id === workScheduleId) ?? null
 
   const onSubmit = () => {
     const nextErrors: Record<string, string> = {}
@@ -187,10 +198,16 @@ export function DeploymentFormDialog({
               }}
             >
               <SelectTrigger id="deployment_work_schedule" invalid={!!errors.workScheduleId}>
-                <SelectValue placeholder={workSchedules?.length ? 'Select a shift' : 'No work schedules configured'} />
+                <SelectValue
+                  placeholder={
+                    assignableSchedules.length
+                      ? 'Select a shift'
+                      : `No ${EMPLOYMENT_TYPE_SHORT_LABEL[employmentType]} work schedules configured`
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {workSchedules?.map((s) => (
+                {assignableSchedules.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                     {s.is_default ? ' (default)' : ''}

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { EMPLOYMENT_TYPES, EMPLOYMENT_TYPE_VARIANT, SCHEDULE_TYPE_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
 import {
   type WorkSchedule,
   useWorkSchedules,
@@ -65,6 +67,7 @@ function ScheduleFormDialog({
   const [endTime, setEndTime] = React.useState('17:00')
   const [breakMinutes, setBreakMinutes] = React.useState('60')
   const [isDefault, setIsDefault] = React.useState(false)
+  const [employmentType, setEmploymentType] = React.useState<EmploymentType>('regular')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
@@ -75,6 +78,7 @@ function ScheduleFormDialog({
       setEndTime(schedule?.end_time?.slice(0, 5) ?? '17:00')
       setBreakMinutes(String(schedule?.break_minutes ?? 60))
       setIsDefault(schedule?.is_default ?? false)
+      setEmploymentType(schedule?.employment_type ?? 'regular')
       setErrors({})
     }
   }, [open, schedule])
@@ -123,6 +127,7 @@ function ScheduleFormDialog({
       end_time: endTime,
       break_minutes: Number(breakMinutes) || 0,
       is_default: isDefault,
+      employment_type: employmentType,
     }
 
     const onSuccess = () => onOpenChange(false)
@@ -189,6 +194,25 @@ function ScheduleFormDialog({
               <Label htmlFor="break_minutes">Break (minutes)</Label>
               <Input id="break_minutes" type="number" min="0" value={breakMinutes} onChange={(e) => setBreakMinutes(e.target.value)} />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="schedule_type">Schedule Type</Label>
+              {/* Decides who can be put on this shift. A part-time employee
+                * cannot be assigned a full-time schedule or the reverse — the
+                * dropdowns downstream filter on this, and the database refuses
+                * the pairing outright. */}
+              <Select value={employmentType} onValueChange={(v) => setEmploymentType(v as EmploymentType)}>
+                <SelectTrigger id="schedule_type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYMENT_TYPES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {SCHEDULE_TYPE_LABEL[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Spells out what the times add up to, so an overnight shift reads
@@ -254,6 +278,15 @@ export default function WorkSchedulesPage() {
       accessorKey: 'break_minutes',
       header: 'Break',
       cell: ({ row }) => `${row.original.break_minutes} min`,
+    },
+    {
+      id: 'employment_type',
+      header: 'Schedule Type',
+      cell: ({ row }) => (
+        <Badge variant={EMPLOYMENT_TYPE_VARIANT[row.original.employment_type]}>
+          {SCHEDULE_TYPE_LABEL[row.original.employment_type]}
+        </Badge>
+      ),
     },
     {
       id: 'actions',

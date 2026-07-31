@@ -40,7 +40,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { canApproveWork, canPreparePayroll } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { PAYROLL_STATUS_LABEL, PAYROLL_STATUS_VARIANT, PAYROLL_FREQUENCY_LABEL } from '@/lib/payrollLabels'
-import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
+import { EMPLOYMENT_TYPE_LABEL, EMPLOYMENT_TYPE_SHORT_LABEL, EMPLOYMENT_TYPE_VARIANT } from '@/lib/jobPostingLabels'
 import { formatMoney, type CurrencyCode } from '@/lib/currency'
 
 const ALL = 'all'
@@ -205,6 +205,18 @@ export default function PayrollPage() {
       header: 'Department',
       accessorFn: (row) => row.employees.departments?.name ?? '',
       cell: ({ row }) => (row.original.employees.departments?.name ? <Badge variant="secondary">{row.original.employees.departments.name}</Badge> : '—'),
+    },
+    {
+      id: 'employment_type',
+      header: 'Type',
+      accessorFn: (row) => row.employees.employment_type,
+      // Worth seeing per row: a part-timer's rates come off a four-hour shift,
+      // so their figures are meant to look different from everyone else's.
+      cell: ({ row }) => (
+        <Badge variant={EMPLOYMENT_TYPE_VARIANT[row.original.employees.employment_type]}>
+          {EMPLOYMENT_TYPE_SHORT_LABEL[row.original.employees.employment_type]}
+        </Badge>
+      ),
     },
     {
       id: 'basic_salary',

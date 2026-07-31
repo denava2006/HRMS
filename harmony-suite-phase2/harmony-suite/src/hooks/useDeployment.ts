@@ -9,7 +9,7 @@ import { deriveDeploymentStage } from '@/lib/deploymentLabels'
 const DEPLOYMENT_QUEUE_SELECT = `
   *,
   applicants (id, first_name, last_name, email, phone, address, province, city, barangay, resume_url, cover_letter),
-  job_postings (id, department_id, position_id, departments (name), positions (title)),
+  job_postings (id, department_id, position_id, employment_type, departments (name), positions (title)),
   job_offers (
     *,
     salary_grades (grade_name),
@@ -38,7 +38,7 @@ export type DeploymentApplication = Tables<'applications'> & {
     'id' | 'first_name' | 'last_name' | 'email' | 'phone' | 'address' | 'province' | 'city' | 'barangay' | 'resume_url' | 'cover_letter'
   > | null
   job_postings:
-    | (Pick<Tables<'job_postings'>, 'id' | 'department_id' | 'position_id'> & {
+    | (Pick<Tables<'job_postings'>, 'id' | 'department_id' | 'position_id' | 'employment_type'> & {
         departments: { name: string } | null
         positions: { title: string } | null
       })

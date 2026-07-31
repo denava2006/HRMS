@@ -6,7 +6,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { JobPostingCard, JobPostingCardSkeleton, NoOpenPositions } from '@/components/public/JobPostingCard'
 import { usePublicOpenJobPostings } from '@/hooks/usePublicCareers'
 import { useDepartments } from '@/hooks/useDepartments'
-import { EMPLOYMENT_TYPE_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
+import { EMPLOYMENT_TYPE_SHORT_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
 
 const PAGE_SIZE = 9
 const ALL = 'all'
@@ -84,7 +84,7 @@ export default function CareersPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All types</SelectItem>
-            {(Object.entries(EMPLOYMENT_TYPE_LABEL) as [EmploymentType, string][]).map(([value, label]) => (
+            {(Object.entries(EMPLOYMENT_TYPE_SHORT_LABEL) as [EmploymentType, string][]).map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 {label}
               </SelectItem>

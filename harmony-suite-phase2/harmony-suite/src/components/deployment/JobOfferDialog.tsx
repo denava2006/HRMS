@@ -17,7 +17,7 @@ import { useSalaryGrades } from '@/hooks/useSalaryGrades'
 import { useWorkSchedules } from '@/hooks/useWorkSchedules'
 import { usePrepareJobOffer } from '@/hooks/useDeployment'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
-import { EMPLOYMENT_TYPE_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
+import { EMPLOYMENT_TYPE_LABEL, EMPLOYMENT_TYPE_SHORT_LABEL, type EmploymentType } from '@/lib/jobPostingLabels'
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/currency'
 
 /** Local calendar date (not UTC) in YYYY-MM-DD form, matching what a date input's own picker considers "today". */
@@ -41,10 +41,15 @@ export function JobOfferDialog({
   applicationId,
   positionTitle,
   departmentName,
+  employmentType,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   applicationId: string
+  /** Inherited from the job posting the applicant applied to. HR does not get
+   * to change it here — the applicant answered an advert for one kind of job,
+   * and the salary grades and work schedules on offer follow from it. */
+  employmentType: EmploymentType
   positionTitle: string
   departmentName: string
 }) {
@@ -52,7 +57,6 @@ export function JobOfferDialog({
   const { data: workSchedules } = useWorkSchedules()
   const prepareOffer = usePrepareJobOffer()
 
-  const employmentType: EmploymentType = 'regular'
   const [salaryGradeId, setSalaryGradeId] = React.useState('')
   const [salary, setSalary] = React.useState('')
   const [workScheduleId, setWorkScheduleId] = React.useState('')
@@ -65,16 +69,30 @@ export function JobOfferDialog({
     if (open) {
       setSalaryGradeId('')
       setSalary('')
-      setWorkScheduleId(workSchedules?.find((s) => s.is_default)?.id ?? '')
+      // The default schedule is only a sensible starting point when it's of
+      // the right type; otherwise start empty and make HR choose.
+      const compatible = (workSchedules ?? []).filter((s) => s.employment_type === employmentType)
+      setWorkScheduleId(compatible.find((s) => s.is_default)?.id ?? (compatible.length === 1 ? compatible[0].id : ''))
       setStartDate('')
       setAdditionalCompensation('')
       setNotes('')
       setErrors({})
     }
-  }, [open, workSchedules])
+  }, [open, workSchedules, employmentType])
 
-  const selectedGrade = salaryGrades?.find((g) => g.id === salaryGradeId) ?? null
-  const selectedSchedule = workSchedules?.find((s) => s.id === workScheduleId) ?? null
+  // Only resources of the matching type are offerable. The database refuses
+  // the pairing outright; filtering here means HR never sees the option.
+  const offerableGrades = React.useMemo(
+    () => (salaryGrades ?? []).filter((g) => g.employment_type === employmentType),
+    [salaryGrades, employmentType]
+  )
+  const offerableSchedules = React.useMemo(
+    () => (workSchedules ?? []).filter((s) => s.employment_type === employmentType),
+    [workSchedules, employmentType]
+  )
+
+  const selectedGrade = offerableGrades.find((g) => g.id === salaryGradeId) ?? null
+  const selectedSchedule = offerableSchedules.find((s) => s.id === workScheduleId) ?? null
 
   // Captured as text on the offer so the contract preserves the terms as
   // offered, even if Admin later edits the schedule itself.
@@ -132,9 +150,9 @@ export function JobOfferDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Employment Type</Label>
-              {/* Part-time is parked for a future update — every offer is
-                * full-time for now, so this is shown but not editable. */}
-              <Input value={EMPLOYMENT_TYPE_LABEL.regular} disabled />
+              {/* Set by the job posting, shown for confirmation. Changing it
+                * would mean offering a different job than the one applied for. */}
+              <Input value={EMPLOYMENT_TYPE_LABEL[employmentType]} disabled />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Salary Grade (optional)</Label>
@@ -149,7 +167,7 @@ export function JobOfferDialog({
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
-                  {salaryGrades?.map((g) => (
+                  {offerableGrades.map((g) => (
                     <SelectItem key={g.id} value={g.id}>
                       {g.grade_name}
                     </SelectItem>
@@ -194,10 +212,16 @@ export function JobOfferDialog({
               }}
             >
               <SelectTrigger id="work_schedule" invalid={!!errors.workScheduleId}>
-                <SelectValue placeholder={workSchedules?.length ? 'Select a work schedule' : 'No work schedules configured'} />
+                <SelectValue
+                  placeholder={
+                    offerableSchedules.length
+                      ? 'Select a work schedule'
+                      : `No ${EMPLOYMENT_TYPE_SHORT_LABEL[employmentType]} work schedules configured`
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {workSchedules?.map((s) => (
+                {offerableSchedules.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                     {s.is_default ? ' (default)' : ''}

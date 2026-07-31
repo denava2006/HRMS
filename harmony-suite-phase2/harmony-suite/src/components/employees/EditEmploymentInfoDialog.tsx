@@ -37,6 +37,11 @@ export function EditEmploymentInfoDialog({
   const { data: workSchedules } = useWorkSchedules()
   const updateEmployee = useUpdateEmployee()
 
+  // An employee hired through recruitment carries the type from the job posting
+  // they applied to; it isn't HR's to change here. Someone added directly has no
+  // posting behind them, so it stays editable for them.
+  const typeIsInherited = !!employee.application_id
+
   const [departmentId, setDepartmentId] = React.useState('')
   const [positionId, setPositionId] = React.useState('')
   const [employmentType, setEmploymentType] = React.useState<'regular' | 'part_time'>('regular')
@@ -64,6 +69,17 @@ export function EditEmploymentInfoDialog({
   const filteredPositions = React.useMemo(
     () => positions?.filter((p) => p.department_id === departmentId),
     [positions, departmentId]
+  )
+
+  // Only resources matching the employee's type can be assigned — the database
+  // refuses the pairing, so the options are narrowed to what will be accepted.
+  const assignableGrades = React.useMemo(
+    () => (salaryGrades ?? []).filter((g) => g.employment_type === employmentType),
+    [salaryGrades, employmentType]
+  )
+  const assignableSchedules = React.useMemo(
+    () => (workSchedules ?? []).filter((s) => s.employment_type === employmentType),
+    [workSchedules, employmentType]
   )
 
   const onSubmit = () => {
@@ -150,7 +166,16 @@ export function EditEmploymentInfoDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Employment Type</Label>
-              <Select value={employmentType} onValueChange={(v) => setEmploymentType(v as 'regular' | 'part_time')}>
+              <Select
+                value={employmentType}
+                disabled={typeIsInherited}
+                onValueChange={(v) => {
+                  setEmploymentType(v as 'regular' | 'part_time')
+                  // Whatever was picked under the old type no longer applies.
+                  setSalaryGradeId('')
+                  setWorkScheduleId('')
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -162,6 +187,9 @@ export function EditEmploymentInfoDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {typeIsInherited && (
+                <p className="text-xs text-muted-foreground">Set by the job posting this employee was hired through.</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Employment Status</Label>
@@ -188,7 +216,7 @@ export function EditEmploymentInfoDialog({
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
-                  {salaryGrades?.map((g) => (
+                  {assignableGrades.map((g) => (
                     <SelectItem key={g.id} value={g.id}>
                       {g.grade_name}
                     </SelectItem>
@@ -216,7 +244,7 @@ export function EditEmploymentInfoDialog({
                 <SelectValue placeholder="Select a shift" />
               </SelectTrigger>
               <SelectContent>
-                {workSchedules?.map((s) => (
+                {assignableSchedules.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                     {s.is_default ? ' (default)' : ''}

@@ -45,7 +45,7 @@ import {
   type ApplicationTrackingRecord,
 } from '@/hooks/useApplicantPortal'
 import { formatMoney } from '@/lib/currency'
-import { EMPLOYMENT_TYPE_LABEL } from '@/lib/jobPostingLabels'
+import { EMPLOYMENT_TYPE_LABEL, EMPLOYMENT_TYPE_SHORT_LABEL } from '@/lib/jobPostingLabels'
 import { EMPLOYMENT_STATUS_LABEL } from '@/lib/employeeLabels'
 import { formatScheduleTime, formatWorkingDays } from '@/lib/attendanceCalculations'
 import { RESPONSE_WINDOW_DAYS, daysRemaining } from '@/lib/applicationSla'
@@ -608,6 +608,14 @@ function StatusResult({
               <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Building2 className="h-3.5 w-3.5" />
                 {record.position_title ?? 'Position'} · {record.department_name ?? 'Department'}
+                {record.position_employment_type && (
+                  <>
+                    {' · '}
+                    <span className="font-medium text-foreground">
+                      {EMPLOYMENT_TYPE_SHORT_LABEL[record.position_employment_type]}
+                    </span>
+                  </>
+                )}
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={onSignOut}>

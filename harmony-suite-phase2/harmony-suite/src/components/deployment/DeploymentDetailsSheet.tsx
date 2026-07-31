@@ -537,6 +537,7 @@ export function DeploymentDetailsSheet({
           applicationId={applicationId}
           positionTitle={jobPosting.positions?.title ?? 'this position'}
           departmentName={jobPosting.departments?.name ?? '—'}
+          employmentType={jobPosting.employment_type}
         />
       )}
 
@@ -561,7 +562,7 @@ export function DeploymentDetailsSheet({
         />
       )}
 
-      {applicationId && (
+      {applicationId && jobPosting && (
         <DeploymentFormDialog
           open={deploymentDialogOpen}
           onOpenChange={setDeploymentDialogOpen}
@@ -569,6 +570,7 @@ export function DeploymentDetailsSheet({
           startDate={offer?.start_date}
           contractSignedDate={contractSignedDate}
           offerWorkScheduleId={offer?.work_schedule_id}
+          employmentType={jobPosting.employment_type}
         />
       )}
 
