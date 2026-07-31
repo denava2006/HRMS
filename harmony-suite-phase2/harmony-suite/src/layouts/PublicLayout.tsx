@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Mail, MapPin, Phone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { HarmonyWordmark, HarmonyMark } from '@/components/Logo'
 
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
@@ -13,11 +14,8 @@ const NAV_LINKS = [
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-display text-base font-bold text-primary-foreground">
-        H
-      </div>
-      <span className="font-display text-lg font-semibold text-foreground">Harmony Suite</span>
+    <Link to="/" className="flex items-center" aria-label="Harmony Suite — home">
+      <HarmonyWordmark className="h-8" />
     </Link>
   )
 }
@@ -101,9 +99,7 @@ function SiteFooter() {
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 font-display text-base font-bold">
-              H
-            </div>
+            <HarmonyMark className="h-9 w-9" />
             <span className="font-display text-lg font-semibold">Harmony Suite</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-primary-foreground/70">

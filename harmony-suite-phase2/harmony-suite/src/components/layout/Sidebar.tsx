@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { canAccessModule } from '@/lib/roles'
+import { HarmonyWordmark } from '@/components/Logo'
 
 interface NavItem {
   label: string
@@ -106,11 +107,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex print:hidden">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground">
-          H
-        </div>
-        <span className="font-display text-lg font-semibold text-foreground">Harmony Suite</span>
+      <div className="flex h-16 items-center border-b border-border px-5">
+        <HarmonyWordmark className="h-7" />
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">

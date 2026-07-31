@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { HarmonyWaves } from '@/components/HarmonyWaves'
+import { HarmonyWordmark } from '@/components/Logo'
 import { useAuth } from '@/contexts/AuthContext'
 import { needsPasswordSetup } from '@/lib/passwordSetup'
 
@@ -54,9 +55,7 @@ function AuthCardShell({ children }: { children: React.ReactNode }) {
 function BrandHeader({ title, description }: { title: string; description: string }) {
   return (
     <CardHeader className="items-center pb-2 text-center">
-      <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground">
-        H
-      </div>
+      <HarmonyWordmark className="mb-3 h-8" />
       <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>
       <p className="text-sm text-muted-foreground">{description}</p>
     </CardHeader>

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { HarmonyWaves } from '@/components/HarmonyWaves'
+import { HarmonyWordmark } from '@/components/Logo'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
@@ -69,10 +70,7 @@ export default function LoginPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="items-center pb-2 text-center">
-            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground">
-              H
-            </div>
-            <h1 className="font-display text-2xl font-bold text-foreground">Harmony Suite</h1>
+            <HarmonyWordmark className="mb-2 h-9" />
             <p className="text-sm text-muted-foreground">Sign in to your HR workspace</p>
           </CardHeader>
 
