@@ -4,6 +4,8 @@ import { DashboardSectionCard, MiniStat, DashboardEmptyState } from '@/component
 import { Badge } from '@/components/ui/badge'
 import { useAttendanceStats } from '@/hooks/useAttendance'
 import { usePendingLeaveBreakdown, useDashboardPayrollSummary } from '@/hooks/useDashboard'
+import { PAYROLL_STATUS_VARIANT } from '@/lib/payrollLabels'
+import type { PayrollStatus } from '@/lib/database.types'
 import { useDeploymentApplications, useDeploymentStats } from '@/hooks/useDeployment'
 import { usePendingEmployees } from '@/hooks/useEmployees'
 import { formatMoney } from '@/lib/currency'
@@ -65,10 +67,21 @@ export function DeploymentStatusSection() {
   )
 }
 
-const PAYROLL_STATUS_DISPLAY: Record<string, { label: string; variant: 'muted' | 'warning' | 'success' | 'secondary' }> = {
-  draft: { label: 'Processing', variant: 'warning' },
-  reviewed: { label: 'Ready', variant: 'secondary' },
-  released: { label: 'Completed', variant: 'success' },
+/** Dashboard shorthand for payroll status. The payroll page's own labels are
+ * step names ("Pending Approval"), which read as process jargon on a summary
+ * card that only answers "where is payroll up to".
+ *
+ * Typed against PayrollStatus, not string. The previous Record<string, …> told
+ * the compiler every key existed, so when the workflow gained three states this
+ * map silently returned undefined and threw on .variant — the dashboard failed
+ * to render at all. Keyed this way, a new status fails the build here instead. */
+const PAYROLL_STATUS_DISPLAY: Record<PayrollStatus, string> = {
+  draft: 'Not started',
+  generated: 'Processing',
+  pending_approval: 'For approval',
+  approved: 'Ready to release',
+  rejected: 'Needs correction',
+  released: 'Completed',
 }
 
 export function PayrollSummarySection() {
@@ -91,8 +104,8 @@ export function PayrollSummarySection() {
           <div className="rounded-lg border border-border bg-muted/30 p-3">
             <p className="text-xs text-muted-foreground">Payroll Status</p>
             {isLoading ? null : (
-              <Badge variant={data ? PAYROLL_STATUS_DISPLAY[data.status].variant : 'muted'} className="mt-1">
-                {data ? PAYROLL_STATUS_DISPLAY[data.status].label : '—'}
+              <Badge variant={data ? PAYROLL_STATUS_VARIANT[data.status] : 'muted'} className="mt-1">
+                {data ? PAYROLL_STATUS_DISPLAY[data.status] : '—'}
               </Badge>
             )}
           </div>

@@ -1,31 +1,73 @@
 # Harmony Suite — Demo Guide
 
-## Setup (do this before presenting)
+## Running it (the way to present)
+
+Open **Docker Desktop**, wait for "Engine running", then **double-click
+`start-harmony.bat`**.
+
+That's it. It starts the database, builds the app, serves it, and opens:
+
+| | |
+|---|---|
+| **Harmony Suite** | http://localhost:8080 |
+| Database admin | http://localhost:55323 |
+
+**`stop-harmony.bat`** shuts it down again. Your data survives — starting
+again brings everything back.
+
+### Why not `npm run dev`
+
+`npm run dev` starts Vite's *development* server: unminified code, source
+maps, hot-reload, and a warning banner on any error. It exists to write code,
+not to run a system. What you present should be the same build that would go to
+a real server — minified, optimised, served by a proper web server (nginx),
+opened in a browser like any other website. That is what `start-harmony.bat`
+gives you, and it is why the app has a `Dockerfile`.
+
+It also means **the presenting machine needs neither Node, npm, nor an editor**
+— only Docker Desktop. Docker performs the build itself, inside a throwaway
+container.
+
+### First run is slower
+
+The very first `start-harmony.bat` downloads images and compiles the app —
+several minutes. Every run after that is seconds. Do it once before the day of
+the presentation, not five minutes before.
+
+### Refreshing the demo data
 
 ```bash
-supabase start        # if it isn't already running
-npm run demo:reset    # wipes the DB, replays every migration, loads demo data
-npm run dev
+npm run demo:seed     # tops the demo data back up, safe to re-run
+npm run demo:reset    # WIPES the database, replays migrations, reseeds
 ```
+
+These two are the only steps that still want npm, because they are development
+chores rather than part of running the system. After either one, just reload
+the browser — the app is already running.
+
+> **`demo:reset` erases everything**, including anything you typed by hand.
+> Use `demo:seed` when you only want to top the data back up.
 
 Everything runs against the **local** Supabase in Docker — nothing touches a
-hosted project, so a paused cloud project has no effect. Confirm with:
+hosted project, so a paused cloud project has no effect.
+
+### If you change the code
+
+The app is compiled into the container, so edits do not appear until you
+rebuild:
 
 ```bash
-supabase status                     # API URL should be http://127.0.0.1:55321
-grep VITE_SUPABASE_URL .env         # must match that URL
+docker compose up -d --build
 ```
 
-> **`supabase db reset` erases everything**, including anything you typed in by
-> hand. Use `npm run demo:seed` (safe to re-run, won't duplicate) if you only
-> want to top the demo data back up without wiping your own work.
+(Or just run `start-harmony.bat` again — it rebuilds every time.)
 
 `demo-seed.sql` stages an applicant at **every** stage of the pipeline, four
 employees with a month of attendance (one of them part-time), a pending leave request, a draft payroll
 period, and two pending change requests — so every module has something to show
 without clicking through the whole flow first.
 
-To reset mid-demo, re-run the last three commands.
+To reset mid-demo, run `npm run demo:reset` and reload the browser.
 
 ## Accounts
 

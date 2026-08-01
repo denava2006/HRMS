@@ -1,0 +1,24 @@
+# Keep the build context small and reproducible. node_modules especially:
+# copying a Windows-built tree into a Linux container both slows the build to a
+# crawl and risks shipping native binaries compiled for the wrong platform —
+# `npm ci` inside the container installs the right ones from the lockfile.
+node_modules
+dist
+dist-ssr
+
+.git
+.gitignore
+
+# Secrets and machine-specific config. The Supabase URL and anon key reach the
+# build as explicit build args instead (see docker-compose.yml).
+.env
+.env.local
+.env.*.local
+
+# The local Supabase stack has its own containers and volumes; none of it
+# belongs in the web image.
+supabase/.branches
+supabase/.temp
+
+*.log
+npm-debug.log*
