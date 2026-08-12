@@ -1,38 +1,27 @@
 # Harmony Suite — Demo Guide
 
-## Running it (the way to present)
+## Running it
 
-Open **Docker Desktop**, wait for "Engine running", then **double-click
-`start-harmony.bat`**.
+Open **Docker Desktop**, wait for "Engine running", then:
 
-That's it. It starts the database, builds the app, serves it, and opens:
+```bash
+supabase start   # database, auth, storage, edge functions
+npm run dev      # the app
+```
 
 | | |
 |---|---|
-| **Harmony Suite** | http://localhost:8080 |
+| **Harmony Suite** | http://localhost:5173 |
 | Database admin | http://localhost:55323 |
 
-**`stop-harmony.bat`** shuts it down again. Your data survives — starting
-again brings everything back.
-
-### Why not `npm run dev`
-
-`npm run dev` starts Vite's *development* server: unminified code, source
-maps, hot-reload, and a warning banner on any error. It exists to write code,
-not to run a system. What you present should be the same build that would go to
-a real server — minified, optimised, served by a proper web server (nginx),
-opened in a browser like any other website. That is what `start-harmony.bat`
-gives you, and it is why the app has a `Dockerfile`.
-
-It also means **the presenting machine needs neither Node, npm, nor an editor**
-— only Docker Desktop. Docker performs the build itself, inside a throwaway
-container.
+`Ctrl+C` stops the dev server; `supabase stop` stops the database. Your data
+survives — starting again brings everything back.
 
 ### First run is slower
 
-The very first `start-harmony.bat` downloads images and compiles the app —
-several minutes. Every run after that is seconds. Do it once before the day of
-the presentation, not five minutes before.
+The very first `supabase start` pulls the Docker images — several minutes.
+Every run after that is seconds. Do it once before the day of the presentation,
+not five minutes before.
 
 ### Refreshing the demo data
 
@@ -51,16 +40,19 @@ the browser — the app is already running.
 Everything runs against the **local** Supabase in Docker — nothing touches a
 hosted project, so a paused cloud project has no effect.
 
-### If you change the code
+### Running the built app instead of the dev server
 
-The app is compiled into the container, so edits do not appear until you
-rebuild:
+`npm run dev` serves unminified code with hot-reload — fine for testing. To run
+the same build a real server would get (minified, served by nginx), the app has
+a `Dockerfile`:
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build   # http://localhost:8080
+docker compose down            # stops it
 ```
 
-(Or just run `start-harmony.bat` again — it rebuilds every time.)
+The app is compiled into the container, so code edits do not appear until you
+run `--build` again.
 
 `demo-seed.sql` stages an applicant at **every** stage of the pipeline, four
 employees with a month of attendance (one of them part-time), a pending leave request, a draft payroll

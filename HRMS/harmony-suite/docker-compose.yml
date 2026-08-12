@@ -6,15 +6,15 @@
 #
 # Start:  docker compose up -d --build
 # Stop:   docker compose down
-# Or double-click start-harmony.bat, which does both this and Supabase.
 
 services:
   web:
     build:
-      # Normally this folder. start-harmony.bat overrides it with a staging copy
-      # outside the OneDrive sync root: Docker cannot read files that OneDrive
-      # keeps as Files On-Demand placeholders and aborts the context load with
-      # "invalid file request <path>". See the note in that script.
+      # This folder by default. If Docker aborts the context load with
+      # "invalid file request <path>", OneDrive is keeping these files as
+      # Files On-Demand placeholders, which Docker cannot read — point this at
+      # a plain copy of the project outside the sync root instead, e.g.
+      #   set HARMONY_BUILD_CONTEXT=%LOCALAPPDATA%\HarmonySuite\build-context
       context: ${HARMONY_BUILD_CONTEXT:-.}
       args:
         # Baked into the bundle at build time — see the Dockerfile. 127.0.0.1
