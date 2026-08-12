@@ -1,0 +1,55 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Local environment (contains the local Supabase keys)
+.env
+.env.local
+.env.*.local
+
+# Supabase CLI working state — never packaged or committed
+supabase/.temp
+supabase/.temp/
+supabase/.branches
+
+# Database backups and SQL dumps.
+# NOTE: supabase/migrations/*.sql is source and stays tracked; only dumps are
+# ignored. Database dumps belong in /backups — never delete that folder.
+/backups
+/backups/
+*.dump
+*.bak
+*.sql.gz
+*-data-*.sql
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp
+*~
+.cache
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript build-mode caches
+*.tsbuildinfo

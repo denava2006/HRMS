@@ -1,0 +1,22 @@
+project_id = "sariswift-offline"
+
+[auth]
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["http://127.0.0.1:8080", "http://localhost:8080/reset-password"]
+enable_signup = false
+
+[auth.email]
+# Self-service signup is closed by [auth] enable_signup = false above, which is
+# the global GOTRUE_DISABLE_SIGNUP switch. Do NOT close it here as well: this
+# key maps to GOTRUE_EXTERNAL_EMAIL_ENABLED, which turns the email provider off
+# entirely and makes every email/password LOGIN fail with
+# 422 email_provider_disabled. Staff accounts are still created only by an Admin
+# through the create-staff-user Edge Function.
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+deno_version = 2

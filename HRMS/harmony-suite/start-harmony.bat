@@ -10,6 +10,10 @@ REM ===================================================================
 setlocal
 cd /d "%~dp0"
 
+REM  %~dp0 keeps a trailing backslash, which robocopy will not accept.
+set "PROJECT_DIR=%~dp0"
+set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
+
 echo.
 echo  Harmony Suite HRMS
 echo  ==================
@@ -41,7 +45,28 @@ if errorlevel 1 (
 )
 
 REM --- The web app itself ---
+REM  This project lives inside OneDrive, which stores files as Files
+REM  On-Demand placeholders rather than ordinary files. Docker cannot read a
+REM  placeholder: it gives up loading the build context with "invalid file
+REM  request src/App.tsx". Copying the sources to a plain folder outside the
+REM  sync root turns them back into ordinary files, and OneDrive never
+REM  touches that copy. The copy is refreshed on every run, so it always
+REM  matches what is in this folder.
 echo  [3/3] Building and starting the web app...
+
+set "HARMONY_BUILD_CONTEXT=%LOCALAPPDATA%\HarmonySuite\build-context"
+
+robocopy "%PROJECT_DIR%" "%HARMONY_BUILD_CONTEXT%" /MIR /NFL /NDL /NJH /NJS /NP /XD node_modules dist dist-ssr .git .branches .temp /XF .env .env.local *.log >nul
+REM  robocopy uses 0-7 for success and 8+ for failure, unlike every other tool.
+if errorlevel 8 (
+  echo.
+  echo  [X] Could not prepare the build folder:
+  echo        %HARMONY_BUILD_CONTEXT%
+  echo.
+  pause
+  exit /b 1
+)
+
 docker compose up -d --build
 if errorlevel 1 (
   echo.

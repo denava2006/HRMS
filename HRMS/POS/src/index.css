@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Aldi/Kroger inspired: bright white surfaces, bold blue brand, vivid accents */
+    --background: 0 0% 98%;
+    --foreground: 220 30% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 12%;
+
+    /* SariSync brand blue #2563EB */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 217 100% 70%;
+    --brand-navy: 222 47% 20%;
+
+    --secondary: 210 30% 95%;
+    --secondary-foreground: 220 30% 15%;
+
+    --muted: 210 25% 94%;
+    --muted-foreground: 215 15% 45%;
+
+    /* Accent: SariSync green #22C55E */
+    --accent: 142 71% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Success: SariSync green */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning: amber for low stock */
+    --warning: 38 95% 50%;
+    --warning-foreground: 30 50% 12%;
+
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.875rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 100% 70%));
+    --gradient-accent: linear-gradient(135deg, hsl(142 71% 45%), hsl(160 75% 48%));
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(160 75% 48%));
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 20%) 0%, hsl(217 91% 60%) 100%);
+    --gradient-brand: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(142 71% 45%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(217 100% 98%) 0%, hsl(0 0% 100%) 100%);
+
+    --shadow-sm: 0 1px 2px hsl(217 30% 20% / 0.06);
+    --shadow-md: 0 4px 12px hsl(217 30% 20% / 0.08);
+    --shadow-lg: 0 12px 32px hsl(217 30% 20% / 0.12);
+    --shadow-pop: 0 8px 24px hsl(217 91% 60% / 0.22);
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.25);
+
+    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 30% 15%;
+    --sidebar-primary: 215 90% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 30% 95%;
+    --sidebar-accent-foreground: 220 30% 15%;
+    --sidebar-border: 215 20% 88%;
+    --sidebar-ring: 215 90% 32%;
+  }
+
+  /* Light theme only. The dark palette was removed with the theme switcher;
+     nothing adds the `dark` class, and Tailwind uses darkMode: ["class"], so
+     the operating system's dark preference cannot take effect. */
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer utilities {
+  .bg-gradient-primary { background: var(--gradient-primary); }
+  .bg-gradient-accent { background: var(--gradient-accent); }
+  .bg-gradient-success { background: var(--gradient-success); }
+  .bg-gradient-hero { background: var(--gradient-hero); }
+  .bg-gradient-brand { background: var(--gradient-brand); }
+  .bg-gradient-soft { background: var(--gradient-soft); }
+  .shadow-pop { box-shadow: var(--shadow-pop); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-card { box-shadow: var(--shadow-md); }
+  .shadow-elevated { box-shadow: var(--shadow-lg); }
+  .transition-base { transition: var(--transition-base); }
+}

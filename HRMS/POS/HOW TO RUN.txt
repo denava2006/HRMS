@@ -1,0 +1,422 @@
+SARISWIFT POS - OFFLINE DOCKER GUIDE
+===================================
+
+This version runs on your own Windows computer using Docker.
+After the first installation, Wi-Fi or internet is not required.
+
+
+WHAT YOU NEED
+-------------
+
+1. Windows 10 or Windows 11, 64-bit
+2. Docker Desktop
+3. Node.js 20 LTS
+4. At least 8 GB RAM is recommended
+5. Internet only for the FIRST setup, because Docker and npm must download files
+
+
+IMPORTANT
+---------
+
+- Do not run this system directly from inside the ZIP.
+- Extract the complete SariSwift-Offline folder first.
+- Do not delete Docker's SariSwift volumes; they contain your local data.
+- Do not use "npx supabase db reset" after entering real sales. It erases and
+  rebuilds the local database.
+- Do not expose ports 54321-54329 to the public internet. This local stack is
+  designed for use on your own computer or trusted private network.
+
+
+FIRST-TIME SETUP
+----------------
+
+1. Install Docker Desktop:
+   https://www.docker.com/products/docker-desktop/
+
+2. Install Node.js 20 LTS:
+   https://nodejs.org/
+
+3. Restart your computer after installing them.
+
+4. Open Docker Desktop and wait until it says Docker is running.
+
+5. Extract this ZIP to a normal folder, for example:
+   C:\SariSwift-Offline
+
+6. Open the extracted folder.
+
+7. Open PowerShell in this folder and run, in order:
+
+    npm install
+    npx supabase start
+
+   Keep your internet connected during the first run. The download may take
+   several minutes.
+
+8. Create the file .env.local in this folder. Read the two values with:
+
+    npx supabase status -o env
+
+   Then write them into .env.local exactly like this:
+
+    VITE_SUPABASE_URL=<the API_URL value>
+    VITE_SUPABASE_PUBLISHABLE_KEY=<the PUBLISHABLE_KEY value>
+
+   Save it as UTF-8 without BOM. These values do not change for a local
+   stack, so this is a one-time step.
+
+9. Start the website:
+
+    npm run dev
+
+   Then open http://localhost:8080. Leave this terminal open while using
+   the POS.
+
+10. Public account creation is disabled in the local Supabase configuration.
+    Managers and Cashiers are created by the Admin inside the app, under
+    Staff. There is no sign-up page, by design.
+
+11. Sign in with the Admin account issued for this installation.
+
+    The Admin email and password are handed over separately and are
+    deliberately not written down in this folder. If the password is lost,
+    use "Forgot password?" on the sign-in page, then open the local inbox
+    at http://localhost:54324 to read the reset link.
+
+
+EVERYDAY OFFLINE USE
+--------------------
+
+1. Open Docker Desktop.
+2. Wait until Docker is running.
+3. Open PowerShell in this folder and run:
+
+    npx supabase start
+    npm run dev
+
+4. Keep Docker Desktop and the terminal open.
+5. Use the POS at http://localhost:8080.
+
+Wi-Fi can be disconnected after the first setup is complete.
+
+
+HOW TO STOP
+-----------
+
+1. Finish the current transaction.
+2. Press Ctrl+C in the terminal running "npm run dev".
+3. In the same folder, run:
+
+    npx supabase stop
+
+4. You may close Docker Desktop afterward.
+
+The database is preserved and will be available the next time you start.
+Never add --no-backup to that command: it deletes the data volumes.
+
+
+HOW TO CREATE A BACKUP
+----------------------
+
+1. Make sure Docker and the local database are running.
+2. Open PowerShell in this folder and run:
+
+    npx supabase db dump --local --data-only --file backups/backup.sql
+
+   Rename the file with today's date so older backups are not overwritten.
+3. Open the "backups" folder.
+4. Copy the newest .sql file to a USB drive or another safe location.
+
+The SQL backup contains database records. Uploaded product and QR images remain
+inside Docker storage, so do not delete Docker's SariSwift volumes.
+
+
+ACCOUNT AND ROLE MANAGEMENT
+---------------------------
+
+- SariSwift uses exactly three active roles: Admin, Manager, and Cashier.
+- Existing store owners are migrated safely to Admin membership.
+- Admin creates Manager and Cashier accounts from Staff Management.
+- Do not create users or edit role rows manually in Supabase Studio.
+- The legacy owner enum value remains unused only for database compatibility.
+
+
+CATEGORY MANAGEMENT
+-------------------
+
+- Admin and Manager can open Categories from the navigation.
+- Product Add and Edit use a searchable category dropdown.
+- Cashier can filter POS products by active category but cannot modify them.
+- Archived categories stay attached to existing products and cannot be chosen
+  for new assignments.
+- General always remains active and cannot be deleted.
+- Manager can reassign products. Only Admin can permanently delete a
+  non-General category, with atomic reassignment when the category is in use.
+- The local demo seed adds General, Beverages, Coffee, Noodles, Snacks,
+  Personal Care, Household, Canned Goods, and Fresh Goods without wiping data.
+
+
+SELECTIVE CATEGORY REASSIGNMENT
+-------------------------------
+
+Moving products no longer means moving all of them.
+
+1. Open Categories and press "Reassign" on a category that has products.
+2. Choose the replacement category.
+3. Search the products in that category if the list is long.
+4. Tick the products you want to move. "Select All" ticks everything currently
+   shown; "Clear Selection" unticks everything.
+5. Check the selected count and the destination shown under the list.
+6. Press "Move N products".
+
+Only the ticked products move. The rest stay where they are. Categories,
+counts, POS, and Inventory update by themselves - do not press F5.
+
+The database checks all of this again, so a modified browser cannot bypass it:
+active Admin or Manager of that store only (Cashier is rejected), both
+categories must belong to the store, every selected product must still be in
+the source category, an empty selection is refused, and the move plus its audit
+entry happen together or not at all.
+
+
+PAYMENT REFERENCE RULES
+-----------------------
+
+Cash sales do not use a reference and are not affected.
+
+    GCash          numbers only, 6 to 32 characters
+    Maya           numbers only, 6 to 32 characters
+    Bank transfer  letters, numbers, spaces and hyphens, 6 to 64 characters
+
+The reference box blocks characters the chosen method does not allow, stops at
+the maximum length, shows a live counter, and explains exactly what is wrong.
+Spaces at the start and end are removed before the sale is sent.
+
+PostgreSQL checks the same rules during checkout, so the rules apply even if
+the browser is modified. References saved before this change are left exactly
+as they are.
+
+If a checkout fails, pressing Confirm Sale again is safe. As long as the cart,
+method, reference and cash amount are unchanged, the same sale is retried and
+cannot be recorded twice.
+
+
+STAFF PASSWORDS
+---------------
+
+- Both "Create Staff" and "Reset Temporary Password" have an eye button to show
+  or hide the password.
+- Passwords are hidden by default and are cleared when the dialog closes.
+- A password is never saved in the browser, never put in a link, and never
+  written into the audit log.
+- The audit log records only that an Admin reset a password, and only after the
+  password change actually succeeded.
+
+
+READING THE AUDIT LOG
+---------------------
+
+    Sale completed              A checkout finished.
+    Stock deducted by sale      Stock went down because of that sale.
+    Stock added by restock      Purchased inventory was received.
+    Stock adjusted manually     A person changed stock by hand.
+
+A normal sale is no longer shown as a manual stock adjustment. Older entries
+keep their original wording; nothing historical is rewritten.
+
+
+PRODUCT COST, CAPITAL, COGS, AND PROFIT
+---------------------------------------
+
+- Buying price means the current cost of one product unit.
+- Selling price means the amount charged to the customer for one unit.
+- Inventory capital is current stock multiplied by current unit cost.
+- Restock records the purchase quantity and purchase unit cost, then calculates
+  a weighted-average unit cost atomically.
+- COGS is quantity sold multiplied by the trusted unit-cost snapshot.
+- Gross profit is net sales minus COGS.
+- Net profit is gross profit minus supported store-paid deductions.
+- Customer change is not revenue.
+- Configured checkout fees are currently paid by the customer and are not
+  deducted from profit twice.
+- Old transactions retain an estimated historical cost reconstructed from
+  their previously stored selling price and profit. New transactions store
+  trusted cost snapshots during checkout.
+- Admin and Manager can view costs, capital, movements, COGS, and profit.
+- Cashiers cannot query or view those cost-bearing fields.
+- Inventory capital is not a cash wallet. Selling inventory moves its cost from
+  inventory capital into COGS; it does not deduct a manual capital balance.
+- Refunds and voids are not implemented in this phase.
+
+DATABASE MIGRATIONS
+-------------------
+
+Migrations only move forward. An applied migration is never edited. A fix is
+always a new file with a later date in its name.
+
+ALL MIGRATIONS ARE APPLIED, up to and including:
+
+    supabase/migrations/20260801010000_payment_reference_and_audit_clarity.sql
+
+Nothing is pending. You can confirm this any time with:
+
+    npx supabase migration list --local
+
+The two newest ones added:
+    20260801000000  the "move only the selected products" function, with all
+                    of its role, store, category and selection checks.
+    20260801010000  payment-reference checking inside the database at checkout,
+                    and audit entries that say whether stock changed because of
+                    a sale, a restock, or a manual adjustment.
+
+WHEN A FUTURE MIGRATION ARRIVES:
+
+1. Close the POS browser tabs.
+2. Make a backup (see HOW TO CREATE A BACKUP) and copy the "backups" folder
+   to a USB drive.
+3. Start the system: npx supabase start, then npm run dev.
+4. Open PowerShell in this project folder and run:
+
+    npx supabase migration list --local
+    npx supabase migration up --local
+
+5. Regenerate the database types. IMPORTANT: use the command below exactly.
+   Using ">" instead writes the wrong text encoding and breaks the file.
+
+    npx supabase gen types typescript --local |
+      Out-File -Encoding utf8 src/integrations/supabase/types.ts
+
+6. Close and restart SariSwift, then sign in again.
+
+Do not run "npx supabase db reset". Do not delete backups. Do not delete
+Docker containers or volumes.
+
+
+LOCAL ADDRESSES
+---------------
+
+POS website:       http://localhost:8080
+Supabase Studio:   http://localhost:54323
+Supabase API:      http://127.0.0.1:54321
+Local email inbox: http://localhost:54324
+
+
+TROUBLESHOOTING
+---------------
+
+"Docker is not running"
+Open Docker Desktop and wait until it is completely ready.
+
+"Port is already in use"
+Close other development programs using ports 8080 or 54321-54329. Then run
+npx supabase stop followed by npx supabase start.
+
+"npx or npm is not recognized"
+Install Node.js 20 LTS and restart Windows.
+
+"The page cannot be reached"
+Keep the website terminal open. Try http://127.0.0.1:8080.
+
+"Staff service is unavailable" / 503 on Staff Management
+The Edge Functions container is not running. Docker creates it WITHOUT an
+automatic restart policy, so a Docker Desktop restart, a Windows update, or
+waking the computer from sleep leaves it stopped while every other container
+comes back. Nothing is wrong with your data. Run:
+
+    npx supabase start
+
+To confirm it is running:
+
+    docker ps --filter name=edge_runtime
+
+To stop it happening again on this computer, give the container a restart
+policy once:
+
+    docker update --restart unless-stopped supabase_edge_runtime_sariswift-offline
+
+"Local Supabase is not configured"
+.env.local is missing or empty. Run npx supabase start, then rebuild the file
+from npx supabase status -o env as shown in step 8 of the setup.
+
+"Unexpected character in .env.local"
+The file was saved with the wrong text encoding. Delete it and write it again
+as UTF-8 without BOM. In PowerShell:
+
+    npx supabase status -o env | Select-String "^(API_URL|PUBLISHABLE_KEY)="
+
+"The first setup fails without internet"
+Reconnect temporarily. The first setup must download npm packages and Docker
+images. After it completes successfully, normal use can be offline.
+
+"I forgot my password"
+Open http://localhost:54324 after requesting a password reset. This is the
+local email inbox provided by Supabase.
+
+"A page shows a red error box instead of a list"
+That is deliberate. A connection, permission, or database problem is never
+shown as an empty list or zero sales, because that would look like a quiet day.
+Press "Try again". If it keeps failing, check Docker Desktop is running.
+
+"A GCash reference must be 6-32 digits"
+The reference does not match the rule for the payment method you picked. See
+PAYMENT REFERENCE RULES above.
+
+"Only 3 of the 5 selected products are still in this category"
+Someone moved, archived, or deleted one of the ticked products while the window
+was open. Nothing was moved. Close the window, let the list refresh, try again.
+
+"Stock changed while I had the edit window open"
+Normal - it usually means a sale went through. The window shows the live stock.
+Saving it only changes name, category, image and prices; it never writes stock.
+Use Restock or Adjust Stock for stock changes.
+
+"The types file looks like strange symbols"
+It was saved in the wrong encoding. Regenerate it using the Out-File command in
+DATABASE MIGRATIONS above.
+
+
+ROLE AND SECURITY NOTES
+-----------------------
+
+- Admin: everything for the assigned store, including Staff and Audit Logs.
+- Manager: inventory, categories, transactions, reports, profit, and
+  operational audit records.
+- Cashier: POS and their own transactions only. Cashiers never receive buying
+  prices, costs, COGS, gross profit, or net profit from the database.
+- Permissions are enforced by the database (Row Level Security and security
+  definer functions), not just by hiding buttons.
+- Every checkout, restock, adjustment, and category move records who did it.
+- The service-role key never reaches the browser. Staff creation and password
+  resets run in local Edge Functions.
+- Reprinted receipts always name the person who originally processed the sale.
+  An Admin or Manager reprinting a Cashier's sale is never shown as the
+  cashier. Missing attribution shows "Legacy/Unknown".
+- Stock can only be changed through Restock and Adjust Stock. A database
+  trigger blocks direct stock edits, including from the product edit window.
+
+
+SAFE PACKAGING
+--------------
+
+When zipping this folder to give to someone else, leave out:
+
+    node_modules        (reinstalled automatically)
+    dist                (rebuilt automatically)
+    .env.local          (rebuilt from npx supabase status -o env)
+    supabase/.temp      (Supabase CLI working files)
+    backups             (contains your real business data)
+    any *.sql dump, log, or temporary file
+
+Always keep supabase/migrations - those files are part of the program.
+
+This system does not deploy anywhere and does not send data to any website.
+
+
+DATA SAFETY
+-----------
+
+- Make a backup regularly, and always before applying a migration.
+- Keep copies on a USB drive.
+- Never delete the backups folder or old backup files.
+- Never uninstall Docker or delete Docker volumes without making a backup.
+- Never run "npx supabase db reset" on a database containing real transactions.

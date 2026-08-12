@@ -11,7 +11,11 @@
 services:
   web:
     build:
-      context: .
+      # Normally this folder. start-harmony.bat overrides it with a staging copy
+      # outside the OneDrive sync root: Docker cannot read files that OneDrive
+      # keeps as Files On-Demand placeholders and aborts the context load with
+      # "invalid file request <path>". See the note in that script.
+      context: ${HARMONY_BUILD_CONTEXT:-.}
       args:
         # Baked into the bundle at build time — see the Dockerfile. 127.0.0.1
         # is correct for browsing on this machine; to reach the app from a phone
