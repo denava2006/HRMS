@@ -1,0 +1,188 @@
+import { NavLink } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  ScrollText,
+  Users,
+  Briefcase,
+  ClipboardList,
+  CalendarSearch,
+  Truck,
+  Building2,
+  Layers,
+  DollarSign,
+  Settings,
+  ShieldCheck,
+  CalendarClock,
+  CalendarCheck,
+  Wallet,
+  FileBarChart,
+  MapPin,
+  ClipboardCheck,
+  Store,
+  Receipt,
+  Package,
+  Tags,
+  Boxes,
+  ShoppingCart,
+  Receipt as ReceiptIcon,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { canAccessModule } from '@/lib/roles'
+import { HarmonyWordmark } from '@/components/Logo'
+
+export interface NavItem {
+  label: string
+  to: string
+  icon: React.ComponentType<{ className?: string }>
+  disabled?: boolean
+}
+
+const mainNav: NavItem[] = [
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+  { label: 'Job Posting', to: '/dashboard/job-postings', icon: Briefcase },
+  { label: 'Recruitment', to: '/dashboard/recruitment', icon: ClipboardList },
+  { label: 'Interview Management', to: '/dashboard/interviews', icon: CalendarSearch },
+  { label: 'Deployment', to: '/dashboard/deployment', icon: Truck },
+  { label: 'Employees', to: '/dashboard/employees', icon: Users },
+  { label: 'Attendance', to: '/dashboard/attendance', icon: CalendarClock },
+  { label: 'Leave', to: '/dashboard/leave', icon: CalendarCheck },
+  { label: 'Payroll', to: '/dashboard/payroll', icon: Wallet },
+  { label: 'Reports', to: '/dashboard/reports', icon: FileBarChart },
+]
+
+// The Employee Portal is a much smaller, self-service-only slice of the same
+// app -- its own nav array (rather than filtering mainNav) since the route
+// targets are entirely different pages from the HR/Admin ones of the same name.
+const employeeNav: NavItem[] = [
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+  { label: 'Attendance', to: '/dashboard/my-attendance', icon: CalendarClock },
+  { label: 'Leave', to: '/dashboard/my-leave', icon: CalendarCheck },
+  { label: 'Payroll', to: '/dashboard/my-payroll', icon: Wallet },
+]
+
+// Reference data every HR role can reach. What each may actually *do* there
+// differs by role (staff prepares change requests, manager approves, salary
+// grades are manager-only) and is enforced in RLS — see
+// 20260729070000_reference_data_approval_workflow.sql.
+const referenceNav: NavItem[] = [
+  { label: 'Departments', to: '/dashboard/admin/departments', icon: Building2 },
+  { label: 'Positions', to: '/dashboard/admin/positions', icon: Layers },
+  { label: 'Salary Grades', to: '/dashboard/admin/salary-grades', icon: DollarSign },
+  { label: 'Work Schedules', to: '/dashboard/admin/work-schedules', icon: CalendarClock },
+  { label: 'Approvals', to: '/dashboard/admin/approvals', icon: ClipboardCheck },
+]
+
+// Genuinely Administrator-only.
+const adminNav: NavItem[] = [
+  { label: 'HR Accounts', to: '/dashboard/admin/accounts', icon: ShieldCheck },
+  { label: 'Branches', to: '/dashboard/admin/branches', icon: MapPin },
+  { label: 'Settings', to: '/dashboard/admin/settings', icon: Settings },
+]
+
+// The POS modules an Administrator owns, grouped so they read as one subsystem
+// inside the parent system rather than as a second application.
+//
+// An Administrator never leaves this layout. They administer HRMS/JMAC, and the
+// POS is part of it -- switching to the POS workspace would hide HR from the
+// person responsible for it. The first entry is the selling screen itself: the
+// same PosTillPage a cashier uses, rendered here so an Administrator can work a
+// till without stepping out of the back office.
+//
+// Audit Logs belong in this group eventually. POS Reports is deliberately
+// distinct from the existing HR Reports module above.
+const posAdminNav: NavItem[] = [
+  { label: 'POS', to: '/dashboard/admin/pos', icon: ShoppingCart },
+  // Granting till access is account administration, so it belongs here rather
+  // than in the POS sidebar, which is the cashier's working set.
+  { label: 'POS Access', to: '/dashboard/admin/pos-access', icon: Store },
+  { label: 'Products', to: '/dashboard/admin/pos-products', icon: Package },
+  { label: 'Categories', to: '/dashboard/admin/pos-categories', icon: Tags },
+  { label: 'Inventory', to: '/dashboard/admin/pos-inventory', icon: Boxes },
+  { label: 'Transactions', to: '/dashboard/admin/pos-transactions', icon: ReceiptIcon },
+  { label: 'POS Reports', to: '/dashboard/admin/pos-reports', icon: FileBarChart },
+  // Fees and the payment QR, per branch. Its own item rather than a section of
+  // Settings: that page is system-wide, this is per-branch trading config.
+  { label: 'POS Audit Logs', to: '/dashboard/admin/pos-audit-logs', icon: ScrollText },
+  { label: 'POS Settings', to: '/dashboard/admin/pos-settings', icon: Receipt },
+]
+
+/** Shared with the POS sidebar so both portals render navigation identically. */
+export function NavRow({ item, end }: { item: NavItem; end?: boolean }) {
+  const Icon = item.icon
+  if (item.disabled) {
+    return (
+      <div className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/50">
+        <Icon className="h-4 w-4" />
+        {item.label}
+        <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium">Soon</span>
+      </div>
+    )
+  }
+  return (
+    <NavLink
+      to={item.to}
+      end={end ?? item.to === '/dashboard'}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground hover:bg-muted'
+        )
+      }
+    >
+      <Icon className="h-4 w-4" />
+      {item.label}
+    </NavLink>
+  )
+}
+
+export function Sidebar() {
+  const { profile } = useAuth()
+  const visibleMainNav =
+    profile?.role === 'employee' ? employeeNav : mainNav.filter((item) => canAccessModule(profile?.role, item.to))
+
+  return (
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex print:hidden">
+      <div className="flex h-16 items-center border-b border-border px-5">
+        <HarmonyWordmark className="h-7" />
+      </div>
+
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+        {visibleMainNav.map((item) => (
+          <NavRow key={item.to} item={item} />
+        ))}
+
+        {profile?.role !== 'employee' && (
+          <>
+            <p className="mb-1 mt-5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Reference Data
+            </p>
+            {referenceNav
+              .filter((item) => canAccessModule(profile?.role, item.to))
+              .map((item) => (
+                <NavRow key={item.to} item={item} />
+              ))}
+          </>
+        )}
+
+        {profile?.role === 'admin' && (
+          <>
+            <p className="mb-1 mt-5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Administration
+            </p>
+            {adminNav.map((item) => (
+              <NavRow key={item.to} item={item} />
+            ))}
+
+            <p className="mb-1 mt-5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              POS Management
+            </p>
+            {posAdminNav.map((item) => (
+              <NavRow key={item.to} item={item} />
+            ))}
+          </>
+        )}
+      </nav>
+    </aside>
+  )
+}

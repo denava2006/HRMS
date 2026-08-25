@@ -1,0 +1,220 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import type { UserRole } from '@/lib/enums'
+import type { Branch } from '@/hooks/useBranches'
+import type { Movement } from '@/hooks/usePosInventory'
+import type { InventoryRow } from '@/lib/posInventory'
+
+/**
+ * Branch stock, as POS staff see it.
+ *
+ * Two claims worth pinning: nothing on this page can show cost, because the
+ * RPCs behind it declare no cost column; and the only write it offers is the
+ * low-stock level, because receiving and adjusting are Administrator-only in
+ * this phase.
+ */
+
+const BRANCH_A = 'b1'
+const BRANCH_B = 'b2'
+
+const branches: Branch[] = [
+  { id: BRANCH_A, name: 'Main Office', address: null, phone: null, is_active: true, created_at: '', updated_at: '' },
+  { id: BRANCH_B, name: 'Cavite Branch', address: null, phone: null, is_active: true, created_at: '', updated_at: '' },
+]
+
+const state: {
+  role: UserRole
+  posRole: 'manager' | 'cashier'
+  branchIds: string[]
+  rows: InventoryRow[]
+  movements: Movement[]
+} = { role: 'employee', posRole: 'manager', branchIds: [BRANCH_A], rows: [], movements: [] }
+
+const setThreshold = vi.fn()
+
+function row(overrides: Partial<InventoryRow> = {}): InventoryRow {
+  return {
+    product_id: 'p1',
+    product_name: 'Cola 1.5L',
+    category_name: 'Drinks',
+    quantity_on_hand: 12,
+    low_stock_threshold: 5,
+    is_low_stock: false,
+    is_available: true,
+    product_status: 'active',
+    ...overrides,
+  }
+}
+
+const setAvailability = vi.fn()
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    profile: { id: 'u1', role: state.role },
+    posAccess: {
+      hasAccess: true,
+      branchIds: state.branchIds,
+      // (branch, role) pairs: the offered switch belongs only to a branch this
+      // account actually manages.
+      assignments: state.branchIds.map((branchId) => ({ branchId, role: state.posRole })),
+    },
+  }),
+}))
+
+vi.mock('@/hooks/usePosCatalogue', () => ({
+  useSetBranchAvailability: () => ({ mutate: setAvailability, isPending: false }),
+}))
+
+vi.mock('@/hooks/useBranches', () => ({
+  useBranches: () => ({ data: branches, isLoading: false }),
+}))
+
+vi.mock('@/hooks/usePosInventory', () => ({
+  useBranchInventory: () => ({ data: state.rows, isLoading: false }),
+  useBranchMovements: (_b: string | undefined, enabled: boolean) => ({
+    data: enabled ? state.movements : [],
+    isLoading: false,
+  }),
+  useSetLowStockThreshold: () => ({ mutate: setThreshold, isPending: false }),
+}))
+
+const { default: PosStockPage } = await import('@/pages/pos/PosStockPage')
+
+afterEach(() => {
+  cleanup()
+  state.role = 'employee'
+  state.posRole = 'manager'
+  state.branchIds = [BRANCH_A]
+  state.rows = []
+  state.movements = []
+  setThreshold.mockReset()
+  setAvailability.mockReset()
+})
+
+describe('what a POS manager sees', () => {
+  it('shows quantity and the low-stock level', () => {
+    state.rows = [row()]
+    render(<PosStockPage />)
+
+    expect(screen.getByText('Cola 1.5L')).toBeTruthy()
+    expect(screen.getByText('12')).toBeTruthy()
+    expect((screen.getByLabelText('Low-stock level for Cola 1.5L') as HTMLInputElement).value).toBe('5')
+  })
+
+  it('shows no cost of any kind', () => {
+    state.rows = [row()]
+    state.movements = [
+      {
+        id: 'm1',
+        product_id: 'p1',
+        product_name: 'Cola 1.5L',
+        movement_type: 'receipt',
+        quantity_change: 12,
+        stock_before: 0,
+        stock_after: 12,
+        source_type: 'manual_receiving',
+        notes: null,
+        actor_name: 'Administrator',
+        created_at: '2026-08-25T00:00:00Z',
+      },
+    ]
+    const { container } = render(<PosStockPage />)
+    fireEvent.click(screen.getByRole('button', { name: /History/ }))
+
+    const text = container.textContent ?? ''
+    expect(text).not.toMatch(/cost/i)
+    expect(text).not.toMatch(/margin/i)
+    expect(text).not.toMatch(/COGS/i)
+    expect(text).not.toMatch(/₱/)
+  })
+
+  it('says receiving and adjusting belong to an Administrator', () => {
+    state.rows = [row()]
+    render(<PosStockPage />)
+    expect(screen.getByText(/done by an Administrator/)).toBeTruthy()
+  })
+
+  it('offers no way to receive or adjust', () => {
+    state.rows = [row()]
+    render(<PosStockPage />)
+    expect(screen.queryByRole('button', { name: /Receive/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Adjust/ })).toBeNull()
+  })
+
+  it('saves a changed low-stock level', () => {
+    state.rows = [row({ low_stock_threshold: 5 })]
+    render(<PosStockPage />)
+
+    const field = screen.getByLabelText('Low-stock level for Cola 1.5L')
+    fireEvent.change(field, { target: { value: '20' } })
+    fireEvent.blur(field)
+
+    expect(setThreshold).toHaveBeenCalledWith({ branchId: BRANCH_A, productId: 'p1', threshold: 20 })
+  })
+
+  it('lets a manager stop and resume offering a product at their branch', () => {
+    // This moved here from the old Catalogue page: Inventory is already the
+    // branch's operational product surface, so two screens listing the same
+    // products invited the question of which one was authoritative.
+    state.rows = [row({ is_available: true })]
+    render(<PosStockPage />)
+
+    const toggle = screen.getByRole('switch', { name: 'Offer Cola 1.5L at this branch' })
+    fireEvent.click(toggle)
+    expect(setAvailability).toHaveBeenCalledWith({
+      branchId: BRANCH_A,
+      productId: 'p1',
+      isAvailable: false,
+    })
+  })
+
+  it('marks a stopped product', () => {
+    state.rows = [row({ is_available: false })]
+    render(<PosStockPage />)
+    expect(screen.getByText('Stopped')).toBeTruthy()
+  })
+
+  it('will not offer a product that is not active enterprise-wide', () => {
+    state.rows = [row({ product_status: 'archived' })]
+    render(<PosStockPage />)
+    const toggle = screen.getByRole('switch', { name: 'Offer Cola 1.5L at this branch' })
+    expect((toggle as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText('Not active enterprise-wide')).toBeTruthy()
+  })
+})
+
+describe('what a cashier sees', () => {
+  it('is pointed at the POS screen rather than shown an empty table', () => {
+    // get_branch_inventory is manager-gated, so a cashier receives no rows at
+    // all. Explaining that is better than an empty grid that looks broken.
+    // (A cashier has no nav item for this page either -- this is the
+    // typed-the-URL case.)
+    state.rows = []
+    render(<PosStockPage />)
+
+    expect(screen.getByText(/shown on the POS screen/)).toBeTruthy()
+    expect(screen.queryByText('Cola 1.5L')).toBeNull()
+  })
+})
+
+describe('branch scoping', () => {
+  it('offers no picker for a single assignment', () => {
+    state.rows = [row()]
+    render(<PosStockPage />)
+    expect(screen.queryByLabelText('Branch')).toBeNull()
+  })
+
+  it('gives an administrator every active branch', () => {
+    state.role = 'admin'
+    state.branchIds = []
+    state.rows = [row()]
+    render(<PosStockPage />)
+    expect(screen.getByLabelText('Branch')).toBeTruthy()
+  })
+
+  it('says so when the account is assigned to no branch', () => {
+    state.branchIds = []
+    render(<PosStockPage />)
+    expect(screen.getByText(/not assigned to a branch/)).toBeTruthy()
+  })
+})

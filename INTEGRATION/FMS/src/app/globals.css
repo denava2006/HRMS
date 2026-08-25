@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --muted: 215 16% 47%;
+  --border: 214 32% 91%;
+}
+
+.dark {
+  --background: 222 47% 8%;
+  --foreground: 210 40% 96%;
+  --card: 222 40% 12%;
+  --muted: 215 20% 65%;
+  --border: 217 33% 20%;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card used throughout the dashboard. */
+  .glass-card {
+    @apply rounded-2xl border border-white/40 bg-white/70 shadow-glass backdrop-blur-md
+           dark:border-white/10 dark:bg-slate-900/50;
+  }
+  .glass-panel {
+    @apply rounded-2xl border border-white/40 bg-white/60 backdrop-blur-md
+           dark:border-white/10 dark:bg-slate-900/40;
+  }
+  .stat-value {
+    @apply text-2xl font-semibold tracking-tight sm:text-3xl;
+  }
+}
+
+/* Ambient gradient backdrop behind the glass cards. */
+.app-backdrop {
+  background-image:
+    radial-gradient(60rem 60rem at 110% -10%, rgba(16, 185, 129, 0.10), transparent 55%),
+    radial-gradient(50rem 50rem at -10% 10%, rgba(37, 99, 235, 0.12), transparent 55%);
+}
+.dark .app-backdrop {
+  background-image:
+    radial-gradient(60rem 60rem at 110% -10%, rgba(16, 185, 129, 0.14), transparent 55%),
+    radial-gradient(50rem 50rem at -10% 10%, rgba(37, 99, 235, 0.16), transparent 55%);
+}
+
+/* Slim scrollbar for the sidebar and scroll areas. */
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+}

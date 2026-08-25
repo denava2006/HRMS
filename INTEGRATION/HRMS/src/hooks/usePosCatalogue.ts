@@ -1,0 +1,457 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { toast } from '@/components/ui/sonner'
+import type { PosProductStatus } from '@/lib/enums'
+import {
+  describeCatalogueError,
+  productImagePath,
+  type BranchProduct,
+  type Category,
+  type Product,
+} from '@/lib/posCatalogue'
+
+/**
+ * The POS catalogue.
+ *
+ * Two audiences, two paths:
+ *
+ *   Administration  reads pos_products / pos_product_categories directly. RLS
+ *                   on both is is_admin(), so nobody else gets a row.
+ *   POS portal      reads get_pos_catalogue() / get_pos_categories(), SECURITY
+ *                   DEFINER RPCs that return only what a till needs and never
+ *                   select a cost column.
+ *
+ * The split is deliberate: a table policy that permitted POS staff to SELECT
+ * would leave cost one careless `select *` away. Not exposing the table is a
+ * stronger guarantee than trusting every future query's column list.
+ */
+
+export const PRODUCT_IMAGE_BUCKET = 'pos-product-images'
+
+/** Product images are not credentials, and a catalogue page renders many at
+ * once, so they get a longer signature than the payment QR's five minutes. */
+const IMAGE_URL_TTL_SECONDS = 3600
+
+const CATEGORIES_KEY = ['pos-categories']
+const PRODUCTS_KEY = ['pos-products']
+const BRANCH_PRODUCTS_KEY = ['pos-branch-products']
+const POS_CATALOGUE_KEY = ['pos-catalogue']
+
+/* ------------------------------------------------------------------ admin */
+
+export function usePosCategories() {
+  return useQuery({
+    queryKey: CATEGORIES_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pos_product_categories')
+        .select('id, name, normalized_name, description, color, icon, is_active, sort_order')
+        .order('sort_order')
+        .order('name')
+      if (error) throw error
+      return data as unknown as Category[]
+    },
+  })
+}
+
+export function usePosProducts() {
+  return useQuery({
+    queryKey: PRODUCTS_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pos_products')
+        .select('id, name, category_id, default_selling_price, default_unit_cost, image_path, status')
+        .order('name')
+      if (error) throw error
+      return data as unknown as Product[]
+    },
+  })
+}
+
+/** Every branch catalogue row the caller may read. An Administrator sees all
+ * branches; a POS Manager or cashier sees only branches they are assigned to. */
+export function useBranchProducts() {
+  return useQuery({
+    queryKey: BRANCH_PRODUCTS_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pos_branch_products')
+        .select('branch_id, product_id, is_available, selling_price_override')
+      if (error) throw error
+      return data as unknown as BranchProduct[]
+    },
+  })
+}
+
+/* ------------------------------------------------------------- POS portal */
+
+export interface CatalogueRow {
+  product_id: string
+  name: string
+  category_id: string
+  category_name: string
+  selling_price: number
+  image_path: string | null
+  /** Named for the contract, not the storage column: Phase 5 can subtract
+   * reservations without every caller changing. */
+  available_quantity: number
+  /** Computed server-side, so the numeric threshold never reaches a till. */
+  is_low_stock: boolean
+}
+
+export interface ManagedCatalogueRow extends CatalogueRow {
+  is_available: boolean
+  product_status: PosProductStatus
+}
+
+/**
+ * Everything a branch carries, paused entries included, for the POS Manager who
+ * administers availability. Manager-only in the database; a cashier calling it
+ * gets an empty set.
+ */
+export function useBranchCatalogueManagement(branchId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: [...POS_CATALOGUE_KEY, 'managed', branchId ?? 'none'],
+    enabled: !!branchId && enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_branch_catalogue_management', {
+        _branch_id: branchId!,
+      })
+      if (error) throw error
+      return (data ?? []) as unknown as ManagedCatalogueRow[]
+    },
+  })
+}
+
+/** What a till may see at a branch. No cost, by construction. */
+export function usePosCatalogue(branchId: string | undefined) {
+  return useQuery({
+    queryKey: [...POS_CATALOGUE_KEY, branchId ?? 'none'],
+    enabled: !!branchId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_pos_catalogue', { _branch_id: branchId! })
+      if (error) throw error
+      return (data ?? []) as unknown as CatalogueRow[]
+    },
+  })
+}
+
+/* --------------------------------------------------------------- images */
+
+/**
+ * Signed URLs for a page's worth of product images, in one round trip.
+ *
+ * `createSignedUrls` batches; signing each image separately would be one
+ * request per row. Missing or unreadable paths resolve to null rather than
+ * failing the page -- a broken image is better than a blank catalogue.
+ */
+export function useProductImageUrls(paths: (string | null | undefined)[]) {
+  const wanted = Array.from(new Set(paths.filter((p): p is string => !!p))).sort()
+  return useQuery({
+    queryKey: ['pos-product-images', wanted.join('|')],
+    enabled: wanted.length > 0,
+    staleTime: (IMAGE_URL_TTL_SECONDS - 120) * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from(PRODUCT_IMAGE_BUCKET)
+        .createSignedUrls(wanted, IMAGE_URL_TTL_SECONDS)
+      if (error) throw error
+      const map: Record<string, string> = {}
+      for (const entry of data ?? []) {
+        if (entry.path && entry.signedUrl) map[entry.path] = entry.signedUrl
+      }
+      return map
+    },
+  })
+}
+
+/* ------------------------------------------------------------ mutations */
+
+function useInvalidateCatalogue() {
+  const queryClient = useQueryClient()
+  return () => {
+    queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY })
+    queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY })
+    queryClient.invalidateQueries({ queryKey: BRANCH_PRODUCTS_KEY })
+    queryClient.invalidateQueries({ queryKey: POS_CATALOGUE_KEY })
+  }
+}
+
+export interface SaveCategoryInput {
+  id?: string
+  name: string
+  description?: string
+  color?: string
+}
+
+export function useSaveCategory() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({ id, name, description, color }: SaveCategoryInput) => {
+      const payload = {
+        name: name.trim(),
+        description: description?.trim() || null,
+        color: color?.trim() || null,
+      }
+      const { error } = id
+        ? await supabase.from('pos_product_categories').update(payload).eq('id', id)
+        : await supabase.from('pos_product_categories').insert(payload)
+      if (error) throw new Error(describeCatalogueError(error))
+      return !!id
+    },
+    onSuccess: (wasUpdate) => {
+      invalidate()
+      toast.success(wasUpdate ? 'Category updated' : 'Category added')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useSetCategoryActive() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const { error } = await supabase
+        .from('pos_product_categories')
+        .update({ is_active: isActive })
+        .eq('id', id)
+      if (error) throw new Error(describeCatalogueError(error))
+      return isActive
+    },
+    onSuccess: (isActive) => {
+      invalidate()
+      toast.success(isActive ? 'Category restored' : 'Category archived')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+/** Deleting needs somewhere for the category's products to go: category_id is
+ * NOT NULL, so the RPC refuses without a replacement. */
+export function useDeleteCategory() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({ id, replacementId }: { id: string; replacementId: string | null }) => {
+      const { error } = await supabase.rpc('delete_pos_category', {
+        _category_id: id,
+        // The generated type models the defaulted argument as optional, not
+        // nullable. Omitting it lets the SQL default (null) apply, which is the
+        // same "no replacement" the RPC checks for.
+        _replacement_id: replacementId ?? undefined,
+      })
+      if (error) throw new Error(describeCatalogueError(error))
+    },
+    onSuccess: () => {
+      invalidate()
+      toast.success('Category deleted')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useReorderCategory() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({ id, direction }: { id: string; direction: -1 | 1 }) => {
+      const { error } = await supabase.rpc('reorder_pos_category', {
+        _category_id: id,
+        _direction: direction,
+      })
+      if (error) throw new Error(describeCatalogueError(error))
+    },
+    onSuccess: () => invalidate(),
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export interface SaveProductInput {
+  id?: string
+  name: string
+  categoryId: string
+  sellingPrice: number
+  unitCost: number
+  status: PosProductStatus
+}
+
+export function useSaveProduct() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({ id, name, categoryId, sellingPrice, unitCost, status }: SaveProductInput) => {
+      const payload = {
+        name: name.trim(),
+        category_id: categoryId,
+        default_selling_price: sellingPrice,
+        default_unit_cost: unitCost,
+        status,
+      }
+      const { error } = id
+        ? await supabase.from('pos_products').update(payload).eq('id', id)
+        : await supabase.from('pos_products').insert(payload)
+      if (error) throw new Error(describeCatalogueError(error))
+      return !!id
+    },
+    onSuccess: (wasUpdate) => {
+      invalidate()
+      toast.success(wasUpdate ? 'Product updated' : 'Product added')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useUploadProductImage() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({
+      productId,
+      file,
+      previousPath,
+    }: {
+      productId: string
+      file: File
+      previousPath: string | null
+    }) => {
+      if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.')
+      if (file.size > 5 * 1024 * 1024) throw new Error('The image must be under 5MB.')
+
+      const path = productImagePath(productId, file.name)
+      const { error: uploadError } = await supabase.storage
+        .from(PRODUCT_IMAGE_BUCKET)
+        .upload(path, file)
+      if (uploadError) throw new Error(describeCatalogueError(uploadError))
+
+      const { error } = await supabase
+        .from('pos_products')
+        .update({ image_path: path })
+        .eq('id', productId)
+      if (error) {
+        // The row is the record of truth. If it could not be written, the object
+        // just uploaded is unreferenced -- remove it rather than leaving a file
+        // nothing points at.
+        await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([path])
+        throw new Error(describeCatalogueError(error))
+      }
+
+      if (previousPath && previousPath !== path) {
+        await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([previousPath])
+      }
+    },
+    onSuccess: () => {
+      invalidate()
+      toast.success('Product image updated')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export function useRemoveProductImage() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({ productId, path }: { productId: string; path: string }) => {
+      const { error } = await supabase
+        .from('pos_products')
+        .update({ image_path: null })
+        .eq('id', productId)
+      if (error) throw new Error(describeCatalogueError(error))
+      await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([path])
+    },
+    onSuccess: () => {
+      invalidate()
+      toast.success('Product image removed')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+/** Administrator only: deciding that a branch carries a product at all. */
+export function useSetBranchCarries() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({
+      branchId,
+      productId,
+      carries,
+    }: {
+      branchId: string
+      productId: string
+      carries: boolean
+    }) => {
+      const { error } = carries
+        ? await supabase
+            .from('pos_branch_products')
+            .upsert({ branch_id: branchId, product_id: productId }, { onConflict: 'branch_id,product_id' })
+        : await supabase
+            .from('pos_branch_products')
+            .delete()
+            .eq('branch_id', branchId)
+            .eq('product_id', productId)
+      if (error) throw new Error(describeCatalogueError(error))
+      return carries
+    },
+    onSuccess: (carries) => {
+      invalidate()
+      toast.success(carries ? 'Added to the branch' : 'Removed from the branch')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+/**
+ * The one write a POS Manager holds: whether their branch is currently
+ * offering a product it already carries. The trigger on pos_branch_products
+ * refuses anything else they might send.
+ */
+export function useSetBranchAvailability() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({
+      branchId,
+      productId,
+      isAvailable,
+    }: {
+      branchId: string
+      productId: string
+      isAvailable: boolean
+    }) => {
+      const { error } = await supabase
+        .from('pos_branch_products')
+        .update({ is_available: isAvailable })
+        .eq('branch_id', branchId)
+        .eq('product_id', productId)
+      if (error) throw new Error(describeCatalogueError(error))
+      return isAvailable
+    },
+    onSuccess: (isAvailable) => {
+      invalidate()
+      toast.success(isAvailable ? 'Available at this branch' : 'Paused at this branch')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+/** Administrator only: a branch-specific price. */
+export function useSetBranchPrice() {
+  const invalidate = useInvalidateCatalogue()
+  return useMutation({
+    mutationFn: async ({
+      branchId,
+      productId,
+      price,
+    }: {
+      branchId: string
+      productId: string
+      price: number | null
+    }) => {
+      const { error } = await supabase
+        .from('pos_branch_products')
+        .update({ selling_price_override: price })
+        .eq('branch_id', branchId)
+        .eq('product_id', productId)
+      if (error) throw new Error(describeCatalogueError(error))
+    },
+    onSuccess: () => {
+      invalidate()
+      toast.success('Branch price updated')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
